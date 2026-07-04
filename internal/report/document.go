@@ -1,0 +1,29 @@
+package report
+
+import "github.com/leaky-hub/appsec/internal/model"
+
+// Document is the canonical JSON report shape. It is what `WriteJSON` emits and
+// what `--save` persists as a run file, so the run store and every reader can
+// decode the exact structure the scanner produces (no drift between writer and
+// reader). Fields mirror the schema documented in docs/findings-model.md.
+type Document struct {
+	Tool          string          `json:"tool"`
+	Version       string          `json:"version"`
+	SchemaVersion string          `json:"schemaVersion"`
+	Summary       model.Summary   `json:"summary"`
+	Findings      []model.Finding `json:"findings"`
+}
+
+// BuildDocument assembles a Document from findings. It sorts findings
+// deterministically (via model.Sort inside Summarize's caller path) and
+// computes the summary rollup, so callers get a report identical to WriteJSON's.
+func BuildDocument(findings []model.Finding) Document {
+	model.Sort(findings)
+	return Document{
+		Tool:          toolName,
+		Version:       toolVersion,
+		SchemaVersion: model.SchemaVersion,
+		Summary:       model.Summarize(findings),
+		Findings:      findings,
+	}
+}

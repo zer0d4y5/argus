@@ -21,9 +21,11 @@ type Adapter interface {
 	Scan(ctx context.Context, target string) ([]model.RawFinding, error)
 }
 
-// All returns the full adapter set in a stable order.
-func All() []Adapter {
-	return []Adapter{&Semgrep{}, &Gitleaks{}, &Trivy{}}
+// All returns the full adapter set in a stable order, with the semgrep adapter
+// configured to run the given curated ruleset packs. Pass nil to use semgrep's
+// built-in default (p/ci). Resolve the packs with ResolveSemgrepRulesets.
+func All(semgrepRulesets []string) []Adapter {
+	return []Adapter{&Semgrep{Rulesets: semgrepRulesets}, &Gitleaks{}, &Trivy{}}
 }
 
 // toolOnPath checks if an executable exists on the system PATH.

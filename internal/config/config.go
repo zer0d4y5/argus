@@ -10,13 +10,15 @@ import (
 
 // Config holds the scan configuration.
 type Config struct {
-	Scanners     []string     `yaml:"scanners"`      // subset to run; empty = all
-	FailSeverity string       `yaml:"fail_severity"` // critical|high|medium|low|info|none
-	IgnorePaths  []string     `yaml:"ignore_paths"`  // glob patterns to skip
-	IgnoreRules  []string     `yaml:"ignore_rules"`  // rule IDs to suppress
-	Format       string       `yaml:"format"`        // sarif|markdown|json
-	TimeoutSec   int          `yaml:"timeout"`       // per-scanner timeout, seconds
-	Triage       TriageConfig `yaml:"triage"`        // AI triage configuration
+	Scanners     []string     `yaml:"scanners"`         // subset to run; empty = all
+	Profile      string       `yaml:"profile"`          // fast|standard|max; "" = default (standard)
+	SemgrepRules []string     `yaml:"semgrep_rulesets"` // explicit semgrep pack override; empty = profile default
+	FailSeverity string       `yaml:"fail_severity"`    // critical|high|medium|low|info|none
+	IgnorePaths  []string     `yaml:"ignore_paths"`     // glob patterns to skip
+	IgnoreRules  []string     `yaml:"ignore_rules"`     // rule IDs to suppress
+	Format       string       `yaml:"format"`           // sarif|markdown|json
+	TimeoutSec   int          `yaml:"timeout"`          // per-scanner timeout, seconds
+	Triage       TriageConfig `yaml:"triage"`           // AI triage configuration
 }
 
 // TriageConfig holds the AI-triage configuration.

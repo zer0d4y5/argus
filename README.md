@@ -1,10 +1,15 @@
 # appsec
 
-One CLI that runs the best open-source security scanners against your repo,
-merges their results into a single deduplicated report, scores and AI-triages
-every finding, and gates your CI on severity — SAST, secrets, and dependency
-(SCA) scanning with LLM-backed false-positive triage and 0–10 risk scoring
-today; IaC, DAST, and compliance mapping on the [roadmap](docs/roadmap.md).
+**One security tool for the whole codebase: broad multi-language detection,
+local-first AI triage, and a console anyone on the team can read.** `appsec`
+runs the best open-source scanners against your repo, merges their output into a
+single deduplicated report, AI-triages and risk-scores every finding on your own
+machine, gates CI on severity, and serves a three-persona web console over your
+run history — all from one Go binary.
+
+SAST across **nine languages** (Python, JavaScript, TypeScript, Go, Java, C#,
+Ruby, PHP, Kotlin) plus secrets and dependency (SCA) scanning today; IaC, DAST,
+and compliance mapping on the [roadmap](docs/roadmap.md).
 
 > **Naming:** `appsec` is the working name. Proposed project name: **Bulwark** —
 > a defensive wall built from many stones: independent scanners mortared into
@@ -12,42 +17,68 @@ today; IaC, DAST, and compliance mapping on the [roadmap](docs/roadmap.md).
 > short binary name either way.
 
 ```
-appsec scan ./repo
-  → runs in parallel:  semgrep (SAST) · gitleaks (secrets) · trivy fs (SCA)
+appsec scan ./repo --profile standard --triage --save
+  → runs in parallel:  semgrep (SAST, curated multi-language packs) · gitleaks · trivy
   → normalizes everything into one findings model
   → dedups/correlates overlapping findings
-  → AI triage (opt-in): LLM verdicts true/false-positive per finding
+  → AI triage (local Ollama): LLM verdicts true/false-positive per finding
   → risk-scores every finding 0–10 (heuristic baseline ± bounded LLM adjustment)
-  → writes SARIF 2.1.0 / Markdown / JSON
+  → writes SARIF 2.1.0 / Markdown / JSON, saves the run for the console
   → exits non-zero when findings hit your severity gate
+
+appsec serve   → local web console: Overview (GRC) · Findings (AppSec) · Runs (SecOps)
 ```
 
-## Quickstart
+## The console
+
+`appsec serve` reads the runs you save and renders three persona views. Finding
+data (titles, paths, LLM rationales) is treated as hostile and rendered inert —
+escaping only, no HTML injection, strict CSP, no auth, binds `127.0.0.1`.
+
+| Overview — GRC / exec | Findings — AppSec | Runs — SecOps |
+|---|---|---|
+| ![Overview](docs/screenshots/overview.png) | ![Findings](docs/screenshots/findings.png) | ![Runs](docs/screenshots/runs.png) |
+
+Risk posture, severity/OWASP rollups, and a cross-run trend for leadership; a
+filterable explorer with per-finding triage rationale for engineers; new-vs-
+resolved deltas and gate outcomes for operations.
+
+## Quickstart (90 seconds)
 
 ```bash
 # Prereqs: Go 1.22+, plus whichever scanners you want on PATH:
 #   pipx install semgrep     (or: pip install semgrep)
 #   brew install gitleaks trivy
-go build -o appsec ./cmd/appsec
+go build -o appsec ./cmd/appsec        # embeds the console; no Node needed to run
 
-# Scan a repository (markdown report to stdout):
-./appsec scan path/to/repo
+# Scan with the default `standard` multi-language profile, triage locally,
+# and save the run for the console:
+./appsec scan . --triage --save
 
-# SARIF for GitHub code scanning:
-./appsec scan . --format sarif -o results.sarif
+# Open the console over your saved runs:
+./appsec serve                          # http://127.0.0.1:8080
 
-# Fail CI on high or critical findings:
-./appsec scan . --fail-severity high
-
-# AI triage against a local Ollama model (default provider — nothing leaves
-# your machine), plus opt-in exclusion of LLM-marked false positives:
-./appsec scan . --triage
-./appsec scan . --triage --exclude-fp
+# Other common invocations:
+./appsec scan . --profile fast          # tight, low-noise PR gate (semgrep p/ci)
+./appsec scan . --profile max           # deepest recall; triage handles the FP volume
+./appsec scan . --format sarif -o results.sarif   # GitHub code scanning
+./appsec scan . --fail-severity high    # fail CI on high or critical
+./appsec scan . --triage --exclude-fp   # drop LLM-marked false positives (explicit)
 ```
 
 Missing scanners are skipped with a note — the CLI degrades gracefully and
 runs whatever the environment provides. The same applies to triage: no LLM
 reachable means the scan simply runs without verdicts.
+
+## Scan profiles & coverage
+
+`--profile fast|standard|max` (config: `profile:`) selects the curated semgrep
+ruleset. `standard` is the default — a security-audit + OWASP base plus a
+per-language pack for all nine languages. Coverage is **proven, not claimed**: a
+labeled fixture per language (`testdata/polyglot/`) and a network-dependent test
+assert every canary is detected under `standard`, and
+[docs/coverage.md](docs/coverage.md) is a generated language × weakness matrix.
+Breadth raises false-positive volume on purpose — local AI triage is the answer.
 
 ## AI triage & risk scoring
 
@@ -73,6 +104,8 @@ values.
 
 ```yaml
 scanners: []            # subset to run, e.g. [semgrep, gitleaks]; empty = all
+profile: standard       # fast | standard | max — the curated semgrep ruleset
+semgrep_rulesets: []    # optional: override the profile with your own pack list
 fail_severity: high     # critical | high | medium | low | info | none
 format: markdown        # sarif | markdown | json
 ignore_paths:           # glob patterns; `dir/**` ignores a subtree
@@ -112,16 +145,21 @@ repo and adjust the gate.
 
 ## Docs
 
+- [Pitch](docs/pitch.md) — the one-page why: problem, wedge, differentiators
+- [Coverage](docs/coverage.md) — generated language × weakness matrix + profiles
 - [Architecture](docs/architecture.md) — orchestrator design, package layout, design rules
 - [Findings model](docs/findings-model.md) — the unified schema (versioned)
 - [Risk scoring](docs/risk-scoring.md) — the 0–10 formula and the bounded LLM adjustment
-- [Roadmap](docs/roadmap.md) — Phases 3–8: IaC, compliance, DAST, threat modeling, IAST, platform
+- [Roadmap](docs/roadmap.md) — Phases 4–8: IaC, compliance, DAST, threat modeling, IAST, platform
 
 ## Development
 
 ```bash
-go build ./... && go test ./...
-./appsec scan testdata/fixture   # deliberately vulnerable sample; expect findings
+go build ./... && go test ./...     # `go build` alone works — the UI bundle is committed
+make ui                              # rebuild the React console into ui/dist (Node 22)
+make coverage                        # regenerate docs/coverage.md from a live scan
+./demo/demo.sh                       # the full 10-minute investor story, end to end
+./appsec scan testdata/fixture       # deliberately vulnerable sample; expect findings
 ```
 
 Licensed under Apache-2.0.

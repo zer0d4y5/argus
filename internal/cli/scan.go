@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/report"
 	"github.com/leaky-hub/appsec/internal/risk"
+	"github.com/leaky-hub/appsec/internal/runstore"
 	"github.com/leaky-hub/appsec/internal/scanner"
 	"github.com/leaky-hub/appsec/internal/triage"
 )
@@ -33,6 +35,8 @@ func init() {
 	scanCmd.Flags().StringP("config", "c", "", "Path to appsec.yml configuration file")
 	scanCmd.Flags().StringP("output", "o", "", "Output file path (default is stdout)")
 	scanCmd.Flags().String("scanners", "", "Comma-separated list of scanner names to run (e.g., semgrep,gitleaks)")
+	scanCmd.Flags().String("profile", "", "Scan profile: fast, standard, or max (default standard; config: profile)")
+	scanCmd.Flags().Bool("save", false, "Save the JSON report to .appsec/runs/<timestamp>.json in the scanned repo for the console")
 	scanCmd.Flags().Int("timeout", 0, "Per-scanner timeout in seconds")
 	scanCmd.Flags().Bool("triage", false, "Enable AI triage of findings (config: triage.enabled)")
 	scanCmd.Flags().Bool("exclude-fp", false, "Exclude LLM-marked false positives from the report and severity gate (opt-in)")
@@ -63,7 +67,12 @@ func runScan(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid fail-severity: %w", err)
 	}
 
-	adapters, err := selectAdapters(cfg)
+	if err := scanner.ValidateProfile(cfg.Profile); err != nil {
+		return fmt.Errorf("invalid profile: %w", err)
+	}
+	rulesets := scanner.ResolveSemgrepRulesets(cfg.Profile, cfg.SemgrepRules)
+
+	adapters, err := selectAdapters(cfg, rulesets)
 	if err != nil {
 		return err
 	}
@@ -111,6 +120,17 @@ func runScan(cmd *cobra.Command, args []string) error {
 	if err := writeReport(cmd, cfg.Format, findings); err != nil {
 		return err
 	}
+
+	// Opt-in run history for the console. A save failure is a warning, never a
+	// scan failure — the report has already been written successfully.
+	if save, _ := cmd.Flags().GetBool("save"); save {
+		if meta, err := saveRun(target, findings); err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: --save failed: %v\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "==> saved run %s to %s\n", meta.ID, meta.Path)
+		}
+	}
+
 	printSummary(findings)
 
 	// The gate decision comes last, after the report is safely written.
@@ -145,6 +165,11 @@ func loadConfig(cmd *cobra.Command) (config.Config, error) {
 			for i := range cfg.Scanners {
 				cfg.Scanners[i] = strings.TrimSpace(cfg.Scanners[i])
 			}
+		}
+	}
+	if cmd.Flags().Changed("profile") {
+		if v, _ := cmd.Flags().GetString("profile"); v != "" {
+			cfg.Profile = v
 		}
 	}
 	if cmd.Flags().Changed("timeout") {
@@ -208,10 +233,22 @@ func excludeFalsePositives(findings []model.Finding) ([]model.Finding, int) {
 	return kept, len(findings) - len(kept)
 }
 
-// selectAdapters filters the registry by config and availability.
-func selectAdapters(cfg config.Config) ([]scanner.Adapter, error) {
+// saveRun writes the current findings as a timestamped run file under the
+// scanned repo's .appsec/runs directory, for the `appsec serve` console. The
+// repo root is the scan target directory (or the file's directory).
+func saveRun(target string, findings []model.Finding) (runstore.RunMeta, error) {
+	root := target
+	if fi, err := os.Stat(target); err == nil && !fi.IsDir() {
+		root = filepath.Dir(target)
+	}
+	return runstore.ForRepo(root).Save(findings, time.Now())
+}
+
+// selectAdapters filters the registry by config and availability. The resolved
+// semgrep ruleset packs configure the semgrep adapter's coverage.
+func selectAdapters(cfg config.Config, semgrepRulesets []string) ([]scanner.Adapter, error) {
 	var active []scanner.Adapter
-	for _, a := range scanner.All() {
+	for _, a := range scanner.All(semgrepRulesets) {
 		if len(cfg.Scanners) > 0 && !nameIn(a.Name(), cfg.Scanners) {
 			continue
 		}

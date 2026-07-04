@@ -20,28 +20,42 @@ still catching runtime issues.
   scored in every run. **Remaining stretch:** natural-language remediation
   and auto-generated fix suggestions/patches; severity re-ranking with
   reachability context lands with IAST (Phase 7).
-- **Phase 3 — IaC & cloud posture:** add Checkov/KICS (Terraform/CFN/K8s/
+- **Phase 3 — Eagle-eye coverage & web console (shipped, this cycle):**
+  curated `fast|standard|max` scan profiles running per-language semgrep packs
+  across nine languages; a labeled polyglot fixture set with a coverage test
+  and a generated language × weakness matrix (`docs/coverage.md`); file-based
+  run history (`scan --save`); and the first web console (`appsec serve`) with
+  three persona views — Overview (GRC), Findings (AppSec), Runs (SecOps) —
+  served from the single embedded binary, rendering hostile finding data inert.
+  ✅ = every labeled plant detected under `standard`; the console shows a real
+  cross-run trend, filterable findings with triage rationale, and new-vs-
+  resolved deltas; an XSS fixture renders as text; `go build` alone produces
+  the whole working binary. **Note:** the OWASP Top 10 rollup is computed
+  report/UI-side from CWEs; the `complianceControls` model slot stays reserved
+  for Phase 5.
+- **Phase 4 — IaC & cloud posture:** add Checkov/KICS (Terraform/CFN/K8s/
   Dockerfile) and cloud-config assessment (CIS benchmarks, cloud best-practice
-  standards). ✅ = clean scans of sample Terraform + a K8s manifest, mapped
-  into the model.
-- **Phase 4 — Compliance mapping & assessment:** map findings/controls to
+  standards). Trivy's built-in misconfig scanner may ship first behind a flag
+  as an IaC teaser. ✅ = clean scans of sample Terraform + a K8s manifest,
+  mapped into the model via a new `IAC` category.
+- **Phase 5 — Compliance mapping & assessment:** map findings/controls to
   frameworks (OWASP ASVS/Top 10, NIST 800-53, CIS, SOC 2, PCI-DSS, ISO 27001)
   and produce gap-assessment reports (the `complianceControls` slot exists in
-  the model). ✅ = a findings run yields a per-framework control coverage
-  report.
-- **Phase 5 — DAST:** integrate OWASP ZAP and/or Nuclei for authenticated
+  the model; the Phase 3 OWASP rollup is the report-side precursor). ✅ = a
+  findings run yields a per-framework control coverage report.
+- **Phase 6 — DAST:** integrate OWASP ZAP and/or Nuclei for authenticated
   dynamic scanning of a running target; wire results into the same model
   (the `location.url` slot exists). ✅ = DAST run against a deliberately-vuln
   app (e.g. Juice Shop) produces correlated findings.
-- **Phase 6 — Threat modeling:** code/architecture-aware threat model
+- **Phase 7 — Threat modeling:** code/architecture-aware threat model
   generation (data-flow + STRIDE), ideally AI-assisted from repo + IaC,
   producing a reviewable model and linked findings.
-- **Phase 7 — IAST & runtime:** instrumentation/agent hooks for runtime
+- **Phase 8 — IAST & runtime:** instrumentation/agent hooks for runtime
   vulnerability detection; correlate runtime evidence back to SAST findings
   (reachability truth).
-- **Phase 8 — Server/platform:** optional API server, dashboard, historical
-  trends, triage workflow, ticketing integrations, and policy-as-code gates
-  across pipelines.
+- **Phase 9 — Server/platform:** hosted API server, multi-repo dashboards,
+  shared historical trends, triage workflow, SSO/RBAC, ticketing integrations,
+  and policy-as-code gates across pipelines — the commercial team layer.
 - **Cross-cutting:** offensive/pentest checks (Nuclei templates,
   exploitability probes), SBOM generation (syft/CycloneDX), and first-class
   support for GitLab CI, Jenkins, CircleCI, Azure DevOps, and pre-commit hooks

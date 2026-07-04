@@ -4,3 +4,14 @@
 results.*
 coverage.out
 .DS_Store
+
+# UI: commit the built dist/, never the dependencies or local caches.
+ui/node_modules/
+ui/.vite/
+ui/*.tsbuildinfo
+# tsc -b emits these next to the config; the .ts source is the truth.
+ui/vite.config.js
+ui/vite.config.d.ts
+
+# Run history written by `appsec scan --save`.
+.appsec/

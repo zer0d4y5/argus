@@ -1,0 +1,79 @@
+{
+  "_comment": "Canary manifest for the polyglot coverage guard. Each plant listed here MUST be detected under the `standard` profile; internal/coverage asserts it and regenerates docs/coverage.md. CWEs are the values semgrep actually emits on detection (which sometimes differ from the plant's textbook CWE, e.g. code injection reported as CWE-94). Adding a language means adding its fixture AND at least one canary here. Known gaps (path traversal in py/ts, JVM/.NET command injection) are intentionally NOT canaries; the generated matrix reports them honestly.",
+  "languages": [
+    {
+      "language": "Python",
+      "file": "python/vuln.py",
+      "canaries": [
+        { "cwe": "CWE-78", "name": "OS command injection" },
+        { "cwe": "CWE-327", "name": "Weak hash (MD5)" }
+      ]
+    },
+    {
+      "language": "JavaScript",
+      "file": "js/vuln.js",
+      "canaries": [
+        { "cwe": "CWE-78", "name": "OS command injection" },
+        { "cwe": "CWE-79", "name": "Cross-site scripting" },
+        { "cwe": "CWE-95", "name": "Code injection (eval)" }
+      ]
+    },
+    {
+      "language": "TypeScript",
+      "file": "ts/vuln.ts",
+      "canaries": [
+        { "cwe": "CWE-78", "name": "OS command injection" }
+      ]
+    },
+    {
+      "language": "Go",
+      "file": "go/main.go",
+      "canaries": [
+        { "cwe": "CWE-89", "name": "SQL injection" },
+        { "cwe": "CWE-328", "name": "Weak hash (MD5)" }
+      ]
+    },
+    {
+      "language": "Java",
+      "file": "java/Vuln.java",
+      "canaries": [
+        { "cwe": "CWE-89", "name": "SQL injection" },
+        { "cwe": "CWE-502", "name": "Insecure deserialization" }
+      ]
+    },
+    {
+      "language": "C#",
+      "file": "csharp/vuln.cs",
+      "canaries": [
+        { "cwe": "CWE-89", "name": "SQL injection" }
+      ]
+    },
+    {
+      "language": "Ruby",
+      "file": "ruby/vuln.rb",
+      "canaries": [
+        { "cwe": "CWE-89", "name": "SQL injection" },
+        { "cwe": "CWE-79", "name": "Cross-site scripting" },
+        { "cwe": "CWE-94", "name": "Code injection" },
+        { "cwe": "CWE-502", "name": "Insecure deserialization" }
+      ]
+    },
+    {
+      "language": "PHP",
+      "file": "php/vuln.php",
+      "canaries": [
+        { "cwe": "CWE-78", "name": "OS command injection" },
+        { "cwe": "CWE-79", "name": "Cross-site scripting" },
+        { "cwe": "CWE-89", "name": "SQL injection" },
+        { "cwe": "CWE-94", "name": "Code injection" }
+      ]
+    },
+    {
+      "language": "Kotlin",
+      "file": "kotlin/Vuln.kt",
+      "canaries": [
+        { "cwe": "CWE-328", "name": "Weak hash (MD5)" }
+      ]
+    }
+  ]
+}

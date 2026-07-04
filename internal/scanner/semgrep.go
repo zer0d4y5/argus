@@ -10,24 +10,39 @@ import (
 )
 
 // Semgrep implements the Adapter interface for the semgrep CLI (SAST).
-type Semgrep struct{}
+//
+// Rulesets is the curated registry pack list to run (resolved from the active
+// profile or a config override; see profiles.go). Empty falls back to p/ci so
+// the adapter is always safe to construct directly.
+type Semgrep struct {
+	Rulesets []string
+}
 
 func (s *Semgrep) Name() string     { return "semgrep" }
 func (s *Semgrep) Category() string { return model.CategorySAST }
 func (s *Semgrep) Available() bool  { return toolOnPath("semgrep") }
 
-// Scan executes semgrep against the target and returns raw findings.
+// Scan executes semgrep against the target and returns raw findings. Each
+// ruleset pack is passed as a separate --config flag (semgrep unions them). An
+// explicit config (unlike --config auto) works with metrics disabled.
 func (s *Semgrep) Scan(ctx context.Context, target string) ([]model.RawFinding, error) {
-	// p/ci is semgrep's curated low-false-positive security ruleset. An
-	// explicit config (unlike --config auto) works with metrics disabled.
+	packs := s.Rulesets
+	if len(packs) == 0 {
+		// p/ci is semgrep's curated low-false-positive security ruleset — a
+		// safe default if the adapter is built without a resolved profile.
+		packs = []string{"p/ci"}
+	}
 	args := []string{
 		"--json",
 		"--quiet",
 		"--metrics=off",
 		"--timeout", "0",
-		"--config", "p/ci",
-		target,
 	}
+	for _, p := range packs {
+		args = append(args, "--config", p)
+	}
+	args = append(args, target)
+
 	data, err := runJSON(ctx, "semgrep", args...)
 	if err != nil {
 		return nil, fmt.Errorf("semgrep scan failed: %w", err)
