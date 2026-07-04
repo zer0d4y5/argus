@@ -1,5 +1,5 @@
 // Package scanner defines the Adapter interface and the adapters that wrap
-// external scanning tools (semgrep, gitleaks, trivy).
+// external scanning tools (semgrep, gitleaks, trivy, checkov).
 package scanner
 
 import (
@@ -24,8 +24,10 @@ type Adapter interface {
 // All returns the full adapter set in a stable order, with the semgrep adapter
 // configured to run the given curated ruleset packs. Pass nil to use semgrep's
 // built-in default (p/ci). Resolve the packs with ResolveSemgrepRulesets.
+// The IaC adapters (checkov, trivy-config) run whenever available and not
+// excluded by --scanners; `--profile` governs semgrep only.
 func All(semgrepRulesets []string) []Adapter {
-	return []Adapter{&Semgrep{Rulesets: semgrepRulesets}, &Gitleaks{}, &Trivy{}}
+	return []Adapter{&Semgrep{Rulesets: semgrepRulesets}, &Gitleaks{}, &Trivy{}, &Checkov{}, &TrivyConfig{}}
 }
 
 // toolOnPath checks if an executable exists on the system PATH.

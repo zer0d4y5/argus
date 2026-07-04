@@ -33,11 +33,26 @@ still catching runtime issues.
   the whole working binary. **Note:** the OWASP Top 10 rollup is computed
   report/UI-side from CWEs; the `complianceControls` model slot stays reserved
   for Phase 5.
-- **Phase 4 — IaC & cloud posture:** add Checkov/KICS (Terraform/CFN/K8s/
-  Dockerfile) and cloud-config assessment (CIS benchmarks, cloud best-practice
-  standards). Trivy's built-in misconfig scanner may ship first behind a flag
-  as an IaC teaser. ✅ = clean scans of sample Terraform + a K8s manifest,
-  mapped into the model via a new `IAC` category.
+- **Phase 4 — IaC & cloud posture (shipped, this cycle):** two IaC engines
+  behind the same dumb-adapter seam — **checkov** (Terraform, CloudFormation,
+  Kubernetes, Dockerfile, Helm, ARM, Bicep, Serverless) and **trivy-config**
+  (trivy's misconfiguration pass: IaC coverage with zero new binaries) — both
+  emitting `IAC` findings that dedup, triage, risk-score, and gate like
+  everything else. Severity policy for both engines is documented in
+  `docs/findings-model.md` (OSS checkov emits no severities → medium, never
+  info); checkov CIS/benchmark IDs are captured into `meta`. IaC findings roll
+  up to **A05 Security Misconfiguration** in the OWASP view and render
+  first-class in the console (category badges + Overview breakdown).
+  ✅ = every planted misconfiguration in the labeled `testdata/iac/` fixtures
+  (public S3 ACL, open security group, unencrypted EBS, privileged container,
+  hostPath mount, missing limits, `:latest` base, root container, secret in
+  ENV) detected via `TestIaCCoverage`, with both engines proven per format;
+  the generated `docs/coverage.md` gained an IaC section. Also fixed in this
+  cycle: the Phase 2 snippet-path bug (snippet reads now resolve
+  scanner-reported CWD-relative/absolute paths correctly while staying
+  confined to the scan root). **Remaining for a later beat:** KICS as an
+  optional third engine; live cloud-account posture scanning (AWS/GCP/Azure
+  APIs) — file-based IaC only for now.
 - **Phase 5 — Compliance mapping & assessment:** map findings/controls to
   frameworks (OWASP ASVS/Top 10, NIST 800-53, CIS, SOC 2, PCI-DSS, ISO 27001)
   and produce gap-assessment reports (the `complianceControls` slot exists in

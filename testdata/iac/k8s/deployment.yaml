@@ -1,0 +1,28 @@
+# PLANTED-VULNERABLE FIXTURE — DO NOT FIX. Deliberate misconfigurations for
+# scanner coverage tests. See testdata/iac/labels.json.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vulnerable-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vulnerable-app
+  template:
+    metadata:
+      labels:
+        app: vulnerable-app
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: host-root
+              mountPath: /host
+      volumes:
+        - name: host-root
+          hostPath:
+            path: /

@@ -25,6 +25,33 @@ export const OWASP_COLORS = [
   "#ca8a04", "#16a34a", "#0891b2", "#4f46e5", "#9333ea",
 ];
 
+// Finding-category palette. Keys are the model's category constants
+// (SAST/SECRET/SCA/IAC/DAST); unknown categories get neutral fallbacks in the
+// components, never dropped.
+export const CATEGORY_LABEL: Record<string, string> = {
+  SAST: "Code (SAST)",
+  SECRET: "Secrets",
+  SCA: "Dependencies (SCA)",
+  IAC: "Infrastructure (IaC)",
+  DAST: "Dynamic (DAST)",
+};
+
+export const CATEGORY_CHIP: Record<string, string> = {
+  SAST: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300",
+  SECRET: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300",
+  SCA: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
+  IAC: "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+  DAST: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+};
+
+export const CATEGORY_COLOR: Record<string, string> = {
+  SAST: "#4f46e5",
+  SECRET: "#e11d48",
+  SCA: "#0891b2",
+  IAC: "#0d9488",
+  DAST: "#9333ea",
+};
+
 export const VERDICT_LABEL: Record<string, string> = {
   "true-positive": "True positive",
   "false-positive": "False positive",

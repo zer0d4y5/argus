@@ -7,12 +7,12 @@ correlation/dedup, severity gating, and (in later phases) AI triage, risk
 scoring, and compliance mapping.
 
 ```
-[ scanners ]   semgrep · gitleaks · trivy        (Phase 3+: checkov/kics · zap · nuclei · codeql)
+[ scanners ]   semgrep · gitleaks · trivy · checkov · trivy-config    (later: kics · zap · nuclei · codeql)
       |            adapters normalize → unified findings model
       v
-[ core ]       normalize · correlate/dedup · AI triage · risk score · severity gate   (Phase 4+: compliance map)
+[ core ]       normalize · correlate/dedup · AI triage · risk score · severity gate   (Phase 5+: compliance map)
       v
-[ surfaces ]   CLI · GitHub Action · SARIF / Markdown / JSON   (Phase 8: API server · dashboard)
+[ surfaces ]   CLI · GitHub Action · SARIF / Markdown / JSON · web console (`appsec serve`)
 ```
 
 ## Package layout
@@ -20,7 +20,7 @@ scoring, and compliance mapping.
 | Package | Role | Ownership note |
 |---|---|---|
 | `cmd/appsec` | CLI entrypoint (cobra) | |
-| `internal/scanner` | `Adapter` interface + semgrep/gitleaks/trivy adapters | adapters shell out; degrade gracefully when a tool is missing |
+| `internal/scanner` | `Adapter` interface + semgrep/gitleaks/trivy/checkov/trivy-config adapters | adapters shell out; degrade gracefully when a tool is missing. The IaC pair (checkov + trivy-config, category `IAC`) runs whenever available — `--profile` governs semgrep only; the trivy-config adapter reuses the trivy binary so IaC needs no new install |
 | `internal/model` | **Unified findings schema**, severity normalization, fingerprints, ignore-filter | security-critical: the contract everything hangs off (see `docs/findings-model.md`) |
 | `internal/correlate` | dedup/correlation | security-critical: a wrong merge silently drops a finding |
 | `internal/report` | SARIF 2.1.0 / Markdown / JSON writers | SARIF writer is the GitHub code-scanning contract |

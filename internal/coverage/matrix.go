@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/scanner"
 )
 
@@ -180,6 +181,68 @@ func GenerateMarkdown(labels []Label, std, max map[string]map[string]bool) strin
 	b.WriteString("a 0–10 risk score, so `standard`/`max` breadth stays actionable instead of\n")
 	b.WriteString("drowning the reviewer. Breadth + triage is the pairing the demo shows.\n")
 
+	return b.String()
+}
+
+// GenerateIaCSection renders the IaC portion of docs/coverage.md from live
+// scan results: one row per planted misconfiguration, with the engine(s) that
+// actually detected it. Like the language matrix, it is fully derived from
+// the manifest plus real findings, so it cannot claim coverage the engines
+// did not produce.
+func GenerateIaCSection(labels []IaCLabel, findings []model.Finding) string {
+	// tool -> fixture-relative file -> rule IDs that fired.
+	byTool := map[string]map[string]map[string]bool{}
+	for _, f := range findings {
+		rel := iacRelPath(f.Location.File)
+		if rel == "" || f.RuleID == "" {
+			continue
+		}
+		files := byTool[f.Tool]
+		if files == nil {
+			files = map[string]map[string]bool{}
+			byTool[f.Tool] = files
+		}
+		set := files[rel]
+		if set == nil {
+			set = map[string]bool{}
+			files[rel] = set
+		}
+		set[f.RuleID] = true
+	}
+	detectedBy := func(file string, rules []string) string {
+		var tools []string
+		for _, tool := range []string{"checkov", "trivy-config"} {
+			if anyRule(byTool[tool][file], rules) {
+				tools = append(tools, tool)
+			}
+		}
+		if len(tools) == 0 {
+			return "**MISS**"
+		}
+		return strings.Join(tools, " + ")
+	}
+
+	var b strings.Builder
+	b.WriteString("## Infrastructure-as-Code coverage\n\n")
+	b.WriteString("IaC misconfiguration scanning (category `IAC`) runs **checkov** and\n")
+	b.WriteString("**trivy-config** (the trivy misconfiguration pass — no extra binary) against\n")
+	b.WriteString("Terraform, CloudFormation, Kubernetes manifests, Dockerfiles, and Helm charts.\n")
+	b.WriteString("IaC engines run whenever available; `--profile` governs semgrep only. Planted\n")
+	b.WriteString("misconfigurations under `testdata/iac/` are asserted detected by\n")
+	b.WriteString("`TestIaCCoverage`; the table below is generated from that live scan.\n\n")
+	b.WriteString("| Fixture | Planted misconfiguration | Canary rules | Detected by |\n")
+	b.WriteString("|---|---|---|---|\n")
+	for _, l := range labels {
+		for _, c := range l.Canaries {
+			b.WriteString(fmt.Sprintf("| %s (`%s`) | %s | %s | %s |\n",
+				l.Kind, l.File, c.Name,
+				"`"+strings.Join(c.Rules, "`, `")+"`",
+				detectedBy(l.File, c.Rules)))
+		}
+	}
+	b.WriteString("\nEvery IaC finding rolls up to **A05 Security Misconfiguration** in the OWASP\n")
+	b.WriteString("view and gets the same triage + 0–10 risk score as app-code findings.\n")
+	b.WriteString("Severity policy for the IaC engines is documented in `docs/findings-model.md`.\n")
 	return b.String()
 }
 

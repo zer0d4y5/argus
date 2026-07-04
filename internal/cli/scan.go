@@ -259,7 +259,7 @@ func selectAdapters(cfg config.Config, semgrepRulesets []string) ([]scanner.Adap
 		active = append(active, a)
 	}
 	if len(active) == 0 {
-		return nil, fmt.Errorf("no available scanners to run (install semgrep, gitleaks, or trivy)")
+		return nil, fmt.Errorf("no available scanners to run (install semgrep, gitleaks, trivy, or checkov)")
 	}
 	return active, nil
 }

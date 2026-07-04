@@ -40,19 +40,39 @@ def cache_key(url: str, params: str) -> str:
     return "cache:" + hashlib.md5(f"{url}?{params}".encode()).hexdigest()
 PY
 cp "$REPO_ROOT/testdata/triage-eval/vuln_app.py" "$DEMO_DIR/payments/" 2>/dev/null || true
+# The platform beat: the same repo ships the infrastructure it runs on, with
+# real misconfigurations (public S3 ACL, world-open SSH, privileged container,
+# secret baked into a Dockerfile ENV).
+mkdir -p "$DEMO_DIR/deploy"
+cp "$REPO_ROOT/testdata/iac/terraform/main.tf" "$DEMO_DIR/deploy/"
+cp "$REPO_ROOT/testdata/iac/k8s/deployment.yaml" "$DEMO_DIR/deploy/"
+cp "$REPO_ROOT/testdata/iac/docker/Dockerfile" "$DEMO_DIR/deploy/"
 note "Languages: python js ts go java c# ruby php kotlin (+ a benign MD5 cache helper)"
+note "Plus deploy/: Terraform, a K8s manifest, and a Dockerfile — misconfigured on purpose."
+# Keep the live-triage beat tight: verdict the 60 most severe findings (the
+# IaC engines roughly triple the finding count; triage prioritizes severity).
+cat > "$DEMO_DIR/appsec.yml" <<'YML'
+triage:
+  max_findings: 60
+YML
 pause
 
 # --- 2. baseline run: breadth -------------------------------------------------
 say "Run 1 — baseline scan with the default 'standard' multi-language profile"
 note "Watch the finding count: breadth across every language, on purpose."
+note "IaC engines (checkov + trivy-config) join in automatically — app code AND infra, one tool."
 ( cd "$DEMO_DIR" && "$BIN" scan . --profile standard --save ) || true
 pause
 
 # --- 3. remediate, then triage: the false-positive kill -----------------------
-say "A sprint later: two services are fixed and shipped"
+say "A sprint later: two services are fixed and shipped, and ops locked down SSH"
 rm -rf "$DEMO_DIR/kotlin" "$DEMO_DIR/csharp"
-note "Removed the kotlin and csharp fixtures — those findings should resolve."
+# Infra remediation between runs: close the world-open SSH ingress so an IaC
+# finding lands in the resolved column next to the app-code ones.
+sed -i '' 's|cidr_blocks = \["0.0.0.0/0"\]|cidr_blocks = ["10.0.0.0/16"]|' "$DEMO_DIR/deploy/main.tf" 2>/dev/null || \
+  sed -i 's|cidr_blocks = \["0.0.0.0/0"\]|cidr_blocks = ["10.0.0.0/16"]|' "$DEMO_DIR/deploy/main.tf"
+note "Removed the kotlin and csharp fixtures; restricted the security group to the VPC."
+note "Those findings — code and infrastructure — should resolve."
 
 say "Run 2 — same scan, now with LOCAL AI triage (nothing leaves this machine)"
 note "Triage gives every finding a verdict + rationale and kills the MD5 false positives."

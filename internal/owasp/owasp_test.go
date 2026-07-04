@@ -26,6 +26,8 @@ func TestClassify(t *testing.T) {
 		{f(model.CategorySAST), "A04"},              // no CWE → Insecure Design
 		{f(model.CategorySCA, "CWE-89"), "A06"},     // SCA always → components, ignoring CWE
 		{f(model.CategorySecret), "A04"},            // secret, no CWE → default
+		{f(model.CategoryIaC), "A05"},               // IaC → Security Misconfiguration
+		{f(model.CategoryIaC, "CWE-89"), "A05"},     // IaC always → A05, ignoring CWE
 	}
 	for _, c := range cases {
 		if got := Classify(c.finding); got.ID != c.wantID {

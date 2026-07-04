@@ -21,6 +21,18 @@ func TestNormalizeSeverity(t *testing.T) {
 		{"trivy", "LOW", SeverityLow},
 		{"trivy", "UNKNOWN", SeverityMedium}, // un-scored is not harmless
 		{"trivy", "", SeverityMedium},
+		{"trivy-config", "CRITICAL", SeverityCritical},
+		{"trivy-config", "HIGH", SeverityHigh},
+		{"trivy-config", "LOW", SeverityLow},
+		{"trivy-config", "UNKNOWN", SeverityMedium},
+		{"trivy-config", "bogus", SeverityMedium},
+		{"checkov", "", SeverityMedium}, // OSS checkov emits no severity
+		{"checkov", "CRITICAL", SeverityCritical},
+		{"checkov", "HIGH", SeverityHigh},
+		{"checkov", "MEDIUM", SeverityMedium},
+		{"checkov", "LOW", SeverityLow},
+		{"checkov", "INFO", SeverityInfo},
+		{"checkov", "bogus", SeverityMedium},         // unknown fails toward medium
 		{"futuretool", "critical", SeverityCritical}, // direct parse for new tools
 		{"futuretool", "???", SeverityMedium},
 	}

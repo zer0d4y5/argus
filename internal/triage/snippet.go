@@ -5,8 +5,9 @@ package triage
 // controlled (a hostile repo names its own files), so reads are confined to
 // the scan root after symlink resolution — a symlink pointing at
 // ~/.aws/credentials must not leak file contents into a prompt (and, with a
-// cloud provider, off the machine). Output is bounded in lines, line length,
-// and total bytes.
+// cloud provider, off the machine). Paths resolve relative to the process
+// CWD, matching how scanners report them (see containedPath). Output is
+// bounded in lines, line length, and total bytes.
 
 import (
 	"bufio"
@@ -77,12 +78,19 @@ func extractSnippet(root string, f model.Finding) (string, error) {
 	return b.String(), nil
 }
 
-// containedPath resolves root+rel (following symlinks) and guarantees the
-// result stays inside the scan root.
-func containedPath(root, rel string) (string, error) {
-	if filepath.IsAbs(rel) {
-		return "", fmt.Errorf("absolute finding path %q rejected", rel)
-	}
+// containedPath resolves a finding path (following symlinks) and guarantees
+// the result stays inside the scan root.
+//
+// Scanners report file paths exactly as the scan was invoked — relative to
+// the process CWD including the scan-target prefix ("testdata/iac/main.tf"
+// when scanning testdata/iac), or absolute when the target was an absolute
+// path. So the path resolves relative to the process CWD, NOT by joining it
+// onto the scan root (the old behavior, which silently broke snippet reads
+// for subdirectory and absolute-path scans and degraded triage to
+// metadata-only). Containment is unchanged: after symlink resolution the
+// file must still be inside the resolved scan root, wherever the path
+// pointed syntactically.
+func containedPath(root, file string) (string, error) {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
 		return "", err
@@ -91,14 +99,17 @@ func containedPath(root, rel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	joined := filepath.Join(realRoot, filepath.FromSlash(rel))
-	real, err := filepath.EvalSymlinks(joined)
+	abs, err := filepath.Abs(filepath.FromSlash(file))
+	if err != nil {
+		return "", err
+	}
+	real, err := filepath.EvalSymlinks(abs)
 	if err != nil {
 		return "", err
 	}
 	relBack, err := filepath.Rel(realRoot, real)
 	if err != nil || relBack == ".." || strings.HasPrefix(relBack, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("finding path %q escapes scan root", rel)
+		return "", fmt.Errorf("finding path %q escapes scan root", file)
 	}
 	return real, nil
 }

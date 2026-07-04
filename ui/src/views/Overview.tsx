@@ -11,7 +11,7 @@ import {
   Cell,
 } from "recharts";
 import { SummaryResponse } from "../api";
-import { Panel, StatCard, SeverityDonut, GateBadge, EmptyState } from "../components";
+import { Panel, StatCard, SeverityDonut, GateBadge, EmptyState, CategoryBreakdown } from "../components";
 import { OWASP_COLORS, SEV_COLOR, fmtTime } from "../theme";
 
 export function Overview({ summary }: { summary: SummaryResponse }) {
@@ -80,7 +80,14 @@ export function Overview({ summary }: { summary: SummaryResponse }) {
           </div>
         </Panel>
 
-        <Panel title="Risk score bands" className="lg:col-span-2">
+        <Panel title="Findings by category">
+          <CategoryBreakdown byCategory={summary.byCategory} />
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            One platform, app code and the infrastructure it runs on: SAST + secrets + dependencies + IaC misconfigurations.
+          </p>
+        </Panel>
+
+        <Panel title="Risk score bands">
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={riskData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>

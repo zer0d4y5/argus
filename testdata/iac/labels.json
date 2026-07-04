@@ -1,0 +1,32 @@
+{
+  "_comment": "Canary manifest for the IaC coverage guard. Each plant listed here MUST be detected by at least one IaC engine (checkov or trivy-config); internal/coverage asserts it and regenerates the IaC section of docs/coverage.md. IaC engines emit no CWEs, so canaries key on rule IDs: a canary is detected when ANY of its listed rule IDs fires on the file (checkov CKV_* and trivy AVD IDs name the same plant). Rule IDs were confirmed empirically against checkov 3.3.2 and trivy 0.71.2.",
+  "files": [
+    {
+      "kind": "Terraform",
+      "file": "terraform/main.tf",
+      "canaries": [
+        { "name": "Public S3 bucket ACL", "rules": ["CKV_AWS_20", "AWS-0092"] },
+        { "name": "Security group open to 0.0.0.0/0 (SSH)", "rules": ["CKV_AWS_24", "AWS-0107"] },
+        { "name": "Unencrypted EBS volume", "rules": ["CKV_AWS_3", "AWS-0026"] }
+      ]
+    },
+    {
+      "kind": "Kubernetes",
+      "file": "k8s/deployment.yaml",
+      "canaries": [
+        { "name": "Privileged container", "rules": ["CKV_K8S_16", "KSV-0017"] },
+        { "name": "hostPath volume mounted", "rules": ["KSV-0023", "KSV-0121"] },
+        { "name": "No resource limits", "rules": ["CKV_K8S_13", "CKV_K8S_11", "KSV-0018", "KSV-0011"] }
+      ]
+    },
+    {
+      "kind": "Dockerfile",
+      "file": "docker/Dockerfile",
+      "canaries": [
+        { "name": "Mutable :latest base image", "rules": ["CKV_DOCKER_7", "DS-0001"] },
+        { "name": "Container runs as root (no USER)", "rules": ["CKV_DOCKER_3", "DS-0002"] },
+        { "name": "Secret in ENV", "rules": ["DS-0031"] }
+      ]
+    }
+  ]
+}

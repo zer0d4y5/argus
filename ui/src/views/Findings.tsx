@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Finding, RunDetail, Severity, SEVERITIES } from "../api";
-import { Panel, SeverityBadge, EmptyState } from "../components";
+import { Panel, SeverityBadge, CategoryBadge, EmptyState } from "../components";
 import { VERDICT_CHIP, VERDICT_LABEL, riskColor } from "../theme";
 
 const SEV_RANK: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
@@ -123,7 +123,10 @@ export function Findings({ detail }: { detail: RunDetail }) {
                         )}
                         <span className="line-clamp-1 font-mono text-xs">{f.title}</span>
                       </div>
-                      <div className="truncate text-[11px] text-gray-400">{f.location.file}</div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                        <CategoryBadge category={f.category} compact />
+                        <span className="truncate">{f.location.file}</span>
+                      </div>
                     </td>
                     <td className="py-1.5 pr-2">
                       {f.triage ? (
@@ -159,6 +162,7 @@ function Detail({ f, isNew }: { f: Finding; isNew: boolean }) {
       <div className="space-y-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
           <SeverityBadge severity={f.severity} />
+          <CategoryBadge category={f.category} />
           <RiskPill score={f.riskScore} />
           {isNew && (
             <span className="rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">

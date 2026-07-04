@@ -145,11 +145,16 @@ var cweToCategory = map[string]Category{
 }
 
 // Classify returns the OWASP category for a single finding. SCA findings map to
-// A06 by nature (vulnerable components) regardless of CWE. Otherwise the
+// A06 by nature (vulnerable components) and IaC findings to A05 (security
+// misconfiguration), both regardless of CWE — the IaC engines emit rule IDs,
+// not CWEs, and an IaC misconfiguration is definitionally A05. Otherwise the
 // finding's first mappable CWE wins; if none map, it falls into A04.
 func Classify(f model.Finding) Category {
 	if f.Category == model.CategorySCA {
 		return A06
+	}
+	if f.Category == model.CategoryIaC {
+		return A05
 	}
 	for _, cwe := range f.CWEs {
 		if cat, ok := cweToCategory[cwe]; ok {

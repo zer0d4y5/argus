@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -42,13 +43,16 @@ type labeled struct {
 // anchored to the fixture source lines.
 func evalSet(t *testing.T) []labeled {
 	t.Helper()
+	// Scanners emit paths relative to the process CWD including the scan
+	// target prefix; findings here carry evalRoot-prefixed paths to match
+	// (snippet reads resolve from the CWD, confined to Options.Root).
 	sast := func(name string, tp bool, file, anchor, rule, title, desc, cwe string) labeled {
 		line := anchorLine(t, file, anchor)
 		return labeled{name: name, truePositive: tp, finding: model.Finding{
 			Tool: "semgrep", Tools: []string{"semgrep"}, Category: model.CategorySAST,
 			RuleID: rule, Title: title, Description: desc,
 			Severity: model.SeverityHigh, CWEs: []string{cwe},
-			Location: model.Location{File: file, StartLine: line, EndLine: line},
+			Location: model.Location{File: path.Join(evalRoot, file), StartLine: line, EndLine: line},
 		}}
 	}
 	secret := func(name string, tp bool, file, anchor, rule, title string) labeled {
@@ -58,7 +62,7 @@ func evalSet(t *testing.T) []labeled {
 			RuleID: rule, Title: title,
 			Description: "Detected a potential secret (value redacted).",
 			Severity:    model.SeverityHigh, CWEs: []string{"CWE-798"},
-			Location: model.Location{File: file, StartLine: line, EndLine: line},
+			Location: model.Location{File: path.Join(evalRoot, file), StartLine: line, EndLine: line},
 		}}
 	}
 
@@ -100,7 +104,7 @@ func evalSet(t *testing.T) []labeled {
 			Description: "PyYAML before 5.4 allows arbitrary code execution via full_load on untrusted input.",
 			Severity:    model.SeverityCritical, CWEs: []string{"CWE-502"},
 			Remediation: "Upgrade pyyaml to 5.4 or later.",
-			Location:    model.Location{File: "requirements.txt", StartLine: anchorLine(t, "requirements.txt", "pyyaml==5.3.1")},
+			Location:    model.Location{File: path.Join(evalRoot, "requirements.txt"), StartLine: anchorLine(t, "requirements.txt", "pyyaml==5.3.1")},
 		}},
 	}
 }

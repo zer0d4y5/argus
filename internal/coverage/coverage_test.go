@@ -99,7 +99,27 @@ func TestPolyglotCoverage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("max scan: %v", err)
 	}
-	md := GenerateMarkdown(labels, stdDetected, DetectedCWEs(maxFindings))
+
+	// The published matrix includes the IaC section from Phase 4 on, so a
+	// doc-regenerating run requires the full toolchain — a doc without IaC
+	// rows would silently understate coverage.
+	for _, bin := range []string{"checkov", "trivy"} {
+		if _, err := exec.LookPath(bin); err != nil {
+			t.Fatalf("APPSEC_UPDATE_COVERAGE requires %s on PATH (docs/coverage.md includes the IaC section)", bin)
+		}
+	}
+	iacRoot, iacLabelsPath := iacPaths(t)
+	iacLabels, err := LoadIaCLabels(iacLabelsPath)
+	if err != nil {
+		t.Fatalf("LoadIaCLabels: %v", err)
+	}
+	iacFindings, err := ScanIaC(ctx, iacRoot)
+	if err != nil {
+		t.Fatalf("iac scan: %v", err)
+	}
+
+	md := GenerateMarkdown(labels, stdDetected, DetectedCWEs(maxFindings)) +
+		"\n" + GenerateIaCSection(iacLabels, iacFindings)
 	if err := os.WriteFile(docsPath, []byte(md), 0o644); err != nil {
 		t.Fatalf("write %s: %v", docsPath, err)
 	}

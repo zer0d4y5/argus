@@ -80,10 +80,16 @@ func ParseSeverity(name string) (Severity, error) {
 //	semgrep:  ERROR -> high, WARNING -> medium, INFO -> info
 //	gitleaks: no native scale; secrets are high (leaked credential = direct impact)
 //	trivy:    CRITICAL/HIGH/MEDIUM/LOW verbatim, UNKNOWN -> medium
+//	trivy-config: same scale as trivy (same engine, misconfiguration pass)
+//	checkov:  CRITICAL/HIGH/MEDIUM/LOW/INFO verbatim when present; OSS checkov
+//	          emits NO severity for most checks -> medium
 //
 // UNKNOWN from trivy maps to medium, not info: an un-scored CVE is
 // unassessed, not harmless, and mapping it to info would let the severity
-// gate wave it through.
+// gate wave it through. The same reasoning fixes the checkov policy: an
+// un-scored misconfiguration defaults to medium — visible, gate-relevant
+// under a medium gate, and never info. Runs enriched by the checkov platform
+// DO carry a native severity and are mapped verbatim.
 func NormalizeSeverity(tool, raw string) Severity {
 	v := strings.ToUpper(strings.TrimSpace(raw))
 	switch strings.ToLower(tool) {
@@ -102,7 +108,7 @@ func NormalizeSeverity(tool, raw string) Severity {
 	case "gitleaks":
 		// gitleaks has no severity concept; a detected secret is high.
 		return SeverityHigh
-	case "trivy":
+	case "trivy", "trivy-config":
 		switch v {
 		case "CRITICAL":
 			return SeverityCritical
@@ -113,6 +119,23 @@ func NormalizeSeverity(tool, raw string) Severity {
 		case "LOW":
 			return SeverityLow
 		case "UNKNOWN", "":
+			return SeverityMedium
+		}
+		return SeverityMedium
+	case "checkov":
+		switch v {
+		case "CRITICAL":
+			return SeverityCritical
+		case "HIGH":
+			return SeverityHigh
+		case "MEDIUM":
+			return SeverityMedium
+		case "LOW":
+			return SeverityLow
+		case "INFO":
+			return SeverityInfo
+		case "":
+			// OSS checkov emits no severity; un-scored != harmless.
 			return SeverityMedium
 		}
 		return SeverityMedium

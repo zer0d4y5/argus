@@ -76,3 +76,28 @@ Wide rulesets raise false-positive volume — that is the intended tradeoff. The
 Phase 2 AI triage layer is the answer: every finding gets a local-LLM verdict and
 a 0–10 risk score, so `standard`/`max` breadth stays actionable instead of
 drowning the reviewer. Breadth + triage is the pairing the demo shows.
+
+## Infrastructure-as-Code coverage
+
+IaC misconfiguration scanning (category `IAC`) runs **checkov** and
+**trivy-config** (the trivy misconfiguration pass — no extra binary) against
+Terraform, CloudFormation, Kubernetes manifests, Dockerfiles, and Helm charts.
+IaC engines run whenever available; `--profile` governs semgrep only. Planted
+misconfigurations under `testdata/iac/` are asserted detected by
+`TestIaCCoverage`; the table below is generated from that live scan.
+
+| Fixture | Planted misconfiguration | Canary rules | Detected by |
+|---|---|---|---|
+| Terraform (`terraform/main.tf`) | Public S3 bucket ACL | `CKV_AWS_20`, `AWS-0092` | checkov + trivy-config |
+| Terraform (`terraform/main.tf`) | Security group open to 0.0.0.0/0 (SSH) | `CKV_AWS_24`, `AWS-0107` | checkov + trivy-config |
+| Terraform (`terraform/main.tf`) | Unencrypted EBS volume | `CKV_AWS_3`, `AWS-0026` | checkov + trivy-config |
+| Kubernetes (`k8s/deployment.yaml`) | Privileged container | `CKV_K8S_16`, `KSV-0017` | checkov + trivy-config |
+| Kubernetes (`k8s/deployment.yaml`) | hostPath volume mounted | `KSV-0023`, `KSV-0121` | trivy-config |
+| Kubernetes (`k8s/deployment.yaml`) | No resource limits | `CKV_K8S_13`, `CKV_K8S_11`, `KSV-0018`, `KSV-0011` | checkov + trivy-config |
+| Dockerfile (`docker/Dockerfile`) | Mutable :latest base image | `CKV_DOCKER_7`, `DS-0001` | checkov + trivy-config |
+| Dockerfile (`docker/Dockerfile`) | Container runs as root (no USER) | `CKV_DOCKER_3`, `DS-0002` | checkov + trivy-config |
+| Dockerfile (`docker/Dockerfile`) | Secret in ENV | `DS-0031` | trivy-config |
+
+Every IaC finding rolls up to **A05 Security Misconfiguration** in the OWASP
+view and gets the same triage + 0–10 risk score as app-code findings.
+Severity policy for the IaC engines is documented in `docs/findings-model.md`.

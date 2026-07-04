@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Severity, GateInfo } from "./api";
-import { SEV_CHIP, SEV_COLOR } from "./theme";
+import { SEV_CHIP, SEV_COLOR, CATEGORY_CHIP, CATEGORY_LABEL, CATEGORY_COLOR } from "./theme";
 
 export function Panel({
   title,
@@ -62,6 +62,64 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
     <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-semibold ${SEV_CHIP[severity]}`}>
       {severity}
     </span>
+  );
+}
+
+// CategoryBadge labels a finding category (SAST/SECRET/SCA/IAC/DAST). The
+// category string comes from the model's fixed constants, but unknown values
+// still render (neutral chip, raw text) rather than disappearing. `compact`
+// shows the raw category code instead of the long label.
+export function CategoryBadge({ category, compact = false }: { category: string; compact?: boolean }) {
+  const chipClass = CATEGORY_CHIP[category] || "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+  const label = compact ? category : CATEGORY_LABEL[category] || category;
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-semibold ${chipClass}`}>
+      {label}
+    </span>
+  );
+}
+
+// CategoryBreakdown renders per-category counts as labeled proportion bars.
+// Known categories come first in canonical order; unknown categories present
+// in the data are appended, never hidden.
+export function CategoryBreakdown({ byCategory }: { byCategory: Record<string, number> }) {
+  const order = ["SAST", "SECRET", "SCA", "IAC", "DAST"];
+  const extras = Object.keys(byCategory).filter((c) => !order.includes(c)).sort();
+  const entries = [...order, ...extras]
+    .map((cat) => ({ cat, count: byCategory[cat] || 0 }))
+    .filter((e) => e.count > 0);
+
+  if (entries.length === 0) {
+    return <p className="py-6 text-center text-sm text-gray-500">No categorized findings.</p>;
+  }
+
+  const maxCount = Math.max(...entries.map((e) => e.count));
+  const fallbackColor = "#6b7280";
+
+  return (
+    <div className="space-y-3">
+      {entries.map(({ cat, count }) => (
+        <div key={cat} className="flex items-center gap-3 text-sm">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: CATEGORY_COLOR[cat] || fallbackColor }}
+          />
+          <span className="w-36 truncate font-medium text-gray-700 dark:text-gray-300">
+            {CATEGORY_LABEL[cat] || cat}
+          </span>
+          <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+            <div
+              className="absolute left-0 top-0 h-full rounded-full"
+              style={{
+                width: `${(count / maxCount) * 100}%`,
+                backgroundColor: CATEGORY_COLOR[cat] || fallbackColor,
+              }}
+            />
+          </div>
+          <span className="w-12 text-right tabular-nums text-gray-600 dark:text-gray-400">{count}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

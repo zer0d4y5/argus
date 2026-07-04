@@ -20,8 +20,8 @@ exactly one place (`model.Normalize`), never inside adapters.
 
 | Field | Type | Notes |
 |---|---|---|
-| `Tool` | string | `semgrep` \| `gitleaks` \| `trivy` (one adapter = one tool) |
-| `Category` | string | `SAST` \| `SECRET` \| `SCA` (later: `IAC`, `DAST`) |
+| `Tool` | string | `semgrep` \| `gitleaks` \| `trivy` \| `checkov` \| `trivy-config` (one adapter = one tool) |
+| `Category` | string | `SAST` \| `SECRET` \| `SCA` \| `IAC` (later: `DAST`) |
 | `RuleID` | string | tool's rule/check/vulnerability ID |
 | `Title`, `Description` | string | human-readable |
 | `RawSeverity` | string | tool-native severity string, verbatim |
@@ -80,7 +80,25 @@ surface and can trip a gate.
 | gitleaks | *(none)* | high — a leaked credential is directly exploitable |
 | trivy | `CRITICAL`/`HIGH`/`MEDIUM`/`LOW` | same |
 | trivy | `UNKNOWN` | medium — un-scored ≠ harmless |
+| trivy-config | `CRITICAL`/`HIGH`/`MEDIUM`/`LOW` | same (same engine as trivy, misconfiguration pass) |
+| trivy-config | `UNKNOWN` | medium |
+| checkov | `CRITICAL`/`HIGH`/`MEDIUM`/`LOW`/`INFO` | same — present only in platform-enriched runs |
+| checkov | *(none)* | medium — see policy below |
 | *any* | unrecognized | medium (raw string preserved in `rawSeverity`) |
+
+**Checkov severity policy (Phase 4).** OSS checkov emits `severity: null` for
+nearly every check — severity grading is a paid-platform enrichment. Those
+findings normalize to **medium**, by the same reasoning as trivy's `UNKNOWN`:
+un-scored is unassessed, not harmless, and must stay visible and able to trip
+a medium gate. We deliberately do **not** maintain a curated per-check-ID
+severity table here: trivy-config runs alongside checkov on the same files
+with graded native severities, so headline misconfigurations (public bucket,
+privileged container, secret in ENV) still surface as high/critical through
+that engine, and a hand-maintained rule table is compliance-framework work
+that belongs to Phase 5. When checkov *does* emit a severity
+(platform-enriched runs), it is mapped verbatim. Checkov CIS/benchmark IDs,
+when present, are captured verbatim into `meta.benchmarks` — never into
+`complianceControls`, which stays reserved for Phase 5.
 
 ## Fingerprint (stable ID)
 

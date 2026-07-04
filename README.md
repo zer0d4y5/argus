@@ -7,9 +7,12 @@ single deduplicated report, AI-triages and risk-scores every finding on your own
 machine, gates CI on severity, and serves a three-persona web console over your
 run history — all from one Go binary.
 
-SAST across **nine languages** (Python, JavaScript, TypeScript, Go, Java, C#,
-Ruby, PHP, Kotlin) plus secrets and dependency (SCA) scanning today; IaC, DAST,
-and compliance mapping on the [roadmap](docs/roadmap.md).
+**App code AND the infrastructure it runs on, one tool.** SAST across **nine
+languages** (Python, JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin),
+secrets, dependency (SCA) scanning, and **IaC misconfiguration scanning**
+(Terraform, CloudFormation, Kubernetes, Dockerfile, Helm — checkov plus trivy's
+misconfig pass) today; DAST and compliance mapping on the
+[roadmap](docs/roadmap.md).
 
 > **Naming:** `appsec` is the working name. Proposed project name: **Bulwark** —
 > a defensive wall built from many stones: independent scanners mortared into
@@ -18,7 +21,7 @@ and compliance mapping on the [roadmap](docs/roadmap.md).
 
 ```
 appsec scan ./repo --profile standard --triage --save
-  → runs in parallel:  semgrep (SAST, curated multi-language packs) · gitleaks · trivy
+  → runs in parallel:  semgrep (SAST) · gitleaks (secrets) · trivy (SCA) · checkov + trivy-config (IaC)
   → normalizes everything into one findings model
   → dedups/correlates overlapping findings
   → AI triage (local Ollama): LLM verdicts true/false-positive per finding
@@ -48,7 +51,8 @@ resolved deltas and gate outcomes for operations.
 ```bash
 # Prereqs: Go 1.22+, plus whichever scanners you want on PATH:
 #   pipx install semgrep     (or: pip install semgrep)
-#   brew install gitleaks trivy
+#   brew install gitleaks trivy   # trivy covers SCA *and* IaC misconfigs
+#   pipx install checkov          # optional: the broad IaC engine
 go build -o appsec ./cmd/appsec        # embeds the console; no Node needed to run
 
 # Scan with the default `standard` multi-language profile, triage locally,
@@ -79,6 +83,13 @@ labeled fixture per language (`testdata/polyglot/`) and a network-dependent test
 assert every canary is detected under `standard`, and
 [docs/coverage.md](docs/coverage.md) is a generated language × weakness matrix.
 Breadth raises false-positive volume on purpose — local AI triage is the answer.
+
+The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
+Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every
+planted misconfiguration is detected. IaC engines run whenever they are on
+PATH (`--profile` tunes semgrep only); every IaC finding lands in the same
+model — triaged, risk-scored, gated, and rolled up to OWASP A05 — and wears a
+category badge in the console.
 
 ## AI triage & risk scoring
 
@@ -150,7 +161,7 @@ repo and adjust the gate.
 - [Architecture](docs/architecture.md) — orchestrator design, package layout, design rules
 - [Findings model](docs/findings-model.md) — the unified schema (versioned)
 - [Risk scoring](docs/risk-scoring.md) — the 0–10 formula and the bounded LLM adjustment
-- [Roadmap](docs/roadmap.md) — Phases 4–8: IaC, compliance, DAST, threat modeling, IAST, platform
+- [Roadmap](docs/roadmap.md) — Phases 5–9: compliance, DAST, threat modeling, IAST, platform
 
 ## Development
 
