@@ -1,0 +1,247 @@
+// Package model defines the unified findings schema — the single contract
+// every scanner adapter maps into and every reporter reads from.
+// The schema is versioned; see docs/findings-model.md for the field reference
+// and compatibility rules. Bump SchemaVersion on any breaking field change.
+package model
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// SchemaVersion identifies the findings-model revision embedded in reports.
+const SchemaVersion = "1.0.0"
+
+// Finding categories. String-typed (not iota) because they appear verbatim in
+// JSON/SARIF output and in config files.
+const (
+	CategorySAST   = "SAST"   // static code analysis
+	CategorySecret = "SECRET" // leaked credentials
+	CategorySCA    = "SCA"    // vulnerable dependencies
+	CategoryIaC    = "IAC"    // infrastructure-as-code (Phase 3)
+	CategoryDAST   = "DAST"   // dynamic scanning (Phase 5)
+)
+
+// RawFinding is what an adapter emits: native tool data mapped to common
+// fields, with the tool's ORIGINAL severity string left intact
+// (normalization happens later, in Normalize).
+type RawFinding struct {
+	Tool        string // "semgrep" | "gitleaks" | "trivy"
+	Category    string // CategorySAST | CategorySecret | CategorySCA | ...
+	RuleID      string // check_id / RuleID / VulnerabilityID
+	Title       string
+	Description string
+	RawSeverity string            // tool's native severity string, verbatim
+	Confidence  string            // tool-reported confidence ("" if none)
+	File        string            // path relative to scan root ("" if N/A)
+	StartLine   int               // 0 if N/A
+	EndLine     int               // 0 if N/A
+	CWEs        []string          // e.g. ["CWE-89"]
+	CVE         string            // "" if N/A
+	Package     string            // "" if N/A (SCA: name@version)
+	Remediation string            // "" if unknown
+	Meta        map[string]string // any extra tool fields worth keeping
+	RawPayload  json.RawMessage   // the original per-result object, verbatim
+}
+
+// Location pins a finding to code, a package manifest, or (later) a URL.
+type Location struct {
+	File      string `json:"file,omitempty"`
+	StartLine int    `json:"startLine,omitempty"`
+	EndLine   int    `json:"endLine,omitempty"`
+	URL       string `json:"url,omitempty"` // DAST findings (Phase 5)
+}
+
+// Triage is the AI-triage enrichment slot (Phase 2). Wired but optional.
+type Triage struct {
+	Verdict   string `json:"verdict"` // "true-positive" | "false-positive" | "uncertain"
+	Rationale string `json:"rationale,omitempty"`
+	Model     string `json:"model,omitempty"`
+}
+
+// Finding is the normalized, enriched record. Everything downstream of the
+// adapters — correlation, gating, every reporter — operates on this type only.
+type Finding struct {
+	ID          string   `json:"id"`              // stable fingerprint, see Fingerprint
+	Tool        string   `json:"tool"`            // primary reporting tool
+	Tools       []string `json:"tools,omitempty"` // all tools after correlation (>=1 entries)
+	Category    string   `json:"category"`
+	RuleID      string   `json:"ruleId"`
+	Title       string   `json:"title"`
+	Description string   `json:"description,omitempty"`
+	Severity    Severity `json:"severity"`
+	RawSeverity string   `json:"rawSeverity,omitempty"` // native string, for audit
+	Confidence  string   `json:"confidence,omitempty"`
+	Location    Location `json:"location"`
+	Package     string   `json:"package,omitempty"`
+	CWEs        []string `json:"cwes,omitempty"`
+	CVE         string   `json:"cve,omitempty"`
+	Remediation string   `json:"remediation,omitempty"`
+
+	Meta       map[string]string `json:"meta,omitempty"`
+	RawPayload json.RawMessage   `json:"rawPayload,omitempty"`
+
+	// Enrichment slots, populated by later phases.
+	ComplianceControls []string `json:"complianceControls,omitempty"` // Phase 4
+	Triage             *Triage  `json:"triage,omitempty"`             // Phase 2
+	RiskScore          *float64 `json:"riskScore,omitempty"`          // Phase 2
+}
+
+// Fingerprint computes the stable identity of a finding. Two runs over the
+// same code must produce the same ID for the same issue, so the hash covers
+// only identity fields — never description text, severity, or raw payloads,
+// which tools reword between versions. The tool name IS included: cross-tool
+// merging is correlation's job (it uses correlation keys, not the ID).
+func Fingerprint(f Finding) string {
+	h := sha256.New()
+	for _, part := range []string{
+		"v1", // fingerprint algorithm version, independent of SchemaVersion
+		f.Tool,
+		f.Category,
+		f.RuleID,
+		f.Location.File,
+		strconv.Itoa(f.Location.StartLine),
+		f.Package,
+		f.CVE,
+	} {
+		h.Write([]byte(part))
+		h.Write([]byte{0}) // field separator so "a"+"bc" != "ab"+"c"
+	}
+	return hex.EncodeToString(h.Sum(nil))[:32]
+}
+
+// Normalize converts adapter output into normalized findings: severity
+// mapping, fingerprinting, and defensive cleanup. This is the only place a
+// RawFinding becomes a Finding.
+func Normalize(raws []RawFinding) []Finding {
+	findings := make([]Finding, 0, len(raws))
+	for _, r := range raws {
+		f := Finding{
+			Tool:        r.Tool,
+			Tools:       []string{r.Tool},
+			Category:    r.Category,
+			RuleID:      r.RuleID,
+			Title:       firstNonEmpty(r.Title, r.RuleID),
+			Description: r.Description,
+			Severity:    NormalizeSeverity(r.Tool, r.RawSeverity),
+			RawSeverity: r.RawSeverity,
+			Confidence:  r.Confidence,
+			Location: Location{
+				File:      filepathToSlash(r.File),
+				StartLine: maxInt(r.StartLine, 0),
+				EndLine:   maxInt(r.EndLine, 0),
+			},
+			Package:     r.Package,
+			CWEs:        normalizeCWEs(r.CWEs),
+			CVE:         strings.TrimSpace(r.CVE),
+			Remediation: r.Remediation,
+			Meta:        r.Meta,
+			RawPayload:  r.RawPayload,
+		}
+		if f.Location.EndLine < f.Location.StartLine {
+			f.Location.EndLine = f.Location.StartLine
+		}
+		f.ID = Fingerprint(f)
+		findings = append(findings, f)
+	}
+	return findings
+}
+
+// Summary is the severity/category/tool rollup embedded in reports.
+type Summary struct {
+	Total      int            `json:"total"`
+	BySeverity map[string]int `json:"bySeverity"`
+	ByCategory map[string]int `json:"byCategory"`
+	ByTool     map[string]int `json:"byTool"`
+}
+
+func Summarize(findings []Finding) Summary {
+	s := Summary{
+		Total:      len(findings),
+		BySeverity: map[string]int{},
+		ByCategory: map[string]int{},
+		ByTool:     map[string]int{},
+	}
+	for _, f := range findings {
+		s.BySeverity[f.Severity.String()]++
+		s.ByCategory[f.Category]++
+		for _, t := range f.Tools {
+			s.ByTool[t]++
+		}
+	}
+	return s
+}
+
+// Sort orders findings deterministically: severity desc, then category, tool,
+// file, line, rule. Reporters rely on this for stable, diffable output.
+func Sort(findings []Finding) {
+	sort.SliceStable(findings, func(i, j int) bool {
+		a, b := findings[i], findings[j]
+		if a.Severity != b.Severity {
+			return a.Severity > b.Severity
+		}
+		if a.Category != b.Category {
+			return a.Category < b.Category
+		}
+		if a.Tool != b.Tool {
+			return a.Tool < b.Tool
+		}
+		if a.Location.File != b.Location.File {
+			return a.Location.File < b.Location.File
+		}
+		if a.Location.StartLine != b.Location.StartLine {
+			return a.Location.StartLine < b.Location.StartLine
+		}
+		return a.RuleID < b.RuleID
+	})
+}
+
+// normalizeCWEs uppercases, prefixes bare numbers with "CWE-", dedups, and
+// sorts, so "89", "cwe-89", and "CWE-89" all correlate.
+func normalizeCWEs(in []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, c := range in {
+		c = strings.ToUpper(strings.TrimSpace(c))
+		if c == "" {
+			continue
+		}
+		// Semgrep style: "CWE-89: SQL Injection ..." — keep the ID only.
+		if idx := strings.IndexByte(c, ':'); idx > 0 {
+			c = strings.TrimSpace(c[:idx])
+		}
+		if !strings.HasPrefix(c, "CWE-") {
+			if _, err := strconv.Atoi(c); err == nil {
+				c = "CWE-" + c
+			}
+		}
+		if !seen[c] {
+			seen[c] = true
+			out = append(out, c)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func filepathToSlash(p string) string { return strings.ReplaceAll(p, "\\", "/") }
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

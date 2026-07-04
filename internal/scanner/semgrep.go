@@ -1,0 +1,160 @@
+package scanner
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/leaky-hub/appsec/internal/model"
+)
+
+// Semgrep implements the Adapter interface for the semgrep CLI (SAST).
+type Semgrep struct{}
+
+func (s *Semgrep) Name() string     { return "semgrep" }
+func (s *Semgrep) Category() string { return model.CategorySAST }
+func (s *Semgrep) Available() bool  { return toolOnPath("semgrep") }
+
+// Scan executes semgrep against the target and returns raw findings.
+func (s *Semgrep) Scan(ctx context.Context, target string) ([]model.RawFinding, error) {
+	// p/ci is semgrep's curated low-false-positive security ruleset. An
+	// explicit config (unlike --config auto) works with metrics disabled.
+	args := []string{
+		"--json",
+		"--quiet",
+		"--metrics=off",
+		"--timeout", "0",
+		"--config", "p/ci",
+		target,
+	}
+	data, err := runJSON(ctx, "semgrep", args...)
+	if err != nil {
+		return nil, fmt.Errorf("semgrep scan failed: %w", err)
+	}
+	return parseSemgrep(data)
+}
+
+// parseSemgrep decodes semgrep JSON output into RawFindings. Split out from
+// Scan so it is unit-testable without invoking the binary.
+func parseSemgrep(data []byte) ([]model.RawFinding, error) {
+	var result struct {
+		Results []json.RawMessage `json:"results"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("semgrep json decode: %w", err)
+	}
+
+	findings := make([]model.RawFinding, 0, len(result.Results))
+	for _, rawRes := range result.Results {
+		finding, err := parseSemgrepResult(rawRes)
+		if err != nil {
+			// Skip only the malformed result, not the whole run.
+			continue
+		}
+		findings = append(findings, finding)
+	}
+	return findings, nil
+}
+
+type semgrepResult struct {
+	CheckID string          `json:"check_id"`
+	Path    string          `json:"path"`
+	Start   semgrepPosition `json:"start"`
+	End     semgrepPosition `json:"end"`
+	Extra   semgrepExtra    `json:"extra"`
+}
+
+type semgrepPosition struct {
+	Line int `json:"line"`
+}
+
+type semgrepExtra struct {
+	Message  string          `json:"message"`
+	Severity string          `json:"severity"`
+	Fix      string          `json:"fix"`
+	Metadata semgrepMetadata `json:"metadata"`
+}
+
+// semgrepMetadata: cwe and owasp are emitted by the registry sometimes as a
+// string and sometimes as an array, so both decode via flexStrings.
+type semgrepMetadata struct {
+	CWE        json.RawMessage `json:"cwe"`
+	Owasp      json.RawMessage `json:"owasp"`
+	Confidence string          `json:"confidence"`
+	Category   string          `json:"category"`
+	Fix        string          `json:"fix"`
+}
+
+func parseSemgrepResult(raw json.RawMessage) (model.RawFinding, error) {
+	var res semgrepResult
+	if err := json.Unmarshal(raw, &res); err != nil {
+		return model.RawFinding{}, err
+	}
+
+	meta := map[string]string{}
+	if owasp := flexStrings(res.Extra.Metadata.Owasp); len(owasp) > 0 {
+		meta["owasp"] = strings.Join(owasp, ", ")
+	}
+	if res.Extra.Metadata.Category != "" {
+		meta["category"] = res.Extra.Metadata.Category
+	}
+	if len(meta) == 0 {
+		meta = nil
+	}
+
+	return model.RawFinding{
+		Tool:        "semgrep",
+		Category:    model.CategorySAST,
+		RuleID:      res.CheckID,
+		Title:       res.CheckID,
+		Description: res.Extra.Message,
+		RawSeverity: res.Extra.Severity,
+		Confidence:  res.Extra.Metadata.Confidence,
+		File:        res.Path,
+		StartLine:   res.Start.Line,
+		EndLine:     res.End.Line,
+		CWEs:        flexStrings(res.Extra.Metadata.CWE),
+		Remediation: firstNonEmpty(res.Extra.Metadata.Fix, res.Extra.Fix),
+		Meta:        meta,
+		RawPayload:  raw,
+	}, nil
+}
+
+// flexStrings decodes a JSON value that may be a string, an array of strings,
+// or absent, into a []string.
+func flexStrings(raw json.RawMessage) []string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var single string
+	if err := json.Unmarshal(raw, &single); err == nil {
+		if single == "" {
+			return nil
+		}
+		return []string{single}
+	}
+	var many []string
+	if err := json.Unmarshal(raw, &many); err == nil {
+		out := many[:0]
+		for _, s := range many {
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+		if len(out) == 0 {
+			return nil
+		}
+		return out
+	}
+	return nil
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
+}

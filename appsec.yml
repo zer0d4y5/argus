@@ -1,0 +1,10 @@
+# appsec configuration for this repository.
+# The fixture under testdata/ is deliberately vulnerable — keep it out of the
+# CI gate (the demo workflow scans it explicitly instead).
+scanners: []            # empty = all available (semgrep, gitleaks, trivy)
+fail_severity: high     # exit non-zero on high or critical findings
+format: markdown
+ignore_paths:
+  - testdata/**
+ignore_rules: []
+timeout: 600

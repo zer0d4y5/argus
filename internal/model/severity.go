@@ -1,0 +1,170 @@
+package model
+
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
+// Severity is the normalized severity scale shared by every finding regardless
+// of which tool produced it. The ordering is significant: a higher value is
+// more severe, and the severity gate compares with >=.
+type Severity int
+
+const (
+	SeverityInfo Severity = iota
+	SeverityLow
+	SeverityMedium
+	SeverityHigh
+	SeverityCritical
+)
+
+var severityNames = [...]string{
+	SeverityInfo:     "info",
+	SeverityLow:      "low",
+	SeverityMedium:   "medium",
+	SeverityHigh:     "high",
+	SeverityCritical: "critical",
+}
+
+func (s Severity) String() string {
+	if s < SeverityInfo || s > SeverityCritical {
+		return "info"
+	}
+	return severityNames[s]
+}
+
+// MarshalJSON emits the lowercase name so reports are human-readable and the
+// schema is not coupled to Go iota values.
+func (s Severity) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+func (s *Severity) UnmarshalJSON(b []byte) error {
+	var name string
+	if err := json.Unmarshal(b, &name); err != nil {
+		return err
+	}
+	sev, err := ParseSeverity(name)
+	if err != nil {
+		return err
+	}
+	*s = sev
+	return nil
+}
+
+// ParseSeverity parses a normalized severity name (case-insensitive).
+// It rejects unknown values rather than guessing: callers that need a
+// fallback must choose one explicitly.
+func ParseSeverity(name string) (Severity, error) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "info", "informational", "note":
+		return SeverityInfo, nil
+	case "low":
+		return SeverityLow, nil
+	case "medium", "moderate":
+		return SeverityMedium, nil
+	case "high":
+		return SeverityHigh, nil
+	case "critical":
+		return SeverityCritical, nil
+	}
+	return SeverityInfo, fmt.Errorf("unknown severity %q", name)
+}
+
+// NormalizeSeverity maps a tool's native severity string onto the shared
+// scale. Mappings are explicit per tool; anything unrecognized falls back to
+// the tool default so a new native value can never silently vanish from
+// reports (the raw string is preserved on the finding either way).
+//
+//	semgrep:  ERROR -> high, WARNING -> medium, INFO -> info
+//	gitleaks: no native scale; secrets are high (leaked credential = direct impact)
+//	trivy:    CRITICAL/HIGH/MEDIUM/LOW verbatim, UNKNOWN -> medium
+//
+// UNKNOWN from trivy maps to medium, not info: an un-scored CVE is
+// unassessed, not harmless, and mapping it to info would let the severity
+// gate wave it through.
+func NormalizeSeverity(tool, raw string) Severity {
+	v := strings.ToUpper(strings.TrimSpace(raw))
+	switch strings.ToLower(tool) {
+	case "semgrep":
+		switch v {
+		case "ERROR", "CRITICAL", "HIGH":
+			return SeverityHigh
+		case "WARNING", "MEDIUM":
+			return SeverityMedium
+		case "LOW":
+			return SeverityLow
+		case "INFO", "INVENTORY", "EXPERIMENT":
+			return SeverityInfo
+		}
+		return SeverityMedium
+	case "gitleaks":
+		// gitleaks has no severity concept; a detected secret is high.
+		return SeverityHigh
+	case "trivy":
+		switch v {
+		case "CRITICAL":
+			return SeverityCritical
+		case "HIGH":
+			return SeverityHigh
+		case "MEDIUM":
+			return SeverityMedium
+		case "LOW":
+			return SeverityLow
+		case "UNKNOWN", "":
+			return SeverityMedium
+		}
+		return SeverityMedium
+	}
+	// Unknown tool: try the string directly, then fail toward medium so the
+	// finding still surfaces and can trip a medium-or-lower gate.
+	if sev, err := ParseSeverity(v); err == nil {
+		return sev
+	}
+	return SeverityMedium
+}
+
+// MaxSeverity returns the highest severity present in findings, and false if
+// the slice is empty.
+func MaxSeverity(findings []Finding) (Severity, bool) {
+	if len(findings) == 0 {
+		return SeverityInfo, false
+	}
+	max := SeverityInfo
+	for _, f := range findings {
+		if f.Severity > max {
+			max = f.Severity
+		}
+	}
+	return max, true
+}
+
+// GateExceeded reports whether any finding meets or exceeds the threshold.
+// This is the CI pass/fail decision. A threshold of nil means the gate is
+// disabled ("none") and never fails the build.
+func GateExceeded(findings []Finding, threshold *Severity) bool {
+	if threshold == nil {
+		return false
+	}
+	for _, f := range findings {
+		if f.Severity >= *threshold {
+			return true
+		}
+	}
+	return false
+}
+
+// ParseGate parses a fail-severity gate value: a severity name or "none"
+// (disabled). Returns nil for "none".
+func ParseGate(value string) (*Severity, error) {
+	v := strings.ToLower(strings.TrimSpace(value))
+	if v == "none" || v == "off" || v == "" {
+		return nil, nil
+	}
+	sev, err := ParseSeverity(v)
+	if err != nil {
+		return nil, fmt.Errorf("invalid fail severity %q (want critical|high|medium|low|info|none)", value)
+	}
+	return &sev, nil
+}

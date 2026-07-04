@@ -1,0 +1,6 @@
+/appsec
+/dist/
+*.sarif
+results.*
+coverage.out
+.DS_Store

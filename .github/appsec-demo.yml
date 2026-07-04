@@ -1,0 +1,5 @@
+# Config for the CI demo scan of testdata/fixture. Unlike the repo's own
+# appsec.yml, it does NOT ignore testdata/** — the whole point is to show the
+# planted findings — and it never gates (the gate step scans the real code).
+fail_severity: none
+format: sarif

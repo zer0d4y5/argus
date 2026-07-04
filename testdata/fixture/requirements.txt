@@ -1,0 +1,4 @@
+# PLANT: intentionally outdated dependencies with known CVEs (for trivy fs)
+Flask==0.12
+PyYAML==5.3.1
+requests==2.19.1
