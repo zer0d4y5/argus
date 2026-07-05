@@ -1,15 +1,22 @@
 // Package server is the `appsec serve` web console: a local-first HTTP server
-// that exposes saved scan runs as a JSON API and serves the embedded React UI.
+// that exposes saved scan runs as a JSON API, serves the embedded React UI,
+// and — once users are configured — authenticates sessions and executes
+// scans against registered targets through a strictly serial job queue.
 //
-// SECURITY POSTURE (v1, documented loudly):
-//   - Binds 127.0.0.1 by default. Widening the bind address exposes an
-//     UNAUTHENTICATED console — there is no auth in v1.
+// SECURITY POSTURE (docs/console-ops.md is the spec):
+//   - Zero users on disk: the console is the pre-auth read-only viewer,
+//     loopback-bound by default; every operational endpoint answers 403
+//     naming the bootstrap command. One or more users: every /api route
+//     requires a session (reads included), enforced by the authz table in
+//     authz.go.
 //   - Finding data (titles, descriptions, paths, rationales) originates from
 //     scanned repositories and an LLM and is therefore HOSTILE. The server
 //     never renders it into HTML; it returns strict application/json with
 //     X-Content-Type-Options: nosniff, and the frontend escapes on render.
 //   - A strict Content-Security-Policy is set on the HTML shell: no inline
 //     script, no remote origins. The bundle loads only same-origin assets.
+//   - No TLS in-process: the supported way off loopback is a TLS-terminating
+//     reverse proxy (docs/console-ops.md §8).
 package server
 
 import (
@@ -20,8 +27,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/leaky-hub/appsec/internal/audit"
+	"github.com/leaky-hub/appsec/internal/jobs"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/runstore"
+	"github.com/leaky-hub/appsec/internal/server/auth"
+	"github.com/leaky-hub/appsec/internal/targets"
 )
 
 // Server serves the console API and static UI over one repo's run history.
@@ -30,6 +41,15 @@ type Server struct {
 	gate     *model.Severity // gate threshold for computed pass/fail (nil = never fails)
 	gateName string          // human label for the threshold
 	static   fs.FS           // embedded UI file system (index.html at root)
+
+	// Console-ops components. All nil is the legacy read-only construction
+	// and behaves exactly like the zero-users mode (reads open, ops 403).
+	users    *auth.Store
+	sessions *auth.Sessions
+	limiter  *auth.LoginLimiter
+	targets  *targets.Registry
+	auditLog *audit.Log
+	queue    *jobs.Queue
 }
 
 // Options configure a Server.
@@ -38,23 +58,46 @@ type Options struct {
 	Gate     *model.Severity
 	GateName string
 	Static   fs.FS
+
+	// Console-ops (optional; see Server field docs).
+	Users    *auth.Store
+	Sessions *auth.Sessions
+	Limiter  *auth.LoginLimiter
+	Targets  *targets.Registry
+	Audit    *audit.Log
+	Queue    *jobs.Queue
 }
 
 // New builds a Server and its routes.
 func New(opts Options) *Server {
-	s := &Server{store: opts.Store, gate: opts.Gate, gateName: opts.GateName, static: opts.Static}
+	s := &Server{
+		store: opts.Store, gate: opts.Gate, gateName: opts.GateName, static: opts.Static,
+		users: opts.Users, sessions: opts.Sessions, limiter: opts.Limiter,
+		targets: opts.Targets, auditLog: opts.Audit, queue: opts.Queue,
+	}
 	return s
 }
 
-// Handler returns the fully-wired http.Handler (API + static UI + headers).
+// Handler returns the fully-wired http.Handler: authz gate over the API,
+// then routes, then the defensive headers on everything.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/summary", s.handleSummary)
 	mux.HandleFunc("/api/runs", s.handleRuns)
 	mux.HandleFunc("/api/runs/", s.handleRunDetail) // /api/runs/{id}
 	mux.HandleFunc("/api/health", s.handleHealth)
+	mux.HandleFunc("/api/auth/login", s.handleLogin)
+	mux.HandleFunc("/api/auth/logout", s.handleLogout)
+	mux.HandleFunc("/api/auth/me", s.handleMe)
+	mux.HandleFunc("/api/users", s.handleUsers)        // GET list, POST create (admin)
+	mux.HandleFunc("/api/users/", s.handleUserByID)    // PATCH, DELETE (admin)
+	mux.HandleFunc("/api/targets", s.handleTargets)    // GET (viewer), POST (admin)
+	mux.HandleFunc("/api/targets/", s.handleTargetByID) // DELETE (admin)
+	mux.HandleFunc("/api/scans", s.handleScans)        // GET (viewer), POST (operator)
+	mux.HandleFunc("/api/scans/", s.handleScanByID)    // GET /api/scans/{jobId}
+	mux.HandleFunc("/api/audit", s.handleAudit)        // GET (admin)
 	mux.HandleFunc("/", s.handleStatic)
-	return securityHeaders(mux)
+	return securityHeaders(s.authGate(mux))
 }
 
 // securityHeaders applies the console's defensive headers to every response.
