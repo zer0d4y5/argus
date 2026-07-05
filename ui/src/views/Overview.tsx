@@ -13,6 +13,7 @@ import {
 import { SummaryResponse } from "../api";
 import { Panel, StatCard, SeverityDonut, GateBadge, EmptyState, CategoryBreakdown } from "../components";
 import { OWASP_COLORS, SEV_COLOR, fmtTime } from "../theme";
+import { CompliancePanel } from "./CompliancePanel";
 
 export function Overview({ summary }: { summary: SummaryResponse }) {
   if (summary.runCount === 0) {
@@ -136,6 +137,8 @@ export function Overview({ summary }: { summary: SummaryResponse }) {
           </div>
         )}
       </Panel>
+
+      <CompliancePanel compliance={summary.compliance} />
 
       <Panel title="OWASP Top 10 (2021) rollup">
         {owasp.length === 0 ? (

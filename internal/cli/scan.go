@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/config"
 	"github.com/leaky-hub/appsec/internal/correlate"
 	"github.com/leaky-hub/appsec/internal/llm"
@@ -105,6 +106,13 @@ func runScan(cmd *cobra.Command, args []string) error {
 
 	// Every finding in every run gets a risk score, LLM or not.
 	risk.Apply(findings)
+
+	// Compliance mapping is always on: deterministic, hand-curated, cheap.
+	// Like triage it is enrichment only — a mapping failure (a build defect
+	// in the embedded data) warns and passes findings through unmodified.
+	if err := compliance.Apply(findings); err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: compliance mapping failed, findings pass through unmapped: %v\n", err)
+	}
 
 	// Opt-in only: dropping LLM-marked false positives is explicit and
 	// counted, and applies to both the report and the gate. Default output

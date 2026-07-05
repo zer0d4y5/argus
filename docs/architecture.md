@@ -10,9 +10,9 @@ scoring, and compliance mapping.
 [ scanners ]   semgrep · gitleaks · trivy · checkov · trivy-config    (later: kics · zap · nuclei · codeql)
       |            adapters normalize → unified findings model
       v
-[ core ]       normalize · correlate/dedup · AI triage · risk score · severity gate   (Phase 5+: compliance map)
+[ core ]       normalize · correlate/dedup · AI triage · risk score · compliance map · severity gate
       v
-[ surfaces ]   CLI · GitHub Action · SARIF / Markdown / JSON · web console (`appsec serve`)
+[ surfaces ]   CLI · GitHub Action · SARIF / Markdown / JSON · gap report (`appsec comply`) · web console (`appsec serve`)
 ```
 
 ## Package layout
@@ -28,6 +28,7 @@ scoring, and compliance mapping.
 | `internal/triage` | AI triage: `Triager` interface, no-op impl, LLM impl (Phase 2) | security-critical: prompt assembly is the injection boundary, output validation is the only path model text enters reports; never drops/reorders findings |
 | `internal/llm` | provider-agnostic completion clients: Ollama (local, default) + Anthropic, plus a test fake | transport only — providers send prompts verbatim and return raw text; API keys env-only |
 | `internal/risk` | 0–10 risk score: deterministic baseline + bounded LLM adjustment | security-critical: the LLM can never set a score, only move it within `docs/risk-scoring.md` bounds |
+| `internal/compliance` | framework data (embedded, version-pinned JSON) + mapping engine + gap assessment (`docs/compliance.md`) | security-critical: mapping rows are audit claims — hand-curated, deterministic, no LLM; unmapped is visible, totals reconcile |
 
 ## Data flow of `appsec scan <target>`
 
@@ -49,13 +50,17 @@ scoring, and compliance mapping.
    per-finding failure → `uncertain`; findings are never dropped or reordered.
 8. `risk.Apply`: every finding gets a 0–10 risk score — heuristic baseline
    always, plus the bounded verdict adjustment (`docs/risk-scoring.md`).
-9. Optional `--exclude-fp` (explicit opt-in, counted on stderr): drop
-   LLM-marked false positives from the report AND the gate. Default output
-   shows everything, verdicts included.
-10. Write the report (`--format sarif|markdown|json`).
-11. Severity gate: exit 1 if any finding meets/exceeds `--fail-severity`.
-    The gate reads `severity` only — never risk scores or verdicts (except
-    under the explicit `--exclude-fp`).
+9. `compliance.Apply`: every finding gets its violated framework controls
+   (`complianceControls`, `"<FRAMEWORK>:<control-id>"`) — deterministic,
+   hand-curated, always on (`docs/compliance.md`). Enrichment only; a data
+   error warns and passes findings through unmapped.
+10. Optional `--exclude-fp` (explicit opt-in, counted on stderr): drop
+    LLM-marked false positives from the report AND the gate. Default output
+    shows everything, verdicts included.
+11. Write the report (`--format sarif|markdown|json`).
+12. Severity gate: exit 1 if any finding meets/exceeds `--fail-severity`.
+    The gate reads `severity` only — never risk scores, verdicts, or
+    compliance data (except under the explicit `--exclude-fp`).
 
 ## Design rules
 

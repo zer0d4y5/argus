@@ -11,8 +11,15 @@ run history — all from one Go binary.
 languages** (Python, JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin),
 secrets, dependency (SCA) scanning, and **IaC misconfiguration scanning**
 (Terraform, CloudFormation, Kubernetes, Dockerfile, Helm — checkov plus trivy's
-misconfig pass) today; DAST and compliance mapping on the
-[roadmap](docs/roadmap.md).
+misconfig pass) today; DAST on the [roadmap](docs/roadmap.md).
+
+**Findings become audit evidence.** Every finding is mapped — deterministically,
+no LLM — to the framework controls it violates (**OWASP ASVS 4.0**,
+**PCI DSS 4.0**, and **CIS** AWS/Docker/Kubernetes benchmarks), and
+`appsec comply` turns any scan into a per-framework gap report a GRC lead can
+hand to an auditor: controls violated with evidence, controls with no
+violations detected, and an explicit "not assessable by static scanning"
+bucket so the report never overclaims ([docs/compliance.md](docs/compliance.md)).
 
 > **Naming:** `appsec` is the working name. Proposed project name: **Bulwark** —
 > a defensive wall built from many stones: independent scanners mortared into
@@ -26,9 +33,11 @@ appsec scan ./repo --profile standard --triage --save
   → dedups/correlates overlapping findings
   → AI triage (local Ollama): LLM verdicts true/false-positive per finding
   → risk-scores every finding 0–10 (heuristic baseline ± bounded LLM adjustment)
+  → maps every finding to ASVS / PCI DSS / CIS controls (deterministic, no LLM)
   → writes SARIF 2.1.0 / Markdown / JSON, saves the run for the console
   → exits non-zero when findings hit your severity gate
 
+appsec comply  → per-framework compliance gap report: violated / clean / not assessable
 appsec serve   → local web console: Overview (GRC) · Findings (AppSec) · Runs (SecOps)
 ```
 
@@ -42,9 +51,10 @@ escaping only, no HTML injection, strict CSP, no auth, binds `127.0.0.1`.
 |---|---|---|
 | ![Overview](docs/screenshots/overview.png) | ![Findings](docs/screenshots/findings.png) | ![Runs](docs/screenshots/runs.png) |
 
-Risk posture, severity/OWASP rollups, and a cross-run trend for leadership; a
-filterable explorer with per-finding triage rationale for engineers; new-vs-
-resolved deltas and gate outcomes for operations.
+Risk posture, severity/OWASP rollups, per-framework compliance posture, and a
+cross-run trend for leadership; a filterable explorer with per-finding triage
+rationale and violated-control chips for engineers; new-vs-resolved deltas and
+gate outcomes for operations.
 
 ## Quickstart (90 seconds)
 
@@ -68,6 +78,8 @@ go build -o appsec ./cmd/appsec        # embeds the console; no Node needed to r
 ./appsec scan . --format sarif -o results.sarif   # GitHub code scanning
 ./appsec scan . --fail-severity high    # fail CI on high or critical
 ./appsec scan . --triage --exclude-fp   # drop LLM-marked false positives (explicit)
+./appsec comply .                       # compliance gap report (fresh scan, Markdown)
+./appsec comply . --latest -f json      # assess the last saved run instead
 ```
 
 Missing scanners are skipped with a note — the CLI degrades gracefully and
@@ -90,6 +102,18 @@ planted misconfiguration is detected. IaC engines run whenever they are on
 PATH (`--profile` tunes semgrep only); every IaC finding lands in the same
 model — triaged, risk-scored, gated, and rolled up to OWASP A05 — and wears a
 category badge in the console.
+
+## Compliance mapping & gap assessment
+
+Every scan maps every finding to the security controls it violates —
+hand-curated, version-pinned data (`internal/compliance/data/`), zero LLM
+involvement, unmapped-is-visible, totals reconcile. `appsec comply` renders the
+per-framework gap assessment (Markdown or JSON): **violated** controls with
+evidence pointers, **no violations detected** (deliberately not "compliant"),
+and an explicit **not assessable by static scanning** bucket. Adding a
+framework (SOC 2, NIST 800-53, ISO 27001 are next) is a data-only change —
+philosophy, honest-scope statement, and a how-to in
+[docs/compliance.md](docs/compliance.md).
 
 ## AI triage & risk scoring
 
@@ -161,7 +185,8 @@ repo and adjust the gate.
 - [Architecture](docs/architecture.md) — orchestrator design, package layout, design rules
 - [Findings model](docs/findings-model.md) — the unified schema (versioned)
 - [Risk scoring](docs/risk-scoring.md) — the 0–10 formula and the bounded LLM adjustment
-- [Roadmap](docs/roadmap.md) — Phases 5–9: compliance, DAST, threat modeling, IAST, platform
+- [Compliance](docs/compliance.md) — frameworks, mapping philosophy, adding a framework
+- [Roadmap](docs/roadmap.md) — Phases 6–9: DAST, threat modeling, IAST, platform
 
 ## Development
 

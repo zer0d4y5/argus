@@ -35,6 +35,7 @@ export interface Finding {
   cwes?: string[];
   cve?: string;
   remediation?: string;
+  complianceControls?: string[];
   triage?: Triage;
   riskScore?: number;
 }
@@ -46,6 +47,15 @@ export interface OwaspCategory {
 export interface OwaspBucket {
   category: OwaspCategory;
   count: number;
+}
+
+export interface FrameworkSummary {
+  id: string;
+  version: string;
+  violatedControls: number;
+  cleanControls: number;
+  notAssessable: number;
+  unmappedFindings: number;
 }
 
 export interface GateInfo {
@@ -87,6 +97,7 @@ export interface SummaryResponse {
   bySeverity: Record<string, number>;
   byCategory: Record<string, number>;
   owasp: OwaspBucket[];
+  compliance: FrameworkSummary[];
   riskBands: RiskBands;
   gate: GateInfo;
   verdicts: VerdictCounts;
@@ -113,6 +124,7 @@ export interface RunDetail {
   bySeverity: Record<string, number>;
   byCategory: Record<string, number>;
   owasp: OwaspBucket[];
+  compliance: FrameworkSummary[];
   gate: GateInfo;
   verdicts: VerdictCounts;
   delta: DeltaCounts;

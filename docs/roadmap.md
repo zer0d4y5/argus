@@ -53,11 +53,25 @@ still catching runtime issues.
   confined to the scan root). **Remaining for a later beat:** KICS as an
   optional third engine; live cloud-account posture scanning (AWS/GCP/Azure
   APIs) — file-based IaC only for now.
-- **Phase 5 — Compliance mapping & assessment:** map findings/controls to
-  frameworks (OWASP ASVS/Top 10, NIST 800-53, CIS, SOC 2, PCI-DSS, ISO 27001)
-  and produce gap-assessment reports (the `complianceControls` slot exists in
-  the model; the Phase 3 OWASP rollup is the report-side precursor). ✅ = a
-  findings run yields a per-framework control coverage report.
+- **Phase 5 — Compliance mapping & assessment (shipped, this cycle):** a
+  deterministic, hand-curated, version-pinned mapping engine
+  (`internal/compliance`, no LLM in the path) that maps every finding to the
+  framework controls it violates — **OWASP ASVS 4.0.3** (CWE + category
+  rules), **PCI DSS 4.0** (CWE + category rules, IaC → secure-configuration),
+  and CIS-derived IaC coverage at section granularity (**CIS AWS Foundations
+  v1.5.0, CIS Docker v1.6.0, CIS Kubernetes v1.8.0** via rule-ID families).
+  The always-on pipeline stage writes `complianceControls`
+  (`"<FRAMEWORK>:<control-id>"`, schema **1.2.0**); `appsec comply` produces
+  the auditor-shaped gap report (Markdown + JSON) with violated /
+  no-violations-detected / not-assessable buckets that never overclaim
+  (unmapped findings are listed, never dropped; totals reconcile, tested);
+  the GRC Overview gained a per-framework compliance panel and finding
+  details show control chips. Frameworks are data-only additions
+  (`internal/compliance/data/*.json`) — see `docs/compliance.md`.
+  ✅ = a findings run yields a per-framework control coverage report; every
+  planted fixture vuln class lands under the right ASVS/PCI controls.
+  **Remaining for a later beat:** SOC 2 / NIST 800-53 / ISO 27001 data files;
+  evidence-collection workflow.
 - **Phase 6 — DAST:** integrate OWASP ZAP and/or Nuclei for authenticated
   dynamic scanning of a running target; wire results into the same model
   (the `location.url` slot exists). ✅ = DAST run against a deliberately-vuln

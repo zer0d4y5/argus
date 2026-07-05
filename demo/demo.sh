@@ -2,8 +2,9 @@
 #
 # demo.sh — the 10-minute appsec story, end to end.
 #
-#   breadth → local AI triage kills the false positives → open the console →
-#   walk the three persona views.
+#   breadth → local AI triage kills the false positives → the compliance gap
+#   report turns findings into audit evidence → open the console → walk the
+#   three persona views.
 #
 # Self-contained: builds the binary, seeds a nine-language demo repo with a
 # realistic true-positive + false-positive mix, records two runs (so the trend
@@ -79,15 +80,24 @@ note "Triage gives every finding a verdict + rationale and kills the MD5 false p
 ( cd "$DEMO_DIR" && "$BIN" scan . --profile standard --triage --save ) || true
 pause
 
-# --- 4. coverage receipt ------------------------------------------------------
+# --- 4. the auditor beat: findings become audit evidence ----------------------
+say "The GRC beat — 'appsec comply': the same scan, reframed for an auditor"
+note "Every finding is mapped (deterministically, no LLM) to ASVS / PCI DSS / CIS controls."
+note "Violated controls come with evidence; what static scanning CANNOT assess is stated, not hidden."
+( cd "$DEMO_DIR" && "$BIN" comply . --latest -o compliance-report.md ) || true
+note "Full auditor-shaped report written to $DEMO_DIR/compliance-report.md — a taste:"
+sed -n '/^## PCI-DSS/,/^### No violations detected/p' "$DEMO_DIR/compliance-report.md" 2>/dev/null | head -n 14 || true
+pause
+
+# --- 5. coverage receipt ------------------------------------------------------
 say "Coverage is proven, not claimed — the generated matrix"
 note "See docs/coverage.md for the full language × weakness grid + profiles."
 sed -n '/## Language/,/## Canaries/p' "$REPO_ROOT/docs/coverage.md" 2>/dev/null | head -n 16 || true
 pause
 
-# --- 5. the console -----------------------------------------------------------
+# --- 6. the console -----------------------------------------------------------
 say "Open the console — three persona views over the saved runs"
-note "Overview (GRC): posture + trend  |  Findings (AppSec): explorer + rationale  |  Runs (SecOps): deltas"
+note "Overview (GRC): posture + compliance panel + trend  |  Findings (AppSec): explorer + control chips  |  Runs (SecOps): deltas"
 note "Local-first, no auth, binds ${ADDR%%:*}. Finding data is rendered inert (escaped, strict CSP)."
 URL="http://$ADDR"
 note "Opening $URL  (Ctrl-C to stop the server)"

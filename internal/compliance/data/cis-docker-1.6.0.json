@@ -1,0 +1,21 @@
+{
+  "id": "CIS-DOCKER",
+  "name": "CIS Docker Benchmark",
+  "version": "1.6.0",
+  "scope": ["IAC"],
+  "ruleIdScope": ["CKV_DOCKER_", "DS-"],
+  "controls": [
+    {"id": "4", "title": "Container Images and Build File Configuration: non-root user, healthchecks, pinned base images, no secrets in Dockerfiles"}
+  ],
+  "notAssessable": [
+    {"id": "1", "title": "Host Configuration", "reason": "Host hardening is assessed on the live Docker host, not in build files."},
+    {"id": "2", "title": "Docker Daemon Configuration", "reason": "Daemon flags and TLS settings are runtime host configuration."},
+    {"id": "3", "title": "Docker Daemon Configuration Files", "reason": "File ownership and permissions exist only on the live host."},
+    {"id": "5", "title": "Container Runtime Configuration", "reason": "Runtime flags (--privileged, mounts, namespaces) are how containers are RUN, not built; not visible in a Dockerfile."},
+    {"id": "6", "title": "Docker Security Operations", "reason": "Image sprawl and patching cadence are operational practices."},
+    {"id": "7", "title": "Docker Swarm Configuration", "reason": "Swarm settings are live-cluster state."}
+  ],
+  "rules": [
+    {"rulePrefixes": ["CKV_DOCKER_", "DS-"], "controls": ["4"]}
+  ]
+}

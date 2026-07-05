@@ -1,0 +1,25 @@
+{
+  "id": "CIS-K8S",
+  "name": "CIS Kubernetes Benchmark",
+  "version": "1.8.0",
+  "scope": ["IAC"],
+  "ruleIdScope": ["CKV_K8S_", "CKV2_K8S_", "KSV-"],
+  "controls": [
+    {"id": "5.1", "title": "RBAC and Service Accounts: minimize service account token exposure and permissions"},
+    {"id": "5.2", "title": "Pod Security Standards: no privileged containers, no privilege escalation, non-root users, minimal capabilities, restricted volumes"},
+    {"id": "5.3", "title": "Network Policies and CNI: workloads governed by NetworkPolicies"},
+    {"id": "5.7", "title": "General Policies: namespaces, seccomp profiles, applied security contexts"}
+  ],
+  "notAssessable": [
+    {"id": "1", "title": "Control Plane Components", "reason": "API server, scheduler, and controller-manager flags exist on live control-plane nodes."},
+    {"id": "2", "title": "etcd", "reason": "etcd configuration and encryption-at-rest are live-cluster state."},
+    {"id": "3", "title": "Control Plane Configuration", "reason": "Authentication and audit configuration are assessed against the running cluster."},
+    {"id": "4", "title": "Worker Nodes", "reason": "Kubelet configuration and node file permissions exist only on live nodes."}
+  ],
+  "rules": [
+    {"ruleIds": ["CKV_K8S_38"], "controls": ["5.1"]},
+    {"ruleIds": ["CKV_K8S_16", "CKV_K8S_20", "CKV_K8S_22", "CKV_K8S_23", "CKV_K8S_28", "CKV_K8S_37", "CKV_K8S_40", "KSV-0001", "KSV-0003", "KSV-0004", "KSV-0012", "KSV-0014", "KSV-0017", "KSV-0020", "KSV-0021", "KSV-0023", "KSV-0106", "KSV-0121"], "controls": ["5.2"]},
+    {"ruleIds": ["CKV2_K8S_6"], "controls": ["5.3"]},
+    {"ruleIds": ["CKV_K8S_21", "CKV_K8S_29", "CKV_K8S_31", "KSV-0030", "KSV-0104", "KSV-0110", "KSV-0118"], "controls": ["5.7"]}
+  ]
+}

@@ -226,3 +226,42 @@ func TestEmptyStore(t *testing.T) {
 		t.Errorf("empty store summary malformed: runCount=%d owaspRows=%d", sum.RunCount, len(sum.OWASP))
 	}
 }
+
+// The compliance rollup rides the summary and run-detail payloads, and stored
+// findings are enriched with control chips at read time (pre-1.2.0 runs too).
+func TestComplianceInAPI(t *testing.T) {
+	s := testServer(t)
+
+	var sum SummaryResponse
+	body, _ := io.ReadAll(do(t, s, "/api/summary").Body)
+	if err := json.Unmarshal(body, &sum); err != nil {
+		t.Fatalf("decode summary: %v", err)
+	}
+	if len(sum.Compliance) != 5 {
+		t.Fatalf("compliance frameworks = %d, want 5", len(sum.Compliance))
+	}
+	byID := map[string]int{}
+	for _, fw := range sum.Compliance {
+		byID[fw.ID] = fw.ViolatedControls
+	}
+	// Latest run: CWE-89 + CWE-79 findings → ASVS and PCI-DSS must show violations.
+	if byID["ASVS"] == 0 || byID["PCI-DSS"] == 0 {
+		t.Errorf("ASVS/PCI-DSS violated counts = %d/%d, want > 0", byID["ASVS"], byID["PCI-DSS"])
+	}
+
+	var detail RunDetail
+	body, _ = io.ReadAll(do(t, s, "/api/runs/"+sum.LatestID).Body)
+	if err := json.Unmarshal(body, &detail); err != nil {
+		t.Fatalf("decode detail: %v", err)
+	}
+	if len(detail.Compliance) != 5 {
+		t.Errorf("detail compliance frameworks = %d, want 5", len(detail.Compliance))
+	}
+	// The stored findings carry no complianceControls (pre-1.2.0 save);
+	// the API must enrich them at read time.
+	for _, f := range detail.Findings {
+		if f.ID == "keep1" && len(f.ComplianceControls) == 0 {
+			t.Error("finding keep1 (CWE-89) not enriched with complianceControls at read time")
+		}
+	}
+}

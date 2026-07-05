@@ -48,21 +48,27 @@ binary, drops into any CI image and any laptop.
 
 Scan a nine-language vulnerable repo → breadth surfaces 30+ findings → local AI
 triage confirms the real ones and **kills the false positives with a written
-rationale**, on-device → open the console → walk leadership through risk
-posture and trend, hand engineers a filterable explorer, show ops the
-new-vs-resolved delta between runs. Breadth + local triage + one console, live.
+rationale**, on-device → `appsec comply` reframes the same scan as an
+auditor-shaped gap report (**findings become audit evidence**) → open the
+console → walk leadership through risk posture, compliance posture, and trend,
+hand engineers a filterable explorer, show ops the new-vs-resolved delta
+between runs. Breadth + local triage + audit evidence + one console, live.
 
 ## Who pays, and for what (later)
 
 Open-source core stays free and is the funnel. Revenue is the **team layer**
 the OSS tool deliberately omits: hosted history and multi-repo rollups,
 SSO/RBAC and audit, policy-as-code gates across pipelines, ticketing and
-notification integrations, and compliance-framework reporting (the roadmap's
-Phase 4–5 compliance mapping productized). Land with the free scanner the
-engineers already run; expand to the platform the CISO signs for.
+notification integrations, and managed compliance reporting (the shipped
+Phase 5 gap assessment productized: evidence workflows, more frameworks,
+auditor exports). Land with the free scanner the engineers already run;
+expand to the platform the CISO signs for.
 
 ## Status
 
-Phases 1–3 shipped: the scan pipeline, local AI triage + risk scoring, and now
-multi-language coverage + the console. Roadmap: IaC/cloud posture, compliance
-mapping, DAST, threat modeling, IAST, and the commercial platform layer.
+Phases 1–5 shipped: the scan pipeline, local AI triage + risk scoring,
+multi-language coverage + the console, IaC misconfiguration scanning, and now
+compliance mapping — **findings become audit evidence**: every finding lands
+on the ASVS / PCI DSS / CIS controls it violates, and `appsec comply` emits
+the per-framework gap report. Roadmap: DAST, threat modeling, IAST, and the
+commercial platform layer.

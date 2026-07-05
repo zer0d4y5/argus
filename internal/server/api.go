@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/owasp"
 	"github.com/leaky-hub/appsec/internal/report"
@@ -67,26 +68,30 @@ type SummaryResponse struct {
 	BySeverity map[string]int `json:"bySeverity"`
 	ByCategory map[string]int `json:"byCategory"`
 	OWASP      []owasp.Bucket `json:"owasp"`
-	RiskBands  RiskBands      `json:"riskBands"`
-	Gate       GateInfo       `json:"gate"`
-	Verdicts   VerdictCounts  `json:"verdicts"`
-	Trend      []TrendPoint   `json:"trend"`
+	// Compliance is the per-framework control rollup for the latest run,
+	// computed report-side like OWASP (stored run files are never rewritten).
+	Compliance []compliance.FrameworkSummary `json:"compliance"`
+	RiskBands  RiskBands                     `json:"riskBands"`
+	Gate       GateInfo                      `json:"gate"`
+	Verdicts   VerdictCounts                 `json:"verdicts"`
+	Trend      []TrendPoint                  `json:"trend"`
 }
 
 // RunDetail is GET /api/runs/{id} — the Findings (AppSec) payload for one run.
 type RunDetail struct {
-	ID          string          `json:"id"`
-	CreatedAt   string          `json:"createdAt"`
-	Total       int             `json:"total"`
-	BySeverity  map[string]int  `json:"bySeverity"`
-	ByCategory  map[string]int  `json:"byCategory"`
-	OWASP       []owasp.Bucket  `json:"owasp"`
-	Gate        GateInfo        `json:"gate"`
-	Verdicts    VerdictCounts   `json:"verdicts"`
-	Delta       runstore.Counts `json:"delta"`
-	NewIDs      []string        `json:"newIds"`      // finding IDs new vs previous run
-	ResolvedIDs []string        `json:"resolvedIds"` // IDs resolved since previous run
-	Findings    []model.Finding `json:"findings"`
+	ID          string                        `json:"id"`
+	CreatedAt   string                        `json:"createdAt"`
+	Total       int                           `json:"total"`
+	BySeverity  map[string]int                `json:"bySeverity"`
+	ByCategory  map[string]int                `json:"byCategory"`
+	OWASP       []owasp.Bucket                `json:"owasp"`
+	Compliance  []compliance.FrameworkSummary `json:"compliance"`
+	Gate        GateInfo                      `json:"gate"`
+	Verdicts    VerdictCounts                 `json:"verdicts"`
+	Delta       runstore.Counts               `json:"delta"`
+	NewIDs      []string                      `json:"newIds"`      // finding IDs new vs previous run
+	ResolvedIDs []string                      `json:"resolvedIds"` // IDs resolved since previous run
+	Findings    []model.Finding               `json:"findings"`
 }
 
 const rfc3339 = "2006-01-02T15:04:05Z07:00"
@@ -154,6 +159,16 @@ func riskAvg(findings []model.Finding) float64 {
 	return sum / float64(n)
 }
 
+// complianceSummary computes the per-framework rollup, degrading to nil on a
+// data error (a build defect) rather than blanking the whole response.
+func complianceSummary(findings []model.Finding) []compliance.FrameworkSummary {
+	sums, err := compliance.Summarize(findings)
+	if err != nil {
+		return nil
+	}
+	return sums
+}
+
 // findingIDs extracts IDs from a slice.
 func findingIDs(fs []model.Finding) []string {
 	out := make([]string, 0, len(fs))
@@ -169,7 +184,7 @@ func (s *Server) buildSummary() (SummaryResponse, error) {
 	if err != nil {
 		return SummaryResponse{}, err
 	}
-	resp := SummaryResponse{RunCount: len(runs), BySeverity: map[string]int{}, ByCategory: map[string]int{}, OWASP: owasp.Rollup(nil)}
+	resp := SummaryResponse{RunCount: len(runs), BySeverity: map[string]int{}, ByCategory: map[string]int{}, OWASP: owasp.Rollup(nil), Compliance: complianceSummary(nil)}
 	if len(runs) == 0 {
 		return resp, nil
 	}
@@ -201,6 +216,7 @@ func (s *Server) buildSummary() (SummaryResponse, error) {
 	resp.BySeverity = doc.Summary.BySeverity
 	resp.ByCategory = doc.Summary.ByCategory
 	resp.OWASP = owasp.Rollup(doc.Findings)
+	resp.Compliance = complianceSummary(doc.Findings)
 	resp.RiskBands = riskBands(doc.Findings)
 	resp.Gate = gateFor(doc.Findings, s.gate, s.gateName)
 	resp.Verdicts = countVerdicts(doc.Findings)
@@ -247,6 +263,10 @@ func (s *Server) buildRunDetail(id string) (RunDetail, error) {
 	prev := s.previousDoc(id)
 	delta := runstore.ComputeDelta(prev, doc)
 
+	// Enrich at read time so runs saved before schema 1.2.0 still show control
+	// chips. Deterministic and idempotent; the stored file is untouched.
+	_ = compliance.Apply(doc.Findings)
+
 	runs, _ := s.store.List()
 	createdAt := id
 	for _, r := range runs {
@@ -263,6 +283,7 @@ func (s *Server) buildRunDetail(id string) (RunDetail, error) {
 		BySeverity:  doc.Summary.BySeverity,
 		ByCategory:  doc.Summary.ByCategory,
 		OWASP:       owasp.Rollup(doc.Findings),
+		Compliance:  complianceSummary(doc.Findings),
 		Gate:        gateFor(doc.Findings, s.gate, s.gateName),
 		Verdicts:    countVerdicts(doc.Findings),
 		Delta:       delta.Counts(),

@@ -1,0 +1,23 @@
+{
+  "id": "CIS-AWS",
+  "name": "CIS Amazon Web Services Foundations Benchmark",
+  "version": "1.5.0",
+  "scope": ["IAC"],
+  "ruleIdScope": ["CKV_AWS_", "CKV2_AWS_", "AWS-"],
+  "controls": [
+    {"id": "2.1", "title": "Storage — Simple Storage Service (S3): public access blocked, encryption at rest"},
+    {"id": "2.2", "title": "Storage — Elastic Compute Cloud (EC2): EBS volume encryption"},
+    {"id": "3", "title": "Logging: access and audit logging enabled"},
+    {"id": "5", "title": "Networking: no unrestricted ingress to administrative ports"}
+  ],
+  "notAssessable": [
+    {"id": "1", "title": "Identity and Access Management", "reason": "IAM posture (root account, MFA, key rotation) is live-account state; IaC files alone cannot attest to it."},
+    {"id": "4", "title": "Monitoring", "reason": "Metric filters and alarms are assessed against the live CloudWatch configuration, not templates."}
+  ],
+  "rules": [
+    {"ruleIds": ["CKV_AWS_20", "CKV_AWS_145", "CKV2_AWS_6", "AWS-0086", "AWS-0087", "AWS-0091", "AWS-0092", "AWS-0093", "AWS-0094", "AWS-0132"], "controls": ["2.1"]},
+    {"ruleIds": ["CKV_AWS_3", "CKV_AWS_189", "AWS-0026", "AWS-0027"], "controls": ["2.2"]},
+    {"ruleIds": ["CKV_AWS_18", "AWS-0089"], "controls": ["3"]},
+    {"ruleIds": ["CKV_AWS_24", "AWS-0107"], "controls": ["5"]}
+  ]
+}

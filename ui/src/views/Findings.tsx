@@ -198,6 +198,21 @@ function Detail({ f, isNew }: { f: Finding; isNew: boolean }) {
         )}
         {f.package && <Row label="Package"><code className="text-xs">{f.package}</code></Row>}
         {f.cve && <Row label="CVE"><code className="text-xs">{f.cve}</code></Row>}
+        {f.complianceControls && f.complianceControls.length > 0 && (
+          <Row label="Controls">
+            <span className="flex flex-wrap gap-1">
+              {f.complianceControls.map((c) => (
+                <span
+                  key={c}
+                  className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-xs text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                  title="Framework control this finding violates (see `appsec comply`)"
+                >
+                  {c}
+                </span>
+              ))}
+            </span>
+          </Row>
+        )}
 
         {f.triage && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">

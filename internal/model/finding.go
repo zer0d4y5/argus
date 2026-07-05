@@ -15,7 +15,10 @@ import (
 
 // SchemaVersion identifies the findings-model revision embedded in reports.
 // 1.1.0: added optional Triage.Confidence (Phase 2 AI triage).
-const SchemaVersion = "1.1.0"
+// 1.2.0: ComplianceControls is now populated ("<FRAMEWORK>:<control-id>"
+// values, Phase 5 compliance mapping). Additive; the field existed empty
+// since 1.0.0.
+const SchemaVersion = "1.2.0"
 
 // Finding categories. String-typed (not iota) because they appear verbatim in
 // JSON/SARIF output and in config files.
@@ -98,7 +101,7 @@ type Finding struct {
 	RawPayload json.RawMessage   `json:"rawPayload,omitempty"`
 
 	// Enrichment slots, populated by later phases.
-	ComplianceControls []string `json:"complianceControls,omitempty"` // Phase 4
+	ComplianceControls []string `json:"complianceControls,omitempty"` // Phase 5: "<FRAMEWORK>:<control-id>" values, e.g. "ASVS:V5.3.4"
 	Triage             *Triage  `json:"triage,omitempty"`             // Phase 2
 	RiskScore          *float64 `json:"riskScore,omitempty"`          // Phase 2
 }
