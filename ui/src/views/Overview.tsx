@@ -39,6 +39,7 @@ export function Overview({ summary }: { summary: SummaryResponse }) {
 
   const risk = summary.riskBands;
   const riskData = [
+    { name: "Info", value: risk.info ?? 0, color: "#6b7280" },
     { name: "Low", value: risk.low, color: "#2563eb" },
     { name: "Medium", value: risk.medium, color: "#d97706" },
     { name: "High", value: risk.high, color: "#ea580c" },
@@ -88,7 +89,7 @@ export function Overview({ summary }: { summary: SummaryResponse }) {
           </p>
         </Panel>
 
-        <Panel title="Risk score bands">
+        <Panel title="Severity (risk bands)">
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={riskData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
@@ -105,7 +106,7 @@ export function Overview({ summary }: { summary: SummaryResponse }) {
             </ResponsiveContainer>
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            0–10 risk = deterministic baseline ± bounded AI adjustment. Bands: Low &lt;4 · Medium 4–7 · High 7–9 · Critical ≥9.
+            Severity IS the banded deterministic risk score (LLM-free): Info 0.0 · Low 0.1–3.9 · Medium 4.0–6.9 · High 7.0–8.9 · Critical ≥9.0. Bars count finding severities, so this histogram always agrees with the badges.
           </p>
         </Panel>
       </div>

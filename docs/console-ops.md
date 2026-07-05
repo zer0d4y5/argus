@@ -457,7 +457,26 @@ in-memory cache, `MaxTokens` hard cap. The response
 the `scan.explain` audit event records actor/target/run/finding, never
 content. No configured/reachable provider → 503 with an honest message.
 
-### 12.7 New audit events
+### 12.7 Deep-scan session deltas (schema 2.0.0)
+
+- **Severity is banded deterministic risk** (docs/risk-scoring.md "Severity
+  banding"). Console severity badges/filters are unchanged in look; the
+  finding drawer adds a muted "tool said: …" chip when `toolSeverity`
+  differs from the banded value. The Overview histogram counts severities,
+  so it agrees with the badges by construction (plus an `info` bar).
+- **Git-history secrets** (locked decision 5): SECRET findings with
+  `meta.gitHistory` get an amber "GIT HISTORY" badge (tooltip: rotate,
+  don't just delete) and a "Commit" row in the drawer. The S4 rule is
+  unchanged and re-proven: history findings are SECRET findings — no
+  snippet, ever, and the same payload scrub applies to the history pass.
+- **Skip accounting**: run detail shows the `coverage` block from the run
+  file (schema 2.0.0) — SAST-covered / IaC-config / secrets-only /
+  unsupported-source / binary / oversize counts with sample paths, plus
+  git-repo/shallow facts. Absent on pre-2.0.0 runs; the UI feature-detects.
+  Accounting is computed at save time from the scanned path (the scope
+  subdirectory when a scope is set), read-only, inside the workspace root.
+
+### 12.8 New audit events
 
 | Event | When | Details carried |
 |---|---|---|

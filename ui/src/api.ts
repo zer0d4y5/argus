@@ -37,6 +37,7 @@ export interface Finding {
   title: string;
   description?: string;
   severity: Severity;
+  toolSeverity?: Severity; // what the tool's own scale normalized to; severity is banded deterministic risk (2.0.0)
   rawSeverity?: string;
   confidence?: string;
   location: Location;
@@ -44,6 +45,7 @@ export interface Finding {
   cwes?: string[];
   cve?: string;
   remediation?: string;
+  meta?: Record<string, string>;
   complianceControls?: string[];
   triage?: Triage;
   riskScore?: number;
@@ -79,11 +81,32 @@ export interface VerdictCounts {
   untriaged: number;
 }
 export interface RiskBands {
+  info: number;
   low: number;
   medium: number;
   high: number;
   critical: number;
 }
+
+// Skip accounting (schema 2.0.0): what the scan did NOT look at.
+export interface CoverageAccounting {
+  filesTotal: number;
+  bytesTotal: number;
+  sastCovered: number;
+  iacConfig: number;
+  secretsOnly: number;
+  unsupportedSource: number;
+  binary: number;
+  oversize: number;
+  unreadable: number;
+  oversizeLimitBytes: number;
+  gitRepo: boolean;
+  gitShallow: boolean;
+  unsupportedSample?: string[];
+  binarySample?: string[];
+  oversizeSample?: string[];
+}
+
 export interface DeltaCounts {
   new: number;
   resolved: number;
@@ -141,6 +164,7 @@ export interface RunDetail {
   newIds: string[];
   resolvedIds: string[];
   findings: Finding[];
+  coverage?: CoverageAccounting;
 }
 
 async function getJSON<T>(path: string): Promise<T> {

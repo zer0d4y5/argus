@@ -128,7 +128,11 @@ philosophy, honest-scope statement, and a how-to in
 ## AI triage & risk scoring
 
 Every finding always gets a deterministic **risk score** (0–10; formula in
-[docs/risk-scoring.md](docs/risk-scoring.md)). With `--triage` (or
+[docs/risk-scoring.md](docs/risk-scoring.md)), and since schema 2.0.0 its
+**severity is banded from the deterministic part of that score** (canonical
+bands in the same doc) — so "high" means the same thing on every finding from
+every tool, context signals included, LLM excluded. The tool's own opinion is
+preserved as `toolSeverity`. With `--triage` (or
 `triage.enabled: true`), an LLM additionally reviews each finding with a
 bounded source snippet and records a verdict — `true-positive`,
 `false-positive`, or `uncertain` — plus a rationale, which reporters surface

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ExplainResponse, Finding, opsApi, RiskSignal, RunDetail, Severity, SEVERITIES } from "../api";
+import { CoverageAccounting, ExplainResponse, Finding, opsApi, RiskSignal, RunDetail, Severity, SEVERITIES } from "../api";
 import { Panel, SeverityBadge, CategoryBadge, EmptyState } from "../components";
 import { VERDICT_CHIP, VERDICT_LABEL, riskColor } from "../theme";
 
@@ -7,6 +7,57 @@ const SEV_RANK: Record<Severity, number> = { critical: 4, high: 3, medium: 2, lo
 
 // Per-finding explain lifecycle; cached client-side so re-clicks don't refetch.
 type ExplainState = { loading: boolean; data?: ExplainResponse; error?: string };
+
+// CoverageStrip renders the run's skip accounting (schema 2.0.0): what the
+// scan did NOT look at. "No findings" over a tree of unscanned binaries is a
+// different claim than over a fully-analyzable tree — keep the difference
+// visible. Absent on pre-2.0.0 runs (feature-detected by the caller).
+// Sample paths are hostile data: rendered as escaped text only.
+function CoverageStrip({ cov }: { cov: CoverageAccounting }) {
+  const skipped = cov.unsupportedSource + cov.binary + cov.oversize + cov.unreadable;
+  const cells: Array<{ label: string; value: number; title: string; warn?: boolean }> = [
+    { label: "files", value: cov.filesTotal, title: "Regular files walked (excluding .git and .appsec)" },
+    { label: "SAST-covered", value: cov.sastCovered, title: "Source files in languages the semgrep profiles analyze" },
+    { label: "IaC / config", value: cov.iacConfig, title: "IaC, manifest and config files the IaC/SCA scanners parse" },
+    { label: "secrets-only", value: cov.secretsOnly, title: "Other text: the secret scanner reads it; no static analyzer does" },
+    { label: "unsupported source", value: cov.unsupportedSource, title: "Recognizable code in a language no profile analyzes — secrets-only coverage", warn: true },
+    { label: "binary", value: cov.binary, title: "Binary files: no scanner analyzes their content", warn: true },
+    { label: `oversize (>${Math.round(cov.oversizeLimitBytes / 1048576)} MB)`, value: cov.oversize, title: "Files too large for static analysis — effectively unscanned", warn: true },
+    { label: "unreadable", value: cov.unreadable, title: "Stat/open failures during the walk", warn: true },
+  ];
+  const samples = [
+    ...(cov.unsupportedSample ?? []),
+    ...(cov.binarySample ?? []),
+    ...(cov.oversizeSample ?? []),
+  ];
+  return (
+    <Panel title="Scan coverage">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        {cells.map((c) =>
+          c.value === 0 && c.warn ? null : (
+            <span key={c.label} title={c.title} className="inline-flex items-center gap-1">
+              <span className={`tabular-nums font-semibold ${c.warn ? "text-amber-600 dark:text-amber-400" : ""}`}>{c.value}</span>
+              <span className="text-gray-500 dark:text-gray-400">{c.label}</span>
+            </span>
+          ),
+        )}
+        {cov.gitRepo && (
+          <span
+            className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            title={cov.gitShallow ? "Shallow clone: secret history coverage is the single fetched commit" : "Git repository: the secret scanner also scanned commit history"}
+          >
+            git history{cov.gitShallow ? " (shallow)" : ""}
+          </span>
+        )}
+      </div>
+      {skipped > 0 && samples.length > 0 && (
+        <p className="mt-2 break-all text-[11px] text-gray-500 dark:text-gray-400">
+          e.g. {samples.slice(0, 6).join(" · ")}
+        </p>
+      )}
+    </Panel>
+  );
+}
 
 export function Findings({
   detail,
@@ -96,10 +147,17 @@ export function Findings({
   };
 
   if (detail.findings.length === 0) {
-    return <EmptyState title="No findings in this run" hint="This run recorded a clean scan. Nice." />;
+    return (
+      <div className="space-y-4">
+        {detail.coverage && <CoverageStrip cov={detail.coverage} />}
+        <EmptyState title="No findings in this run" hint="This run recorded a clean scan. Nice." />
+      </div>
+    );
   }
 
   return (
+    <div className="space-y-4">
+    {detail.coverage && <CoverageStrip cov={detail.coverage} />}
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       {/* Filter rail + list */}
       <div className="lg:col-span-3">
@@ -208,6 +266,7 @@ export function Findings({
         {selected ? <Detail f={selected} isNew={newSet.has(selected.id)} origin={origin} canExplain={canExplain} explainState={explainState[selected.id]} onExplain={() => handleExplain(selected)} /> : null}
       </div>
     </div>
+    </div>
   );
 }
 
@@ -297,6 +356,12 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain }: {
           <SeverityBadge severity={f.severity} />
           <CategoryBadge category={f.category} />
           <RiskPill score={f.riskScore} />
+          {f.toolSeverity && f.toolSeverity !== f.severity && (
+            <span className="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400" title="Severity is banded from the deterministic risk score; this is what the tool itself reported.">tool said: {f.toolSeverity}</span>
+          )}
+          {f.meta?.gitHistory === "true" && (
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" title="Found in git history, not the current worktree — rotate the credential; deleting the file does not revoke it.">GIT HISTORY{f.meta?.gitShallow === "true" ? " (shallow)" : ""}</span>
+          )}
           {isNew && (
             <span className="rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
               NEW
@@ -336,6 +401,9 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain }: {
             {f.location.startLine ? `:${f.location.startLine}` : ""}
           </code>
         </Row>
+        {f.meta?.commit && (
+          <Row label="Commit"><code className="break-all text-xs">{f.meta.commit}</code></Row>
+        )}
         <Row label="Rule">
           <code className="break-all text-xs">{f.ruleId}</code>
         </Row>
