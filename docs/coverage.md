@@ -20,7 +20,7 @@ and are overridable per repo via `semgrep_rulesets:`.
 |---|---|---|---|
 | `fast` | `p/ci` | tight PR gates, low noise | fastest |
 | `standard` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin` | default — broad multi-language audit | ~1 pack-set, moderate |
-| `max` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/default`, `p/secrets`, `p/gosec`, `p/nodejsscan`, `p/react`, `p/command-injection`, `p/sql-injection`, `p/xss`, `p/jwt`, `p/insecure-transport` | deep audit; recall over noise (triage handles FPs) | highest (adds p/default) |
+| `max` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/default`, `p/secrets`, `p/gosec`, `p/nodejsscan`, `p/react`, `p/command-injection`, `p/sql-injection`, `p/xss`, `p/jwt`, `p/insecure-transport`, `p/bandit`, `p/findsecbugs`, `p/security-code-scan`, `p/mobsfscan`, `p/phpcs-security-audit` | deep audit; recall over noise (triage handles FPs) | highest (adds p/default) |
 
 ## Language × weakness coverage
 
@@ -32,8 +32,8 @@ and are overridable per repo via `semgrep_rulesets:`.
 | JavaScript | · | ✅ | ✅ | ✅ | · | · |
 | TypeScript | · | ✅ | · | · | · | ◐ |
 | Go | ✅ | · | · | · | · | ✅ |
-| Java | ✅ | · | · | · | ✅ | · |
-| C# | ✅ | · | · | · | · | · |
+| Java | ✅ | ◐ | · | · | ✅ | · |
+| C# | ✅ | ◐ | · | · | · | · |
 | Ruby | ✅ | · | ✅ | ✅ | ✅ | · |
 | PHP | ✅ | ✅ | ✅ | ✅ | · | · |
 | Kotlin | · | ◐ | · | · | · | ✅ |
@@ -66,9 +66,38 @@ None among the labeled classes — every weakness class shown is caught by at le
 - **gitleaks (SECRET)** — default ruleset (100+ credential patterns) is
   sufficient; secret material is redacted before it ever reaches a report or an
   LLM. No per-language tuning needed — secrets are language-agnostic.
+  **Git history mode** (schema 2.0.0): when the scan target is a git
+  repository, a second pass scans the commit history, so a credential that
+  was committed and later deleted — but never rotated — still surfaces,
+  labeled `meta.gitHistory` with the introducing commit. Shallow console
+  workspaces (depth-1 clones) cover a single commit of history and say so
+  (`meta.gitShallow`). Cost: roughly one extra gitleaks pass per scan.
 - **trivy (SCA)** — vulnerability scanning of dependency manifests and lockfiles
   across ecosystems; `--profile` does not change SCA behavior (semgrep-only).
   Trivy's built-in misconfiguration scanner is the Phase 4 IaC teaser.
+
+## Recall is proven, not asserted
+
+Every planted vulnerability in `testdata/polyglot` carries an in-fixture
+label `PLANT(<id>, min-profile=<fast|standard|max>, <CWE>)` naming the
+minimum profile that must catch it. `TestProfileRecall` scans the fixtures
+under every profile and asserts (a) each plant is caught by its minimum
+profile and every superset, and (b) the caught-plant sets form the
+inclusion chain fast ⊆ standard ⊆ max on plant IDs. A new pack lands in a
+profile only with a plant proving it detects something the existing packs
+miss; packs that add nothing are rejected (p/flask, p/django, p/brakeman
+were evaluated and rejected on exactly that bar). Plants no profile catches
+are labeled `PLANT-GAP` in the fixtures and listed under Known gaps.
+
+## Skip accounting (what a scan did NOT look at)
+
+Every saved run carries a `coverage` block (schema 2.0.0): files bucketed
+as SAST-covered, IaC/config, secrets-only text, **unsupported source**
+(recognizable code in a language no profile analyzes), **binary**, and
+**oversize** (> 5 MB), plus git-repo/shallow facts — with sample paths.
+The console renders it on the run detail. "No findings" in a tree full
+of unscanned binaries is a different claim than "no findings" in a fully
+analyzable tree; the accounting keeps the difference visible.
 
 ## Why breadth is safe here
 

@@ -42,7 +42,7 @@ func (g *Gitleaks) Scan(ctx context.Context, target string) ([]model.RawFinding,
 	if err != nil {
 		return nil, err
 	}
-	if !gitHistoryEligible(target) {
+	if !GitHistoryEligible(target) {
 		return worktree, nil
 	}
 	history, err := g.detect(ctx, target, true)
@@ -52,7 +52,7 @@ func (g *Gitleaks) Scan(ctx context.Context, target string) ([]model.RawFinding,
 		// worktree findings. Coverage accounting reports history mode per run.
 		return worktree, nil
 	}
-	return mergeGitHistory(worktree, history, gitShallow(target)), nil
+	return mergeGitHistory(worktree, history, GitShallow(target)), nil
 }
 
 // detect runs one gitleaks pass. The JSON report goes to a temp file (not
@@ -92,10 +92,11 @@ func (g *Gitleaks) detect(ctx context.Context, target string, gitMode bool) ([]m
 	return parseGitleaks(data)
 }
 
-// gitHistoryEligible: history mode runs when the scan target is a directory
+// GitHistoryEligible: history mode runs when the scan target is a directory
 // containing .git (a dir entry for normal repos, a file for linked
 // worktrees). File targets and plain directories scan the worktree only.
-func gitHistoryEligible(target string) bool {
+// Exported for the coverage accounting, which reports the same facts.
+func GitHistoryEligible(target string) bool {
 	if fi, err := os.Stat(target); err != nil || !fi.IsDir() {
 		return false
 	}
@@ -103,10 +104,10 @@ func gitHistoryEligible(target string) bool {
 	return err == nil
 }
 
-// gitShallow reports whether the repo is a shallow clone (console git
+// GitShallow reports whether the repo is a shallow clone (console git
 // workspaces clone --depth 1): its "history" is a single commit, and the
 // finding says so instead of implying full-history coverage.
-func gitShallow(target string) bool {
+func GitShallow(target string) bool {
 	_, err := os.Stat(filepath.Join(target, ".git", "shallow"))
 	return err == nil
 }

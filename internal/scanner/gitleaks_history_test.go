@@ -60,25 +60,25 @@ func TestMergeGitHistory(t *testing.T) {
 
 func TestGitHistoryEligible(t *testing.T) {
 	dir := t.TempDir()
-	if gitHistoryEligible(dir) {
+	if GitHistoryEligible(dir) {
 		t.Error("plain directory must not be history-eligible")
 	}
 	if err := os.Mkdir(filepath.Join(dir, ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if !gitHistoryEligible(dir) {
+	if !GitHistoryEligible(dir) {
 		t.Error(".git directory must enable history mode")
 	}
 	file := filepath.Join(dir, "f.txt")
 	os.WriteFile(file, nil, 0o644)
-	if gitHistoryEligible(file) {
+	if GitHistoryEligible(file) {
 		t.Error("file targets must never be history-eligible")
 	}
-	if gitShallow(dir) {
+	if GitShallow(dir) {
 		t.Error("no shallow marker → not shallow")
 	}
 	os.WriteFile(filepath.Join(dir, ".git", "shallow"), nil, 0o644)
-	if !gitShallow(dir) {
+	if !GitShallow(dir) {
 		t.Error(".git/shallow must mark the repo shallow")
 	}
 }

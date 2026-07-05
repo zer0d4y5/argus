@@ -13,6 +13,7 @@ import (
 
 	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/config"
+	"github.com/leaky-hub/appsec/internal/coverage"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/pipeline"
 	"github.com/leaky-hub/appsec/internal/report"
@@ -178,7 +179,11 @@ func saveRun(target string, findings []model.Finding) (runstore.RunMeta, error) 
 	if fi, err := os.Stat(target); err == nil && !fi.IsDir() {
 		root = filepath.Dir(target)
 	}
-	return runstore.ForRepo(root).Save(findings, time.Now())
+	// Skip accounting (schema 2.0.0): what the scan did NOT look at, stored
+	// with the run and surfaced in the console. Save-path only, like
+	// snippets — stdout reports are unchanged.
+	cov := coverage.Account(target)
+	return runstore.ForRepo(root).SaveWithCoverage(findings, &cov, time.Now())
 }
 
 // writeReport writes findings in the chosen format, to --output or stdout.

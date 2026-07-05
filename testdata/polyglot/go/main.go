@@ -14,16 +14,16 @@ import (
 func main() {
 	userInput := "admin'; DROP TABLE users; --"
 
-	// PLANT: SQL injection via fmt.Sprintf into the query string (CWE-89)
+	// PLANT(go-sqli, min-profile=standard, CWE-89): SQL injection via fmt.Sprintf into the query string
 	db, _ := sql.Open("mysql", "user:pass@/db")
 	query := fmt.Sprintf("SELECT * FROM users WHERE name = '%s'", userInput)
 	_, _ = db.Query(query)
 
-	// PLANT: OS command injection via a shell with concatenated input (CWE-78)
+	// PLANT-GAP: OS command injection via a shell with concatenated input (CWE-78) — caught by no profile
 	cmd := exec.Command("bash", "-c", "echo "+userInput)
 	_ = cmd.Run()
 
-	// PLANT: weak hash (MD5) over sensitive input (CWE-328)
+	// PLANT(go-weak-hash, min-profile=standard, CWE-328): weak hash (MD5) over sensitive input
 	hash := md5.Sum([]byte(userInput))
 	_ = hash
 }

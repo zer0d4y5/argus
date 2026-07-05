@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/leaky-hub/appsec/internal/coverage"
+
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/report"
 )
@@ -52,6 +54,13 @@ func ForRepo(repoRoot string) Store {
 // with dashes in the filename for cross-filesystem safety; the ID preserves the
 // sanitized stem and round-trips back to CreatedAt.
 func (s Store) Save(findings []model.Finding, t time.Time) (RunMeta, error) {
+	return s.SaveWithCoverage(findings, nil, t)
+}
+
+// SaveWithCoverage is Save plus the scan's skip accounting (schema 2.0.0),
+// which the console surfaces on the run detail. nil means "not accounted"
+// (older callers, tests) and is stored as an absent field, never zeros.
+func (s Store) SaveWithCoverage(findings []model.Finding, cov *coverage.Accounting, t time.Time) (RunMeta, error) {
 	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
 		return RunMeta{}, fmt.Errorf("runstore: mkdir %s: %w", s.Dir, err)
 	}
@@ -59,6 +68,7 @@ func (s Store) Save(findings []model.Finding, t time.Time) (RunMeta, error) {
 	path := filepath.Join(s.Dir, id+fileExt)
 
 	doc := report.BuildDocument(findings)
+	doc.Coverage = cov
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return RunMeta{}, fmt.Errorf("runstore: marshal report: %w", err)

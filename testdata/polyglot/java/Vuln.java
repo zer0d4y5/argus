@@ -4,7 +4,7 @@ import java.io.*;
 
 public class Vuln {
 
-    // PLANT: SQL injection via string concatenation in Statement.executeQuery (CWE-89)
+    // PLANT(java-sqli, min-profile=standard, CWE-89): SQL injection via string concatenation in Statement.executeQuery
     public void sqlInjection(String userInput) throws Exception {
         Connection conn = DriverManager.getConnection("jdbc:h2:mem:test", "sa", "");
         Statement stmt = conn.createStatement();
@@ -14,13 +14,13 @@ public class Vuln {
         }
     }
 
-    // PLANT: OS command injection via Runtime.getRuntime().exec with concatenated string (CWE-78)
+    // PLANT(java-cmdi, min-profile=max, CWE-78): OS command injection via Runtime.getRuntime().exec with concatenated string
     public void osCommandInjection(String userInput) throws Exception {
         Process p = Runtime.getRuntime().exec("echo " + userInput);
         p.waitFor();
     }
 
-    // PLANT: Insecure deserialization of user-controlled bytes (CWE-502)
+    // PLANT(java-deser, min-profile=standard, CWE-502): insecure deserialization of user-controlled bytes
     public Object insecureDeserialization(byte[] userInputBytes) throws Exception {
         ByteArrayInputStream bais = new ByteArrayInputStream(userInputBytes);
         ObjectInputStream ois = new ObjectInputStream(bais);

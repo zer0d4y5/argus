@@ -68,7 +68,12 @@ var standardPacks = []string{
 	"p/kotlin",
 }
 
-// maxOnlyPacks: long-tail recall added on top of standard.
+// maxOnlyPacks: long-tail recall added on top of standard. Every pack here
+// was registry-validated (TestSemgrepPacksResolve) AND earned its slot by
+// catching a labeled plant in testdata/polyglot that max-without-it misses
+// (TestProfileRecall) — a pack that detects nothing new does not land.
+// Evaluated and rejected on that bar: p/flask, p/django, p/brakeman (added
+// no detections over the packs below on their languages' plants).
 var maxOnlyPacks = []string{
 	"p/default",
 	"p/secrets",
@@ -80,6 +85,13 @@ var maxOnlyPacks = []string{
 	"p/xss",
 	"p/jwt",
 	"p/insecure-transport",
+	// Per-language completeness (deep-scan session): one deep pack per
+	// claimed language that had none beyond standard's p/<lang>.
+	"p/bandit",             // python: predictable-PRNG-for-token & co (plant py-weak-random)
+	"p/findsecbugs",        // java: weak random, Runtime.exec cmdi (plants java-weak-random, java-cmdi)
+	"p/security-code-scan", // C#: weak random, ProcessStartInfo cmdi (plants cs-weak-random, cs-cmdi)
+	"p/mobsfscan",          // kotlin: ECB-mode cipher (plant kt-ecb-cipher)
+	"p/phpcs-security-audit", // php: dynamic include (plant php-dynamic-include)
 }
 
 // KnownProfiles returns the valid profile names, sorted, for validation and

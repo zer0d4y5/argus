@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/leaky-hub/appsec/internal/compliance"
+	"github.com/leaky-hub/appsec/internal/coverage"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/owasp"
 	"github.com/leaky-hub/appsec/internal/report"
@@ -98,6 +99,10 @@ type RunDetail struct {
 	NewIDs      []string                      `json:"newIds"`      // finding IDs new vs previous run
 	ResolvedIDs []string                      `json:"resolvedIds"` // IDs resolved since previous run
 	Findings    []model.Finding               `json:"findings"`
+	// Coverage is the run's skip accounting (schema 2.0.0): what the scan
+	// did not look at. Absent for runs saved before 2.0.0; the UI
+	// feature-detects.
+	Coverage *coverage.Accounting `json:"coverage,omitempty"`
 }
 
 const rfc3339 = "2006-01-02T15:04:05Z07:00"
@@ -294,6 +299,7 @@ func (s *Server) buildRunDetail(store runstore.Store, id string) (RunDetail, err
 		NewIDs:      findingIDs(delta.New),
 		ResolvedIDs: findingIDs(delta.Resolved),
 		Findings:    doc.Findings,
+		Coverage:    doc.Coverage,
 	}, nil
 }
 

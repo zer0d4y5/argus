@@ -9,7 +9,7 @@ namespace AppSecFixture
 {
     public class Vuln
     {
-        // PLANT: SQL injection via string concatenation (CWE-89)
+        // PLANT(cs-sqli, min-profile=standard, CWE-89): SQL injection via string concatenation
         public void SqlInjection(string userInput)
         {
             string query = "SELECT * FROM Users WHERE Name = '" + userInput + "'";
@@ -21,7 +21,7 @@ namespace AppSecFixture
             }
         }
 
-        // PLANT: OS command injection via ProcessStartInfo arguments concatenation (CWE-78)
+        // PLANT(cs-cmdi, min-profile=max, CWE-78): OS command injection via ProcessStartInfo arguments concatenation
         public void OsCommandInjection(string userInput)
         {
             var psi = new ProcessStartInfo
@@ -33,7 +33,7 @@ namespace AppSecFixture
             Process.Start(psi);
         }
 
-        // PLANT: Weak crypto using MD5 for hashing (CWE-328)
+        // PLANT-GAP: weak crypto using MD5 for hashing (CWE-328) — caught by no profile; DES coverage lives in insecure.cs
         public void WeakCrypto(string userInput)
         {
             var md5 = MD5.Create();

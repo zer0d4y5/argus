@@ -1,6 +1,9 @@
 package report
 
-import "github.com/leaky-hub/appsec/internal/model"
+import (
+	"github.com/leaky-hub/appsec/internal/coverage"
+	"github.com/leaky-hub/appsec/internal/model"
+)
 
 // Document is the canonical JSON report shape. It is what `WriteJSON` emits and
 // what `--save` persists as a run file, so the run store and every reader can
@@ -12,6 +15,12 @@ type Document struct {
 	SchemaVersion string          `json:"schemaVersion"`
 	Summary       model.Summary   `json:"summary"`
 	Findings      []model.Finding `json:"findings"`
+	// Coverage is the skip accounting for the scanned tree (schema 2.0.0):
+	// what was analyzable and what was NOT scanned (binaries, oversize files,
+	// unsupported languages). Set on the save path only, like snippets —
+	// stdout reports are unchanged. Absent in older documents and in
+	// non-saved output; readers feature-detect.
+	Coverage *coverage.Accounting `json:"coverage,omitempty"`
 }
 
 // BuildDocument assembles a Document from findings. It sorts findings

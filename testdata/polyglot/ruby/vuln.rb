@@ -4,18 +4,18 @@
 require "sinatra"
 
 get "/vuln" do
-  # PLANT: SQL injection via interpolated request param (CWE-89)
+  # PLANT(rb-sqli, min-profile=standard, CWE-89): SQL injection via interpolated request param
   User.where("name = '#{params[:name]}'")
 
-  # PLANT: OS command injection via system() with request param (CWE-78)
+  # PLANT-GAP: OS command injection via system() with request param (CWE-78) — semgrep reports the eval-family CWE-94 on this file instead
   system("ping -c 1 #{params[:host]}")
 
-  # PLANT: arbitrary code execution via eval of request param (CWE-95)
+  # PLANT(rb-code-injection, min-profile=standard, CWE-94): arbitrary code execution via eval of request param (semgrep emits CWE-94)
   eval(params[:code])
 
-  # PLANT: insecure deserialization of request data (CWE-502)
+  # PLANT(rb-deser, min-profile=standard, CWE-502): insecure deserialization of request data
   Marshal.load(params[:data])
 
-  # PLANT: reflected XSS via unescaped request param in HTML (CWE-79)
+  # PLANT(rb-xss, min-profile=standard, CWE-79): reflected XSS via unescaped request param in HTML
   "<h1>Hello, #{params[:greeting]}</h1>"
 end

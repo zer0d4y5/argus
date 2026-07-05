@@ -12,6 +12,7 @@ import (
 	"github.com/leaky-hub/appsec/internal/audit"
 	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/config"
+	"github.com/leaky-hub/appsec/internal/coverage"
 	"github.com/leaky-hub/appsec/internal/gitws"
 	"github.com/leaky-hub/appsec/internal/jobs"
 	"github.com/leaky-hub/appsec/internal/pipeline"
@@ -97,7 +98,10 @@ func execScan(ctx context.Context, reg *targets.Registry, git gitws.Syncer, job 
 
 	// A scoped run is part of the TARGET's history: save to the target
 	// root's store, never the scope subdirectory (docs/console-ops.md §12.2).
-	meta, err := runstore.ForRepo(root).Save(res.Findings, time.Now())
+	// Skip accounting covers what was actually scanned (the scope path when
+	// one is set), not the whole target tree.
+	cov := coverage.Account(scanPath)
+	meta, err := runstore.ForRepo(root).SaveWithCoverage(res.Findings, &cov, time.Now())
 	if err != nil {
 		return out, fmt.Errorf("save run: %w", err)
 	}
