@@ -87,10 +87,10 @@ var maxOnlyPacks = []string{
 	"p/insecure-transport",
 	// Per-language completeness (deep-scan session): one deep pack per
 	// claimed language that had none beyond standard's p/<lang>.
-	"p/bandit",             // python: predictable-PRNG-for-token & co (plant py-weak-random)
-	"p/findsecbugs",        // java: weak random, Runtime.exec cmdi (plants java-weak-random, java-cmdi)
-	"p/security-code-scan", // C#: weak random, ProcessStartInfo cmdi (plants cs-weak-random, cs-cmdi)
-	"p/mobsfscan",          // kotlin: ECB-mode cipher (plant kt-ecb-cipher)
+	"p/bandit",               // python: predictable-PRNG-for-token & co (plant py-weak-random)
+	"p/findsecbugs",          // java: weak random, Runtime.exec cmdi (plants java-weak-random, java-cmdi)
+	"p/security-code-scan",   // C#: weak random, ProcessStartInfo cmdi (plants cs-weak-random, cs-cmdi)
+	"p/mobsfscan",            // kotlin: ECB-mode cipher (plant kt-ecb-cipher)
 	"p/phpcs-security-audit", // php: dynamic include (plant php-dynamic-include)
 }
 

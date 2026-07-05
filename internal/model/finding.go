@@ -135,12 +135,12 @@ type Finding struct {
 	// instead of a fabricated "info".
 	ToolSeverity *Severity `json:"toolSeverity,omitempty"`
 	RawSeverity  string    `json:"rawSeverity,omitempty"` // native string, for audit
-	Confidence  string   `json:"confidence,omitempty"`
-	Location    Location `json:"location"`
-	Package     string   `json:"package,omitempty"`
-	CWEs        []string `json:"cwes,omitempty"`
-	CVE         string   `json:"cve,omitempty"`
-	Remediation string   `json:"remediation,omitempty"`
+	Confidence   string    `json:"confidence,omitempty"`
+	Location     Location  `json:"location"`
+	Package      string    `json:"package,omitempty"`
+	CWEs         []string  `json:"cwes,omitempty"`
+	CVE          string    `json:"cve,omitempty"`
+	Remediation  string    `json:"remediation,omitempty"`
 
 	Meta       map[string]string `json:"meta,omitempty"`
 	RawPayload json.RawMessage   `json:"rawPayload,omitempty"`
@@ -269,7 +269,7 @@ func Normalize(raws []RawFinding) []Finding {
 			Severity:     toolSev,
 			ToolSeverity: &toolSev,
 			RawSeverity:  r.RawSeverity,
-			Confidence:  r.Confidence,
+			Confidence:   r.Confidence,
 			Location: Location{
 				File:      filepathToSlash(r.File),
 				StartLine: maxInt(r.StartLine, 0),

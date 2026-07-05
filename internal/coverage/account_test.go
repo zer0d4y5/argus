@@ -20,12 +20,12 @@ func write(t *testing.T, root, rel string, data []byte) {
 func TestAccount(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, "src/app.py", []byte("print('hi')\n"))
-	write(t, root, "src/lib.rs", []byte("fn main() {}\n"))                 // unsupported source
-	write(t, root, "deploy/Dockerfile", []byte("FROM scratch\n"))          // iac
-	write(t, root, "notes.md", []byte("# notes\n"))                        // secrets-only text
-	write(t, root, "blob.bin", []byte{0x7f, 'E', 'L', 'F', 0, 0, 1})       // binary (NUL)
-	write(t, root, ".git/config", []byte("[core]\n"))                      // skipped dir
-	write(t, root, ".appsec/runs/x.json", []byte("{}"))                    // skipped dir
+	write(t, root, "src/lib.rs", []byte("fn main() {}\n"))           // unsupported source
+	write(t, root, "deploy/Dockerfile", []byte("FROM scratch\n"))    // iac
+	write(t, root, "notes.md", []byte("# notes\n"))                  // secrets-only text
+	write(t, root, "blob.bin", []byte{0x7f, 'E', 'L', 'F', 0, 0, 1}) // binary (NUL)
+	write(t, root, ".git/config", []byte("[core]\n"))                // skipped dir
+	write(t, root, ".appsec/runs/x.json", []byte("{}"))              // skipped dir
 	big := make([]byte, OversizeLimitBytes+1)
 	for i := range big {
 		big[i] = 'a'
