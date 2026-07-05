@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/leaky-hub/appsec/internal/model"
@@ -28,10 +29,36 @@ func (g *Gitleaks) Available() bool {
 	return toolOnPath("gitleaks")
 }
 
-// Scan executes gitleaks and returns normalized raw findings. The JSON
-// report goes to a temp file (not /dev/stdout, which gitleaks cannot always
-// open) that is removed before returning.
+// Scan executes gitleaks and returns normalized raw findings: always the
+// worktree pass (--no-git), plus — when the target directory is a git
+// repository — a history pass over the commits (schema 2.0.0, locked
+// decision 5). Secrets found ONLY in history are labeled meta.gitHistory
+// (with the commit hash) because the fix is rotation, not a code edit;
+// shallow workspaces have a single commit of history and say so. Both passes
+// share the same --redact + re-scrub pipeline: history scanning must never
+// become a secret-exfiltration path into run files.
 func (g *Gitleaks) Scan(ctx context.Context, target string) ([]model.RawFinding, error) {
+	worktree, err := g.detect(ctx, target, false)
+	if err != nil {
+		return nil, err
+	}
+	if !gitHistoryEligible(target) {
+		return worktree, nil
+	}
+	history, err := g.detect(ctx, target, true)
+	if err != nil {
+		// History is additive enrichment: a repository whose history gitleaks
+		// cannot walk (corrupt objects, exotic packfiles) must not lose its
+		// worktree findings. Coverage accounting reports history mode per run.
+		return worktree, nil
+	}
+	return mergeGitHistory(worktree, history, gitShallow(target)), nil
+}
+
+// detect runs one gitleaks pass. The JSON report goes to a temp file (not
+// /dev/stdout, which gitleaks cannot always open) that is removed before
+// returning.
+func (g *Gitleaks) detect(ctx context.Context, target string, gitMode bool) ([]model.RawFinding, error) {
 	reportFile, err := os.CreateTemp("", "appsec-gitleaks-*.json")
 	if err != nil {
 		return nil, fmt.Errorf("gitleaks scan: temp report: %w", err)
@@ -43,12 +70,16 @@ func (g *Gitleaks) Scan(ctx context.Context, target string) ([]model.RawFinding,
 	args := []string{
 		"detect",
 		"--source", target,
-		"--no-git",
+	}
+	if !gitMode {
+		args = append(args, "--no-git")
+	}
+	args = append(args,
 		"--report-format", "json",
 		"--report-path", reportPath,
 		"--redact",
 		"--exit-code", "0",
-	}
+	)
 
 	if _, err := runJSON(ctx, "gitleaks", args...); err != nil {
 		return nil, fmt.Errorf("gitleaks scan: %w", err)
@@ -59,6 +90,71 @@ func (g *Gitleaks) Scan(ctx context.Context, target string) ([]model.RawFinding,
 		return nil, fmt.Errorf("gitleaks scan: read report: %w", err)
 	}
 	return parseGitleaks(data)
+}
+
+// gitHistoryEligible: history mode runs when the scan target is a directory
+// containing .git (a dir entry for normal repos, a file for linked
+// worktrees). File targets and plain directories scan the worktree only.
+func gitHistoryEligible(target string) bool {
+	if fi, err := os.Stat(target); err != nil || !fi.IsDir() {
+		return false
+	}
+	_, err := os.Stat(filepath.Join(target, ".git"))
+	return err == nil
+}
+
+// gitShallow reports whether the repo is a shallow clone (console git
+// workspaces clone --depth 1): its "history" is a single commit, and the
+// finding says so instead of implying full-history coverage.
+func gitShallow(target string) bool {
+	_, err := os.Stat(filepath.Join(target, ".git", "shallow"))
+	return err == nil
+}
+
+// mergeGitHistory folds the history pass into the worktree findings.
+// History occurrences of a secret that still exists in the worktree (same
+// rule + file) are dropped — the worktree finding already reports it, at the
+// current line. Survivors are history-only: labeled, deduplicated on
+// (rule, file, line), and their description says plainly what to do.
+func mergeGitHistory(worktree, history []model.RawFinding, shallow bool) []model.RawFinding {
+	inWorktree := make(map[string]bool, len(worktree))
+	for _, f := range worktree {
+		inWorktree[f.RuleID+"\x00"+f.File] = true
+	}
+	out := worktree
+	seen := map[string]bool{}
+	for _, f := range history {
+		if inWorktree[f.RuleID+"\x00"+f.File] {
+			continue
+		}
+		key := fmt.Sprintf("%s\x00%s\x00%d", f.RuleID, f.File, f.StartLine)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		if f.Meta == nil {
+			f.Meta = map[string]string{}
+		}
+		f.Meta["gitHistory"] = "true"
+		note := "Found in git history, not in the current worktree: rotate the credential — deleting the file does not revoke it."
+		if commit := f.Meta["commit"]; commit != "" {
+			note = fmt.Sprintf("Found in git history (commit %s), not in the current worktree: rotate the credential — deleting the file does not revoke it.", shortCommit(commit))
+		}
+		if shallow {
+			f.Meta["gitShallow"] = "true"
+			note += " History coverage was limited to the shallow clone's single commit."
+		}
+		f.Description = strings.TrimSpace(f.Description + " " + note)
+		out = append(out, f)
+	}
+	return out
+}
+
+func shortCommit(c string) string {
+	if len(c) > 12 {
+		return c[:12]
+	}
+	return c
 }
 
 // gitleaksTitles maps common gitleaks rule IDs to human finding titles
@@ -163,6 +259,11 @@ func parseGitleaks(data []byte) ([]model.RawFinding, error) {
 				"entropy": formatEntropy(r.Entropy),
 			},
 			RawPayload: json.RawMessage(payloadBytes),
+		}
+		// Git-mode results carry the commit that introduced the secret;
+		// worktree (--no-git) results have none. mergeGitHistory reads it.
+		if r.Commit != "" {
+			finding.Meta["commit"] = r.Commit
 		}
 
 		findings = append(findings, finding)

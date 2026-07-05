@@ -186,6 +186,14 @@ func seedRun(t *testing.T, root string) (runID, sastID, secretID string) {
 			RuleID: "aws-key", Title: "AWS key", Severity: model.SeverityHigh,
 			Location: model.Location{File: filepath.Join(root, "db.py"), StartLine: 1, EndLine: 1},
 		},
+		{
+			// History-mode secret (schema 2.0.0): the file no longer exists in
+			// the worktree. S4 must hold for it exactly like any SECRET.
+			Tool: "gitleaks", Tools: []string{"gitleaks"}, Category: model.CategorySecret,
+			RuleID: "github-pat", Title: "GitHub personal access token", Severity: model.SeverityHigh,
+			Location: model.Location{File: filepath.Join(root, "deleted.env"), StartLine: 2, EndLine: 2},
+			Meta:     map[string]string{"gitHistory": "true", "commit": "abc123abc123"},
+		},
 	}
 	for i := range findings {
 		findings[i].ID = model.Fingerprint(findings[i])
