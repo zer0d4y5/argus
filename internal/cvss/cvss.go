@@ -53,6 +53,12 @@ func Parse(vector string) (Base, error) {
 		}
 		k, v := strings.ToUpper(kv[0]), strings.ToUpper(kv[1])
 		if allowed, ok := valid[k]; ok && allowed[v] {
+			if _, dup := got[k]; dup {
+				// The spec forbids repeating a metric. Last-one-wins would let a
+				// duplicated metric silently move the score across a severity
+				// band, so reject rather than guess which value was meant.
+				return Base{}, fmt.Errorf("duplicate base metric %s", k)
+			}
 			got[k] = v
 		}
 	}
