@@ -147,6 +147,8 @@ export interface SummaryResponse {
   gate: GateInfo;
   verdicts: VerdictCounts;
   trend: TrendPoint[];
+  // Latest run's finding-workflow rollup by status (+ "regression").
+  dispositions?: Record<string, number>;
 }
 
 export interface RunListItem {

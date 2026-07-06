@@ -68,6 +68,10 @@ export function Findings({
   onSuppress,
   framework,
   onFrameworkChange,
+  severity,
+  onSeverityChange,
+  status,
+  onStatusChange,
 }: {
   detail: RunDetail;
   origin?: {
@@ -78,17 +82,21 @@ export function Findings({
   canExplain?: boolean;
   canSuppress?: boolean;
   onSuppress?: (ruleId: string) => void;
-  // The framework filter is controlled by App so the Overview compliance
-  // panel can deep-link into a filtered Findings view.
+  // These filters are controlled by App so the Overview panels can deep-link
+  // into a filtered Findings view (drill-down on any stat).
   framework: string;
   onFrameworkChange: (v: string) => void;
+  severity: string;
+  onSeverityChange: (v: string) => void;
+  status: string;
+  onStatusChange: (v: string) => void;
 }) {
   const [q, setQ] = useState("");
-  const [sev, setSev] = useState<string>("all");
+  const sev = severity, setSev = onSeverityChange;
   const [cat, setCat] = useState<string>("all");
   const [tool, setTool] = useState<string>("all");
   const [verdict, setVerdict] = useState<string>("all");
-  const [status, setStatus] = useState<string>("all");
+  const setStatus = onStatusChange;
   const [minRisk, setMinRisk] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 

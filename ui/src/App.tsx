@@ -56,9 +56,11 @@ export function App() {
   // Overview/Runs/Findings all read this store.
   const [activeTarget, setActiveTarget] = useState<string>("");
   const [rescanBusy, setRescanBusy] = useState(false);
-  // The Findings framework filter, lifted here so the Overview compliance
-  // panel can deep-link into a filtered Findings view.
+  // Findings filters lifted here so the Overview panels can deep-link into a
+  // filtered Findings view (every stat is a drill-down).
   const [findingsFramework, setFindingsFramework] = useState<string>("all");
+  const [findingsSeverity, setFindingsSeverity] = useState<string>("all");
+  const [findingsStatus, setFindingsStatus] = useState<string>("all");
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -190,19 +192,26 @@ export function App() {
       .catch(onApiError);
   };
 
-  // Deep-link from an Overview compliance row into the filtered Findings list.
-  const openFramework = (id: string) => {
-    setFindingsFramework(id);
+  // Deep-links from Overview panels into a filtered Findings view. Each sets
+  // its own filter and resets the others so the drill-down is clean.
+  const drillTo = (which: "framework" | "severity" | "status", value: string) => {
+    setFindingsFramework(which === "framework" ? value : "all");
+    setFindingsSeverity(which === "severity" ? value : "all");
+    setFindingsStatus(which === "status" ? value : "all");
     setTab("findings");
   };
+  const openFramework = (id: string) => drillTo("framework", id);
 
   const openRun = (runId: string, targetId?: string, commit?: string) => {
     // Switch the whole app to that run's target so Overview/Runs agree with
-    // the finding drawer, then open it.
+    // the finding drawer, then open it with filters cleared.
     setActiveTarget(targetId ?? "");
     setSelectedRun(runId);
     setSelectedRunTarget(targetId);
     setSelectedRunCommit(commit);
+    setFindingsFramework("all");
+    setFindingsSeverity("all");
+    setFindingsStatus("all");
     setReloadKey((k) => k + 1);
     setTab("findings");
   };
@@ -328,7 +337,14 @@ export function App() {
       </header>
 
       <main>
-        {activeTab === "overview" && <Overview summary={summary} onSelectFramework={openFramework} />}
+        {activeTab === "overview" && (
+          <Overview
+            summary={summary}
+            onSelectFramework={openFramework}
+            onSelectSeverity={(sev) => drillTo("severity", sev)}
+            onSelectStatus={(st) => drillTo("status", st)}
+          />
+        )}
         {activeTab === "findings" &&
           (detail ? (
             <Findings
@@ -339,6 +355,10 @@ export function App() {
               onSuppress={handleSuppress}
               framework={findingsFramework}
               onFrameworkChange={setFindingsFramework}
+              severity={findingsSeverity}
+              onSeverityChange={setFindingsSeverity}
+              status={findingsStatus}
+              onStatusChange={setFindingsStatus}
             />
           ) : (
             <Loading what="findings" />

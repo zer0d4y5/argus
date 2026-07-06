@@ -85,6 +85,36 @@ type SummaryResponse struct {
 	Gate       GateInfo                      `json:"gate"`
 	Verdicts   VerdictCounts                 `json:"verdicts"`
 	Trend      []TrendPoint                  `json:"trend"`
+	// Dispositions is the latest run's finding-workflow rollup: counts by
+	// status (open/in-progress/accepted-risk/false-positive/fixed) plus
+	// "regression" (fixed but still present). The console renders it as a
+	// clickable tile into the filtered Findings view.
+	Dispositions map[string]int `json:"dispositions,omitempty"`
+}
+
+// dispositionRollup counts the run's findings by workflow status (open when no
+// record) and flags regressions (status "fixed" but still present in the run).
+func dispositionRollup(store runstore.Store, findings []model.Finding) map[string]int {
+	out := map[string]int{
+		disposition.StatusOpen: 0, disposition.StatusInProgress: 0,
+		disposition.StatusAcceptedRisk: 0, disposition.StatusFalsePositive: 0,
+		disposition.StatusFixed: 0, "regression": 0,
+	}
+	all, err := dispositionStore(store).All()
+	if err != nil {
+		all = map[string]disposition.Record{}
+	}
+	for _, f := range findings {
+		if rec, ok := all[f.ID]; ok {
+			out[rec.Status]++
+			if rec.Status == disposition.StatusFixed {
+				out["regression"]++ // present in the run yet marked fixed
+			}
+		} else {
+			out[disposition.StatusOpen]++
+		}
+	}
+	return out
 }
 
 // RunDetail is GET /api/runs/{id} — the Findings (AppSec) payload for one run.
@@ -245,6 +275,7 @@ func (s *Server) buildSummary(store runstore.Store) (SummaryResponse, error) {
 	resp.RiskBands = riskBands(doc.Findings)
 	resp.Gate = gateFor(doc.Findings, s.gate, s.gateName)
 	resp.Verdicts = countVerdicts(doc.Findings)
+	resp.Dispositions = dispositionRollup(store, doc.Findings)
 	return resp, nil
 }
 

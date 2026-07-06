@@ -12,15 +12,20 @@ import {
 } from "recharts";
 import { SummaryResponse } from "../api";
 import { Panel, StatCard, SeverityDonut, GateBadge, EmptyState, CategoryBreakdown } from "../components";
-import { OWASP_COLORS, SEV_COLOR, fmtTime } from "../theme";
+import { OWASP_COLORS, SEV_COLOR, DISPOSITION_LABEL, fmtTime } from "../theme";
 import { CompliancePanel } from "./CompliancePanel";
 
-export function Overview({ summary, onSelectFramework }: { summary: SummaryResponse; onSelectFramework?: (id: string) => void }) {
+export function Overview({ summary, onSelectFramework, onSelectSeverity, onSelectStatus }: {
+  summary: SummaryResponse;
+  onSelectFramework?: (id: string) => void;
+  onSelectSeverity?: (sev: string) => void;
+  onSelectStatus?: (status: string) => void;
+}) {
   if (summary.runCount === 0) {
     return (
       <EmptyState
         title="No runs saved yet"
-        hint="Run `appsec scan <path> --save` to record a run, then reload. Two or more runs unlock the trend."
+        hint="Run `bulwark scan <path> --save` to record a run, then reload. Two or more runs unlock the trend."
       />
     );
   }
@@ -69,15 +74,57 @@ export function Overview({ summary, onSelectFramework }: { summary: SummaryRespo
         />
       </div>
 
+      {/* Finding workflow: durable dispositions for the latest run, each a
+          drill-down into the filtered Findings view. Regressions (fixed but
+          still detected) are the alarm. */}
+      {summary.dispositions && (
+        <Panel title="Finding workflow">
+          <div className="flex flex-wrap gap-2 text-xs">
+            {([
+              ["open", "Open", "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"],
+              ["in-progress", DISPOSITION_LABEL["in-progress"], "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"],
+              ["accepted-risk", DISPOSITION_LABEL["accepted-risk"], "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"],
+              ["false-positive", DISPOSITION_LABEL["false-positive"], "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"],
+              ["fixed", DISPOSITION_LABEL["fixed"], "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"],
+              ["regression", "Regressions", "bg-red-50 text-red-700 ring-1 ring-red-300 dark:bg-red-950/30 dark:text-red-300 dark:ring-red-900"],
+            ] as const).map(([key, label, cls]) => {
+              const n = summary.dispositions?.[key] ?? 0;
+              const clickable = !!onSelectStatus && n > 0;
+              return (
+                <button
+                  key={key}
+                  onClick={clickable ? () => onSelectStatus!(key) : undefined}
+                  disabled={!clickable}
+                  className={`flex min-w-[92px] flex-col items-start rounded-lg px-3 py-2 ${cls} ${clickable ? "cursor-pointer hover:brightness-95" : "cursor-default opacity-90"}`}
+                  title={clickable ? `Show ${label} findings` : undefined}
+                >
+                  <span className="text-lg font-bold tabular-nums">{n}</span>
+                  <span className="font-medium">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Durable per-finding status, kept across re-scans by fingerprint. A <span className="font-semibold text-red-600 dark:text-red-400">regression</span> is a finding you marked fixed that a later scan still detects.
+          </p>
+        </Panel>
+      )}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="Severity distribution">
           <SeverityDonut bySeverity={summary.bySeverity} />
-          <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs">
+          <div className="mt-2 flex flex-wrap justify-center gap-2 text-xs">
             {(["critical", "high", "medium", "low", "info"] as const).map((s) => (
-              <span key={s} className="inline-flex items-center gap-1">
+              <button
+                key={s}
+                onClick={onSelectSeverity ? () => onSelectSeverity(s) : undefined}
+                disabled={!onSelectSeverity || (summary.bySeverity[s] || 0) === 0}
+                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${onSelectSeverity && (summary.bySeverity[s] || 0) > 0 ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800" : "cursor-default"}`}
+                title={onSelectSeverity ? `Show ${s} findings` : undefined}
+              >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: SEV_COLOR[s] }} />
                 {s} <span className="tabular-nums text-gray-500">{summary.bySeverity[s] || 0}</span>
-              </span>
+              </button>
             ))}
           </div>
         </Panel>
