@@ -2,94 +2,526 @@
   "id": "ASVS",
   "name": "OWASP Application Security Verification Standard",
   "version": "4.0.3",
-  "scope": ["SAST", "SECRET", "SCA"],
+  "scope": [
+    "SAST",
+    "SECRET",
+    "SCA"
+  ],
   "controls": [
-    {"id": "V2.1.1", "title": "User-set passwords are at least 12 characters"},
-    {"id": "V2.2.1", "title": "Anti-automation controls resist credential attacks (rate limiting, lockout)"},
-    {"id": "V2.4.1", "title": "Passwords stored using an approved one-way key derivation function"},
-    {"id": "V2.10.4", "title": "Passwords, integrations and API secrets are not stored in source code; a secrets store is used"},
-    {"id": "V3.2.1", "title": "A new session token is generated on user authentication"},
-    {"id": "V3.3.1", "title": "Logout and expiration invalidate the session token"},
-    {"id": "V3.4.1", "title": "Cookie-based session tokens set the Secure attribute"},
-    {"id": "V3.4.2", "title": "Cookie-based session tokens set the HttpOnly attribute"},
-    {"id": "V4.1.3", "title": "The principle of least privilege is enforced by access controls"},
-    {"id": "V4.2.1", "title": "Sensitive data and APIs are protected against Insecure Direct Object Reference (IDOR)"},
-    {"id": "V4.2.2", "title": "A strong anti-CSRF mechanism protects authenticated functionality"},
-    {"id": "V5.1.2", "title": "Frameworks protect against mass parameter assignment"},
-    {"id": "V5.2.4", "title": "eval() and other dynamic code execution features are avoided"},
-    {"id": "V5.2.5", "title": "The application protects against template injection attacks"},
-    {"id": "V5.2.6", "title": "The application protects against SSRF attacks"},
-    {"id": "V5.3.1", "title": "Output encoding is relevant for the interpreter and context required"},
-    {"id": "V5.3.3", "title": "Context-aware output escaping protects against reflected, stored, and DOM XSS"},
-    {"id": "V5.3.4", "title": "Database queries use parameterized queries, ORMs, or are otherwise protected from database injection"},
-    {"id": "V5.3.5", "title": "Where parameterized mechanisms are not possible, context-specific output encoding protects against injection"},
-    {"id": "V5.3.7", "title": "The application protects against LDAP injection"},
-    {"id": "V5.3.8", "title": "The application protects against OS command injection"},
-    {"id": "V5.3.9", "title": "The application protects against local and remote file inclusion (LFI/RFI)"},
-    {"id": "V5.3.10", "title": "The application protects against XPath and XML injection"},
-    {"id": "V5.5.2", "title": "XML parsers are restricted to the most restrictive configuration (XXE protection)"},
-    {"id": "V5.5.3", "title": "Deserialization of untrusted data is avoided or protected"},
-    {"id": "V6.1.1", "title": "Regulated private data is stored encrypted at rest"},
-    {"id": "V6.2.2", "title": "Industry-proven or government-approved cryptographic algorithms are used"},
-    {"id": "V6.2.5", "title": "Insecure block modes, padding modes, small-block ciphers, and weak hashing algorithms are not used"},
-    {"id": "V6.3.1", "title": "Random values are generated with an approved cryptographically secure RNG"},
-    {"id": "V6.4.1", "title": "A secrets management solution (key vault) is used to create, store, and control secrets"},
-    {"id": "V7.1.1", "title": "The application does not log credentials or payment details"},
-    {"id": "V7.1.3", "title": "Security-relevant events are logged"},
-    {"id": "V7.3.1", "title": "Logging components encode data appropriately to prevent log injection"},
-    {"id": "V9.1.1", "title": "TLS is used for all client connectivity"},
-    {"id": "V9.2.1", "title": "Connections to and from the server use trusted TLS certificates (validation enforced)"},
-    {"id": "V10.3.2", "title": "Code integrity protections (signing, subresource integrity) are employed"},
-    {"id": "V12.3.1", "title": "User-submitted filenames are protected against path traversal"},
-    {"id": "V14.2.1", "title": "All components are up to date and free of known vulnerabilities"},
-    {"id": "V14.4.7", "title": "frame-ancestors / X-Frame-Options protects against clickjacking"},
-    {"id": "V14.5.3", "title": "The CORS Access-Control-Allow-Origin header uses a strict allow-list"}
+    {
+      "id": "V2.1.1",
+      "title": "User-set passwords are at least 12 characters"
+    },
+    {
+      "id": "V2.2.1",
+      "title": "Anti-automation controls resist credential attacks (rate limiting, lockout)"
+    },
+    {
+      "id": "V2.4.1",
+      "title": "Passwords stored using an approved one-way key derivation function"
+    },
+    {
+      "id": "V2.10.4",
+      "title": "Passwords, integrations and API secrets are not stored in source code; a secrets store is used"
+    },
+    {
+      "id": "V3.2.1",
+      "title": "A new session token is generated on user authentication"
+    },
+    {
+      "id": "V3.3.1",
+      "title": "Logout and expiration invalidate the session token"
+    },
+    {
+      "id": "V3.4.1",
+      "title": "Cookie-based session tokens set the Secure attribute"
+    },
+    {
+      "id": "V3.4.2",
+      "title": "Cookie-based session tokens set the HttpOnly attribute"
+    },
+    {
+      "id": "V4.1.3",
+      "title": "The principle of least privilege is enforced by access controls"
+    },
+    {
+      "id": "V4.2.1",
+      "title": "Sensitive data and APIs are protected against Insecure Direct Object Reference (IDOR)"
+    },
+    {
+      "id": "V4.2.2",
+      "title": "A strong anti-CSRF mechanism protects authenticated functionality"
+    },
+    {
+      "id": "V5.1.2",
+      "title": "Frameworks protect against mass parameter assignment"
+    },
+    {
+      "id": "V5.2.4",
+      "title": "eval() and other dynamic code execution features are avoided"
+    },
+    {
+      "id": "V5.2.5",
+      "title": "The application protects against template injection attacks"
+    },
+    {
+      "id": "V5.2.6",
+      "title": "The application protects against SSRF attacks"
+    },
+    {
+      "id": "V5.3.1",
+      "title": "Output encoding is relevant for the interpreter and context required"
+    },
+    {
+      "id": "V5.3.3",
+      "title": "Context-aware output escaping protects against reflected, stored, and DOM XSS"
+    },
+    {
+      "id": "V5.3.4",
+      "title": "Database queries use parameterized queries, ORMs, or are otherwise protected from database injection"
+    },
+    {
+      "id": "V5.3.5",
+      "title": "Where parameterized mechanisms are not possible, context-specific output encoding protects against injection"
+    },
+    {
+      "id": "V5.3.7",
+      "title": "The application protects against LDAP injection"
+    },
+    {
+      "id": "V5.3.8",
+      "title": "The application protects against OS command injection"
+    },
+    {
+      "id": "V5.3.9",
+      "title": "The application protects against local and remote file inclusion (LFI/RFI)"
+    },
+    {
+      "id": "V5.3.10",
+      "title": "The application protects against XPath and XML injection"
+    },
+    {
+      "id": "V5.5.2",
+      "title": "XML parsers are restricted to the most restrictive configuration (XXE protection)"
+    },
+    {
+      "id": "V5.5.3",
+      "title": "Deserialization of untrusted data is avoided or protected"
+    },
+    {
+      "id": "V6.1.1",
+      "title": "Regulated private data is stored encrypted at rest"
+    },
+    {
+      "id": "V6.2.2",
+      "title": "Industry-proven or government-approved cryptographic algorithms are used"
+    },
+    {
+      "id": "V6.2.5",
+      "title": "Insecure block modes, padding modes, small-block ciphers, and weak hashing algorithms are not used"
+    },
+    {
+      "id": "V6.3.1",
+      "title": "Random values are generated with an approved cryptographically secure RNG"
+    },
+    {
+      "id": "V6.4.1",
+      "title": "A secrets management solution (key vault) is used to create, store, and control secrets"
+    },
+    {
+      "id": "V7.1.1",
+      "title": "The application does not log credentials or payment details"
+    },
+    {
+      "id": "V7.1.3",
+      "title": "Security-relevant events are logged"
+    },
+    {
+      "id": "V7.3.1",
+      "title": "Logging components encode data appropriately to prevent log injection"
+    },
+    {
+      "id": "V9.1.1",
+      "title": "TLS is used for all client connectivity"
+    },
+    {
+      "id": "V9.2.1",
+      "title": "Connections to and from the server use trusted TLS certificates (validation enforced)"
+    },
+    {
+      "id": "V10.3.2",
+      "title": "Code integrity protections (signing, subresource integrity) are employed"
+    },
+    {
+      "id": "V12.3.1",
+      "title": "User-submitted filenames are protected against path traversal"
+    },
+    {
+      "id": "V14.2.1",
+      "title": "All components are up to date and free of known vulnerabilities"
+    },
+    {
+      "id": "V14.4.7",
+      "title": "frame-ancestors / X-Frame-Options protects against clickjacking"
+    },
+    {
+      "id": "V14.5.3",
+      "title": "The CORS Access-Control-Allow-Origin header uses a strict allow-list"
+    }
   ],
   "notAssessable": [
-    {"id": "V1", "title": "Architecture, Design and Threat Modeling", "reason": "Requires design review and threat modeling, not code scanning."},
-    {"id": "V8", "title": "Data Protection", "reason": "Data classification, retention, and handling are process controls invisible to static analysis."},
-    {"id": "V11", "title": "Business Logic", "reason": "Business-logic abuse requires understanding intended behavior; static rules cannot assess it."},
-    {"id": "V13", "title": "API and Web Service", "reason": "API behavior verification requires runtime testing (DAST), which this platform does not yet run."}
+    {
+      "id": "V1",
+      "title": "Architecture, Design and Threat Modeling",
+      "reason": "Requires design review and threat modeling, not code scanning."
+    },
+    {
+      "id": "V8",
+      "title": "Data Protection",
+      "reason": "Data classification, retention, and handling are process controls invisible to static analysis."
+    },
+    {
+      "id": "V11",
+      "title": "Business Logic",
+      "reason": "Business-logic abuse requires understanding intended behavior; static rules cannot assess it."
+    },
+    {
+      "id": "V13",
+      "title": "API and Web Service",
+      "reason": "API behavior verification requires runtime testing (DAST), which this platform does not yet run."
+    }
   ],
   "rules": [
-    {"cwes": ["CWE-22", "CWE-23", "CWE-35", "CWE-73"], "controls": ["V12.3.1"]},
-    {"cwes": ["CWE-77", "CWE-78", "CWE-88"], "controls": ["V5.3.8"]},
-    {"cwes": ["CWE-79", "CWE-80"], "controls": ["V5.3.3"]},
-    {"cwes": ["CWE-89", "CWE-564"], "controls": ["V5.3.4", "V5.3.5"]},
-    {"cwes": ["CWE-90"], "controls": ["V5.3.7"]},
-    {"cwes": ["CWE-91", "CWE-643"], "controls": ["V5.3.10"]},
-    {"cwes": ["CWE-94", "CWE-917"], "controls": ["V5.2.5"]},
-    {"cwes": ["CWE-95", "CWE-96"], "controls": ["V5.2.4"]},
-    {"cwes": ["CWE-98", "CWE-829"], "controls": ["V5.3.9"]},
-    {"cwes": ["CWE-116"], "controls": ["V5.3.1"]},
-    {"cwes": ["CWE-117"], "controls": ["V7.3.1"]},
-    {"cwes": ["CWE-259", "CWE-798"], "controls": ["V2.10.4", "V6.4.1"]},
-    {"cwes": ["CWE-284", "CWE-285", "CWE-863"], "controls": ["V4.1.3"]},
-    {"cwes": ["CWE-295"], "controls": ["V9.2.1"]},
-    {"cwes": ["CWE-307"], "controls": ["V2.2.1"]},
-    {"cwes": ["CWE-311", "CWE-312"], "controls": ["V6.1.1"]},
-    {"cwes": ["CWE-319"], "controls": ["V9.1.1"]},
-    {"cwes": ["CWE-326", "CWE-328"], "controls": ["V6.2.5"]},
-    {"cwes": ["CWE-327"], "controls": ["V6.2.2"]},
-    {"cwes": ["CWE-330", "CWE-338"], "controls": ["V6.3.1"]},
-    {"cwes": ["CWE-352"], "controls": ["V4.2.2"]},
-    {"cwes": ["CWE-384"], "controls": ["V3.2.1"]},
-    {"cwes": ["CWE-494"], "controls": ["V10.3.2"]},
-    {"cwes": ["CWE-502"], "controls": ["V5.5.3"]},
-    {"cwes": ["CWE-521"], "controls": ["V2.1.1"]},
-    {"cwes": ["CWE-532"], "controls": ["V7.1.1"]},
-    {"cwes": ["CWE-611", "CWE-776"], "controls": ["V5.5.2"]},
-    {"cwes": ["CWE-613"], "controls": ["V3.3.1"]},
-    {"cwes": ["CWE-614"], "controls": ["V3.4.1"]},
-    {"cwes": ["CWE-639"], "controls": ["V4.2.1"]},
-    {"cwes": ["CWE-778"], "controls": ["V7.1.3"]},
-    {"cwes": ["CWE-915"], "controls": ["V5.1.2"]},
-    {"cwes": ["CWE-916"], "controls": ["V2.4.1"]},
-    {"cwes": ["CWE-918"], "controls": ["V5.2.6"]},
-    {"cwes": ["CWE-346", "CWE-942"], "controls": ["V14.5.3"]},
-    {"cwes": ["CWE-1004"], "controls": ["V3.4.2"]},
-    {"cwes": ["CWE-1021"], "controls": ["V14.4.7"]},
-    {"category": "SECRET", "controls": ["V2.10.4", "V6.4.1"]},
-    {"category": "SCA", "controls": ["V14.2.1"]}
+    {
+      "cwes": [
+        "CWE-22",
+        "CWE-23",
+        "CWE-35",
+        "CWE-73"
+      ],
+      "controls": [
+        "V12.3.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-77",
+        "CWE-78",
+        "CWE-88"
+      ],
+      "controls": [
+        "V5.3.8"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-79",
+        "CWE-80"
+      ],
+      "controls": [
+        "V5.3.3"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-89",
+        "CWE-564"
+      ],
+      "controls": [
+        "V5.3.4",
+        "V5.3.5"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-90"
+      ],
+      "controls": [
+        "V5.3.7"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-91",
+        "CWE-643"
+      ],
+      "controls": [
+        "V5.3.10"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-1336",
+        "CWE-917"
+      ],
+      "controls": [
+        "V5.2.5"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-94",
+        "CWE-95",
+        "CWE-96"
+      ],
+      "controls": [
+        "V5.2.4"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-98",
+        "CWE-829"
+      ],
+      "controls": [
+        "V5.3.9"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-116"
+      ],
+      "controls": [
+        "V5.3.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-117"
+      ],
+      "controls": [
+        "V7.3.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-259",
+        "CWE-798"
+      ],
+      "controls": [
+        "V2.10.4",
+        "V6.4.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-284",
+        "CWE-285",
+        "CWE-863"
+      ],
+      "controls": [
+        "V4.1.3"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-295"
+      ],
+      "controls": [
+        "V9.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-307"
+      ],
+      "controls": [
+        "V2.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-311",
+        "CWE-312"
+      ],
+      "controls": [
+        "V6.1.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-319"
+      ],
+      "controls": [
+        "V9.1.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-326",
+        "CWE-328"
+      ],
+      "controls": [
+        "V6.2.5"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-327"
+      ],
+      "controls": [
+        "V6.2.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-330",
+        "CWE-338"
+      ],
+      "controls": [
+        "V6.3.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-352"
+      ],
+      "controls": [
+        "V4.2.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-384"
+      ],
+      "controls": [
+        "V3.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-494"
+      ],
+      "controls": [
+        "V10.3.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-502"
+      ],
+      "controls": [
+        "V5.5.3"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-521"
+      ],
+      "controls": [
+        "V2.1.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-532"
+      ],
+      "controls": [
+        "V7.1.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-611",
+        "CWE-776"
+      ],
+      "controls": [
+        "V5.5.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-613"
+      ],
+      "controls": [
+        "V3.3.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-614"
+      ],
+      "controls": [
+        "V3.4.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-639"
+      ],
+      "controls": [
+        "V4.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-778"
+      ],
+      "controls": [
+        "V7.1.3"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-915"
+      ],
+      "controls": [
+        "V5.1.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-916"
+      ],
+      "controls": [
+        "V2.4.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-918"
+      ],
+      "controls": [
+        "V5.2.6"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-346",
+        "CWE-942"
+      ],
+      "controls": [
+        "V14.5.3"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-1004"
+      ],
+      "controls": [
+        "V3.4.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-1021"
+      ],
+      "controls": [
+        "V14.4.7"
+      ]
+    },
+    {
+      "category": "SECRET",
+      "controls": [
+        "V2.10.4",
+        "V6.4.1"
+      ]
+    },
+    {
+      "category": "SCA",
+      "controls": [
+        "V14.2.1"
+      ]
+    }
   ]
 }

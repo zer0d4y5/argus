@@ -2,40 +2,220 @@
   "id": "PCI-DSS",
   "name": "PCI Data Security Standard",
   "version": "4.0",
-  "scope": ["SAST", "SECRET", "SCA", "IAC"],
+  "scope": [
+    "SAST",
+    "SECRET",
+    "SCA",
+    "IAC"
+  ],
   "controls": [
-    {"id": "2.2.1", "title": "Configuration standards are developed, implemented, and maintained for system components"},
-    {"id": "4.2.1", "title": "Strong cryptography protects PAN during transmission over open, public networks (valid certificates, trusted keys)"},
-    {"id": "6.2.4", "title": "Software engineering techniques prevent or mitigate common software attacks (injection, data-structure, cryptography-usage, and access-control attacks)"},
-    {"id": "6.3.3", "title": "System components are protected from known vulnerabilities via applicable security patches and updates"},
-    {"id": "8.2.8", "title": "Idle user sessions are locked or terminated after inactivity"},
-    {"id": "8.3.2", "title": "Strong cryptography renders authentication factors unreadable during storage and transmission"},
-    {"id": "8.3.4", "title": "Invalid authentication attempts are limited by account lockout"},
-    {"id": "8.3.6", "title": "Passwords/passphrases meet minimum complexity and length"},
-    {"id": "8.6.2", "title": "Passwords/passphrases for application and system accounts are not hard-coded in scripts, configuration files, or source code"},
-    {"id": "10.2.1", "title": "Audit logs are enabled and active for all system components and cardholder data"}
+    {
+      "id": "2.2.1",
+      "title": "Configuration standards are developed, implemented, and maintained for system components"
+    },
+    {
+      "id": "4.2.1",
+      "title": "Strong cryptography protects PAN during transmission over open, public networks (valid certificates, trusted keys)"
+    },
+    {
+      "id": "6.2.4",
+      "title": "Software engineering techniques prevent or mitigate common software attacks (injection, data-structure, cryptography-usage, and access-control attacks)"
+    },
+    {
+      "id": "6.3.3",
+      "title": "System components are protected from known vulnerabilities via applicable security patches and updates"
+    },
+    {
+      "id": "8.2.8",
+      "title": "Idle user sessions are locked or terminated after inactivity"
+    },
+    {
+      "id": "8.3.2",
+      "title": "Strong cryptography renders authentication factors unreadable during storage and transmission"
+    },
+    {
+      "id": "8.3.4",
+      "title": "Invalid authentication attempts are limited by account lockout"
+    },
+    {
+      "id": "8.3.6",
+      "title": "Passwords/passphrases meet minimum complexity and length"
+    },
+    {
+      "id": "8.6.2",
+      "title": "Passwords/passphrases for application and system accounts are not hard-coded in scripts, configuration files, or source code"
+    },
+    {
+      "id": "10.2.1",
+      "title": "Audit logs are enabled and active for all system components and cardholder data"
+    }
   ],
   "notAssessable": [
-    {"id": "1", "title": "Install and Maintain Network Security Controls", "reason": "Requires live network architecture and rule-set review, not source scanning."},
-    {"id": "3", "title": "Protect Stored Account Data", "reason": "Requires data discovery and data-flow evidence; a scanner cannot see where account data actually lives."},
-    {"id": "5", "title": "Protect All Systems and Networks from Malicious Software", "reason": "Anti-malware deployment is an operational control on live systems."},
-    {"id": "7", "title": "Restrict Access to System Components by Business Need to Know", "reason": "Access authorization is an organizational process, not visible in code."},
-    {"id": "9", "title": "Restrict Physical Access to Cardholder Data", "reason": "Physical controls cannot be assessed by any scanner."},
-    {"id": "11", "title": "Test Security of Systems and Networks Regularly", "reason": "A testing program is organizational; this platform's scans can serve as evidence inside such a program, but cannot attest to it."},
-    {"id": "12", "title": "Support Information Security with Organizational Policies and Programs", "reason": "Policies and governance are documents and processes, not code."}
+    {
+      "id": "1",
+      "title": "Install and Maintain Network Security Controls",
+      "reason": "Requires live network architecture and rule-set review, not source scanning."
+    },
+    {
+      "id": "3",
+      "title": "Protect Stored Account Data",
+      "reason": "Requires data discovery and data-flow evidence; a scanner cannot see where account data actually lives."
+    },
+    {
+      "id": "5",
+      "title": "Protect All Systems and Networks from Malicious Software",
+      "reason": "Anti-malware deployment is an operational control on live systems."
+    },
+    {
+      "id": "7",
+      "title": "Restrict Access to System Components by Business Need to Know",
+      "reason": "Access authorization is an organizational process, not visible in code."
+    },
+    {
+      "id": "9",
+      "title": "Restrict Physical Access to Cardholder Data",
+      "reason": "Physical controls cannot be assessed by any scanner."
+    },
+    {
+      "id": "11",
+      "title": "Test Security of Systems and Networks Regularly",
+      "reason": "A testing program is organizational; this platform's scans can serve as evidence inside such a program, but cannot attest to it."
+    },
+    {
+      "id": "12",
+      "title": "Support Information Security with Organizational Policies and Programs",
+      "reason": "Policies and governance are documents and processes, not code."
+    }
   ],
   "rules": [
-    {"cwes": ["CWE-22", "CWE-23", "CWE-35", "CWE-73", "CWE-77", "CWE-78", "CWE-79", "CWE-80", "CWE-88", "CWE-89", "CWE-90", "CWE-91", "CWE-94", "CWE-95", "CWE-96", "CWE-98", "CWE-113", "CWE-116", "CWE-284", "CWE-285", "CWE-352", "CWE-502", "CWE-564", "CWE-611", "CWE-639", "CWE-643", "CWE-776", "CWE-829", "CWE-863", "CWE-915", "CWE-917", "CWE-918", "CWE-942"], "controls": ["6.2.4"]},
-    {"cwes": ["CWE-326", "CWE-327", "CWE-328", "CWE-330", "CWE-338"], "controls": ["6.2.4"]},
-    {"cwes": ["CWE-295", "CWE-319"], "controls": ["4.2.1"]},
-    {"cwes": ["CWE-259", "CWE-798"], "controls": ["8.6.2"]},
-    {"cwes": ["CWE-307"], "controls": ["8.3.4"]},
-    {"cwes": ["CWE-521"], "controls": ["8.3.6"]},
-    {"cwes": ["CWE-613"], "controls": ["8.2.8"]},
-    {"cwes": ["CWE-778"], "controls": ["10.2.1"]},
-    {"cwes": ["CWE-916"], "controls": ["8.3.2"]},
-    {"category": "SECRET", "controls": ["8.6.2"]},
-    {"category": "SCA", "controls": ["6.3.3"]},
-    {"category": "IAC", "controls": ["2.2.1"]}
+    {
+      "cwes": [
+        "CWE-22",
+        "CWE-23",
+        "CWE-35",
+        "CWE-73",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-88",
+        "CWE-89",
+        "CWE-90",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-1336",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-284",
+        "CWE-285",
+        "CWE-352",
+        "CWE-502",
+        "CWE-564",
+        "CWE-611",
+        "CWE-639",
+        "CWE-643",
+        "CWE-776",
+        "CWE-829",
+        "CWE-863",
+        "CWE-915",
+        "CWE-917",
+        "CWE-918",
+        "CWE-942"
+      ],
+      "controls": [
+        "6.2.4"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-338"
+      ],
+      "controls": [
+        "6.2.4"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-295",
+        "CWE-319"
+      ],
+      "controls": [
+        "4.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-259",
+        "CWE-798"
+      ],
+      "controls": [
+        "8.6.2"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-307"
+      ],
+      "controls": [
+        "8.3.4"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-521"
+      ],
+      "controls": [
+        "8.3.6"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-613"
+      ],
+      "controls": [
+        "8.2.8"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-778"
+      ],
+      "controls": [
+        "10.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-916"
+      ],
+      "controls": [
+        "8.3.2"
+      ]
+    },
+    {
+      "category": "SECRET",
+      "controls": [
+        "8.6.2"
+      ]
+    },
+    {
+      "category": "SCA",
+      "controls": [
+        "6.3.3"
+      ]
+    },
+    {
+      "category": "IAC",
+      "controls": [
+        "2.2.1"
+      ]
+    }
   ]
 }

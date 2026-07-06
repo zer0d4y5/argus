@@ -27,6 +27,7 @@ func init() {
 	cloudScanCmd.Flags().Bool("triage", false, "Enable AI triage of findings (config: triage.enabled)")
 	cloudScanCmd.Flags().Bool("exclude-fp", false, "Exclude LLM-marked false positives from the report and severity gate (opt-in)")
 	cloudScanCmd.Flags().Bool("save", false, "Save the run under .appsec/cloud/<provider>-<profile>/runs for the console")
+	cloudScanCmd.Flags().Bool("strict-gate", false, "Gate on ALL findings, ignoring accepted-risk/false-positive dispositions (default: dispositioned findings don't fail the gate)")
 	rootCmd.AddCommand(cloudScanCmd)
 }
 
@@ -107,7 +108,24 @@ func runCloudScan(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(os.Stderr, "\nPosture: %d checks failed, %d passed, %d manual\n", res.Failed, res.Passed, res.Manual)
 	printSummary(findings)
 
-	if model.GateExceeded(findings, gate) {
+	// Apply disposition suppression so the CLI gate matches the console: a risk
+	// accepted in the console (stored beside this target's cloud runs) stops
+	// failing CI but stays in the report. --strict-gate gates on everything.
+	gated := findings
+	if strict, _ := cmd.Flags().GetBool("strict-gate"); !strict {
+		base, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		dispDir := filepath.Join(base, ".appsec", "cloud", cloudTargetDir(provider, profile))
+		var suppressed int
+		gated, suppressed = excludeDispositionedAt(dispDir, findings)
+		if suppressed > 0 {
+			fmt.Fprintf(os.Stderr, "NOTE: %d finding(s) excluded from the gate by disposition (accepted-risk/false-positive); --strict-gate to include them\n", suppressed)
+		}
+	}
+
+	if model.GateExceeded(gated, gate) {
 		return errGateFailed
 	}
 	return nil

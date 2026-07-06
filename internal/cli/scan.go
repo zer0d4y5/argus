@@ -149,7 +149,15 @@ func scanRoot(target string) string {
 // (dropping accepted-risk / false-positive dispositions from root's store) and
 // the number suppressed. A missing store suppresses nothing.
 func excludeDispositioned(root string, findings []model.Finding) ([]model.Finding, int) {
-	all, err := disposition.At(filepath.Join(root, ".appsec")).All()
+	return excludeDispositionedAt(filepath.Join(root, ".appsec"), findings)
+}
+
+// excludeDispositionedAt is the shared gate-suppression step, taking the
+// disposition directory directly so the code and cloud paths (whose stores sit
+// under different roots) apply identical semantics. A missing store suppresses
+// nothing.
+func excludeDispositionedAt(dispDir string, findings []model.Finding) ([]model.Finding, int) {
+	all, err := disposition.At(dispDir).All()
 	if err != nil || len(all) == 0 {
 		return findings, 0
 	}

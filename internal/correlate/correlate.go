@@ -66,10 +66,18 @@ func exactKey(f model.Finding) string {
 		// Advisory + package identifies an SCA finding regardless of tool.
 		return strings.Join([]string{f.Category, f.CVE, f.Package}, "\x00")
 	}
+	// The place slot takes file, falling back to the cloud resource UID/ARN —
+	// the same overload model.Fingerprint uses. Cloud findings have no file, so
+	// keying on file alone collapsed every failure of one prowler check across
+	// different resources into a single finding.
+	place := f.Location.File
+	if place == "" {
+		place = f.Location.Resource
+	}
 	return strings.Join([]string{
 		f.Category,
 		f.RuleID,
-		f.Location.File,
+		place,
 		strconv.Itoa(f.Location.StartLine),
 	}, "\x00")
 }

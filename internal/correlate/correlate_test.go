@@ -48,6 +48,25 @@ func TestCorrelateExactDuplicate(t *testing.T) {
 	}
 }
 
+// TestCorrelateCloudResourcesStayDistinct: two failures of the same prowler
+// check on different resources must not collapse. Cloud findings carry no file,
+// so the exact key falls back to the resource UID.
+func TestCorrelateCloudResourcesStayDistinct(t *testing.T) {
+	mk := func(res string) model.Finding {
+		return model.Finding{Tool: "prowler", Tools: []string{"prowler"},
+			Category: model.CategoryCloud, RuleID: "s3_bucket_public_read",
+			Location: model.Location{Resource: res}}
+	}
+	in := []model.Finding{mk("arn:aws:s3:::bucket-a"), mk("arn:aws:s3:::bucket-b")}
+	if out := Correlate(in); len(out) != 2 {
+		t.Errorf("distinct cloud resources collapsed: got %d, want 2", len(out))
+	}
+	// The same resource is still a true duplicate.
+	if out := Correlate([]model.Finding{mk("arn:aws:s3:::bucket-a"), mk("arn:aws:s3:::bucket-a")}); len(out) != 1 {
+		t.Errorf("identical cloud finding must dedup, got %d", len(out))
+	}
+}
+
 func TestCorrelateCrossToolCWEOverlap(t *testing.T) {
 	in := []model.Finding{
 		{Tool: "semgrep", Tools: []string{"semgrep"}, Category: model.CategorySAST,
