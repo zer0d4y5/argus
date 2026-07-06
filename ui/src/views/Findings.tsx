@@ -269,6 +269,25 @@ export function Findings({
     }
   };
 
+  // Open a ticket over the current selection — the payoff loop: findings become
+  // tracked work in one step, linked by fingerprint to this target. The title
+  // seeds from the first selected finding; rename it in the Tickets tab (no
+  // blocking browser prompt, per the console's no-native-dialog rule).
+  const createTicketFromSelection = async () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    const first = filtered.find((f) => selectedIds.has(f.id));
+    const seed = first?.displayName ?? first?.title ?? "findings";
+    const title = ids.length === 1 ? seed : `${seed} (+${ids.length - 1} more)`;
+    try {
+      const t = await opsApi.createTicket({ title, targetId: origin?.targetId ?? "", findingIds: ids });
+      toast({ kind: "success", message: `Ticket ${t.id} created with ${ids.length} finding${ids.length === 1 ? "" : "s"}. Open Tickets to edit.` });
+      setSelectedIds(new Set());
+    } catch (e) {
+      toast({ kind: "error", message: `Create ticket failed: ${String(e)}` });
+    }
+  };
+
   // Explain + remediate lifecycles, per finding (cached client-side).
   const [explainState, setExplainState] = useState<Record<string, ExplainState>>({});
   const [remediateState, setRemediateState] = useState<Record<string, RemediateState>>({});
@@ -516,6 +535,10 @@ export function Findings({
               ))}
               <button onClick={() => bulkDispose(undefined)} className="rounded bg-gray-200 px-1.5 py-0.5 font-semibold text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300">
                 Open
+              </button>
+              <span className="mx-1 h-4 w-px bg-gray-300 dark:bg-gray-600" />
+              <button onClick={createTicketFromSelection} className="rounded bg-accent-600 px-1.5 py-0.5 font-semibold text-white hover:bg-accent-700">
+                Create ticket
               </button>
               <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
                 Deselect
