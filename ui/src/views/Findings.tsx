@@ -1042,28 +1042,6 @@ function ArtifactBlock({ a }: { a: RemediationArtifact }) {
 // with removals/additions paired so the two columns stay aligned.
 type DiffRow = { left: string | null; right: string | null; leftDel: boolean; rightAdd: boolean };
 
-function parseDiffSideBySide(diff: string): DiffRow[] {
-  const rows: DiffRow[] = [];
-  let dels: string[] = [];
-  let adds: string[] = [];
-  const flush = () => {
-    const n = Math.max(dels.length, adds.length);
-    for (let i = 0; i < n; i++) {
-      rows.push({ left: dels[i] ?? null, right: adds[i] ?? null, leftDel: i < dels.length, rightAdd: i < adds.length });
-    }
-    dels = [];
-    adds = [];
-  };
-  for (const line of diff.replace(/\n$/, "").split("\n")) {
-    if (/^(@@|diff |index |--- |\+\+\+ )/.test(line)) { flush(); continue; }
-    if (line.startsWith("-")) dels.push(line.slice(1));
-    else if (line.startsWith("+")) adds.push(line.slice(1));
-    else { flush(); const c = line.startsWith(" ") ? line.slice(1) : line; rows.push({ left: c, right: c, leftDel: false, rightAdd: false }); }
-  }
-  flush();
-  return rows;
-}
-
 // DiffSource is the finding's captured code: the authoritative "before".
 type DiffSource = { lines: string[]; startLine: number; flaggedStart: number; flaggedEnd: number };
 
@@ -1079,12 +1057,28 @@ function reconstructFromSnippet(src: DiffSource, diff: string): DiffRow[] | null
   const fcount = Math.max(1, src.flaggedEnd - src.flaggedStart + 1);
   if (fi < 0 || fi >= src.lines.length) return null;
 
-  const paired: string[] = []; // additions that replace a removed line (the inline fix)
-  const extras: string[] = []; // additions with no removal partner (e.g. imports)
-  for (const r of parseDiffSideBySide(diff)) {
-    if (!r.rightAdd || r.right === null) continue;
-    (r.leftDel ? paired : extras).push(r.right);
+  // Classify the fix's additions PER HUNK SEGMENT, not per row. A segment that
+  // removes anything is an inline replacement, so all of its additions (a
+  // multi-line fix) belong together at the flagged position; a segment with no
+  // removal is a lead-in (a new import, say) shown above the frame. Pairing
+  // per row instead hoisted the 2nd+ lines of a multi-line fix above the code.
+  const paired: string[] = [];
+  const extras: string[] = [];
+  let segHasDel = false;
+  let segAdds: string[] = [];
+  const flushSeg = () => {
+    if (segAdds.length) (segHasDel ? paired : extras).push(...segAdds);
+    segHasDel = false;
+    segAdds = [];
+  };
+  for (const line of diff.replace(/\n$/, "").split("\n")) {
+    if (/^(@@|diff |index |--- |\+\+\+ )/.test(line)) { flushSeg(); continue; }
+    if (line.startsWith("-")) segHasDel = true;
+    else if (line.startsWith("+")) segAdds.push(line.slice(1));
+    else flushSeg(); // a context line closes the segment
   }
+  flushSeg();
+
   const fix = paired.length ? paired : extras.length ? extras : null;
   if (!fix) return null;
   const leadIns = paired.length ? extras : [];
@@ -1113,14 +1107,17 @@ function reconstructFromSnippet(src: DiffSource, diff: string): DiffRow[] | null
 // both ways (long lines don't wrap or clip), with the Before/After labels
 // pinned on vertical scroll.
 function DiffView({ content, title, location, source }: { content: string; title?: string; location?: string; source?: DiffSource }) {
+  // The side-by-side view is only shown when the LEFT column can be rebuilt from
+  // the finding's own snippet — that is the whole point: the model can't
+  // misrepresent the vulnerable code. Without a snippet to anchor "Before" (or
+  // when the fix is deletion-only and can't be reconstructed), fall back to the
+  // raw unified diff, whose -/+ lines read as the model's proposal rather than
+  // as your verified current code under a "Before" label.
   const rows = useMemo(() => {
-    if (source && source.lines.length > 0) {
-      const r = reconstructFromSnippet(source, content);
-      if (r) return r;
-    }
-    return parseDiffSideBySide(content);
+    if (source && source.lines.length > 0) return reconstructFromSnippet(source, content);
+    return null;
   }, [content, source]);
-  if (rows.length === 0) return <ArtifactBlock a={{ language: "diff", title: title ?? "", content }} />;
+  if (!rows || rows.length === 0) return <ArtifactBlock a={{ language: "diff", title: title ?? "", content }} />;
   // Wrap long lines inside each fixed 50% column (break anywhere for code) so a
   // long line can't overflow its cell and collide with the other side. Each
   // diff row is one grid row, so the two cells stay top-aligned even when one
