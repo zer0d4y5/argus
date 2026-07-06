@@ -1,6 +1,7 @@
 package compliance
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +12,112 @@ import (
 	"github.com/leaky-hub/appsec/internal/cloudscan"
 	"github.com/leaky-hub/appsec/internal/model"
 )
+
+// TestCloudCompliancePassthrough proves prowler's full per-finding compliance
+// mapping is imported and mapped exactly: for every FAIL finding, the engine's
+// allow-listed passthrough controls must equal prowler's OWN mapping
+// (unmapped.compliance) filtered to the allow-list and normalized to display
+// IDs. No invented mappings — a pure passthrough.
+func TestCloudCompliancePassthrough(t *testing.T) {
+	_, self, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot locate test source")
+	}
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(self), "..", "..", "testdata", "cloud", "prowler-aws.json-ocsf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := cloudscan.ParseOCSF(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := model.Normalize(res.Raw)
+	if err := Apply(findings); err != nil {
+		t.Fatal(err)
+	}
+
+	// Rebuild the expected mapping straight from each finding's raw prowler
+	// payload, independently of CloudControls, and compare.
+	byKey := map[string]string{}
+	for _, cf := range CloudFrameworks() {
+		byKey[cf.ProwlerKey] = cf.ID
+	}
+	checkedFrameworks := map[string]bool{}
+	var sawAny bool
+	for _, f := range findings {
+		var rec struct {
+			Unmapped struct {
+				Compliance map[string][]string `json:"compliance"`
+			} `json:"unmapped"`
+		}
+		json.Unmarshal(f.RawPayload, &rec)
+
+		want := map[string]bool{}
+		for key, controls := range rec.Unmapped.Compliance {
+			id, ok := byKey[key]
+			if !ok {
+				continue
+			}
+			checkedFrameworks[id] = true
+			for _, c := range controls {
+				if c = strings.TrimSpace(c); c != "" {
+					want[id+":"+c] = true
+				}
+			}
+		}
+		got := map[string]bool{}
+		for _, v := range f.ComplianceControls {
+			// Only compare the passthrough frameworks (not the engine's
+			// CIS-AWS / other curated prefixes).
+			for _, cf := range CloudFrameworks() {
+				if strings.HasPrefix(v, cf.ID+":") {
+					got[v] = true
+				}
+			}
+		}
+		if len(want) != len(got) {
+			t.Errorf("%s: passthrough controls = %d, want %d\n got=%v\nwant=%v", f.RuleID, len(got), len(want), keysOf(got), keysOf(want))
+		}
+		for v := range want {
+			if !got[v] {
+				t.Errorf("%s: missing passthrough control %q", f.RuleID, v)
+			}
+			sawAny = true
+		}
+	}
+	if !sawAny {
+		t.Fatal("no passthrough controls asserted — the fixture proved nothing")
+	}
+	// The fixture must exercise several well-known frameworks, not just one.
+	for _, id := range []string{"NIST-CSF", "ISO-27001"} {
+		if !checkedFrameworks[id] {
+			t.Errorf("fixture exercised no %s mapping — expected it present", id)
+		}
+	}
+}
+
+func keysOf(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// TestCloudControlsIgnoresNonCloud: the passthrough is cloud-only and never
+// errors on a missing/garbage payload.
+func TestCloudControlsIgnoresNonCloud(t *testing.T) {
+	if got := CloudControls(model.Finding{Category: model.CategorySAST}); got != nil {
+		t.Errorf("non-cloud finding got passthrough %v", got)
+	}
+	if got := CloudControls(model.Finding{Category: model.CategoryCloud}); got != nil {
+		t.Errorf("cloud finding with no payload got %v", got)
+	}
+	if got := CloudControls(model.Finding{Category: model.CategoryCloud, RawPayload: []byte("{bad")}); got != nil {
+		t.Errorf("garbage payload got %v", got)
+	}
+}
 
 // TestCISPassthroughMatchesProwler is the passthrough proof (locked decision
 // 8): for every FAIL record in the recorded fixture, the engine's CIS-AWS

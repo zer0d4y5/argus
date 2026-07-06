@@ -313,17 +313,30 @@ func (fw *Framework) controlsFor(f model.Finding) []string {
 }
 
 // MapFinding returns the finding's mapped controls across all frameworks as
-// sorted, deduplicated "<FRAMEWORK>:<control-id>" values (nil if none).
+// sorted, deduplicated "<FRAMEWORK>:<control-id>" values (nil if none). For
+// CLOUD findings it unions the curated engine mapping (CIS-AWS etc.) with the
+// prowler compliance passthrough (CloudControls) — prowler's own per-finding
+// mapping across the reviewed framework allow-list.
 func MapFinding(f model.Finding) ([]string, error) {
 	fws, err := Frameworks()
 	if err != nil {
 		return nil, err
 	}
+	seen := map[string]bool{}
 	var out []string
+	add := func(v string) {
+		if !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
 	for i := range fws {
 		for _, id := range fws[i].controlsFor(f) {
-			out = append(out, fws[i].ID+":"+id)
+			add(fws[i].ID + ":" + id)
 		}
+	}
+	for _, v := range CloudControls(f) {
+		add(v)
 	}
 	if len(out) == 0 {
 		return nil, nil

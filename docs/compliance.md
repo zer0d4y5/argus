@@ -58,6 +58,38 @@ an Azure posture finding is *out of scope* for the AWS benchmark, never
 "unmapped". On a prowler upgrade, regenerate the materialized rules from
 the new embedded framework data and re-run the passthrough test.
 
+### Full per-finding passthrough (all prowler frameworks)
+
+Prowler maps every cloud check to controls across ~40 frameworks and emits
+that mapping **per finding** in its OCSF output (`unmapped.compliance`) —
+authoritative, expert-maintained mapping we could never hand-curate as
+completely. So beyond CIS, CLOUD findings **pass prowler's own mapping
+through verbatim** (`internal/compliance/cloud.go`, `CloudControls`): for
+each finding we read `unmapped.compliance` from its `rawPayload`, filter to a
+**reviewed framework allow-list**, normalize prowler's keys to stable display
+IDs, and emit `<ID>:<control>` chips into `complianceControls`. Control IDs
+are prowler's own, unchanged — no invented mappings; the only curation is
+*which* frameworks to surface and *what to call them*, version-pinned to
+prowler 5.31. `TestCloudCompliancePassthrough` proves, on the recorded
+fixture, that the engine reproduces prowler's per-finding mapping exactly for
+every allow-listed framework.
+
+Allow-listed frameworks (recognized international/industry standards;
+prowler's localized duplicates, internal scoring, and onboarding checklists
+are excluded — extend the list in `cloud.go` to surface more): **NIST-CSF**,
+**NIST-800-53**, **NIST-800-171**, **ISO-27001**, **PCI-DSS-Cloud**,
+**SOC2**, **HIPAA**, **GDPR**, **MITRE-ATTACK**, **FedRAMP-Moderate**,
+**NIS2**, **AWS-FSBP**, **AWS-WAF-Security**.
+
+These are **per-finding evidence** (the control chips on a finding, and a new
+framework filter in the console Findings view). They deliberately do **not**
+enter the catalog-driven **gap report** (§ above): we hold no control catalog
+for these frameworks, so we can cite them per finding but cannot honestly
+assess coverage (violated-vs-clean) across them — that would need each
+framework's full control list imported, a documented follow-on. CIS-AWS stays
+engine-mapped (gap-reportable) and is intentionally NOT in the passthrough
+allow-list, so it is never double-labeled or version-confused.
+
 ## Data format
 
 Framework data lives in `internal/compliance/data/*.json`, embedded at compile
