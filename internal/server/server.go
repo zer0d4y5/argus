@@ -175,11 +175,24 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRuns(w http.ResponseWriter, r *http.Request) {
+	// Default (no ?target=): aggregate the served repo plus every registered
+	// target, each run tagged with its origin, so console-launched runs are
+	// first-class in the Runs tab. ?target=<id> keeps the single-store view.
+	if r.URL.Query().Get("target") == "" {
+		resp, err := s.buildRunsAggregate()
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "failed to list runs")
+			return
+		}
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
 	store, ok := s.runStoreFor(w, r)
 	if !ok {
 		return
 	}
-	resp, err := s.buildRuns(store)
+	t, _ := s.targets.Get(r.URL.Query().Get("target"))
+	resp, err := s.buildRuns(store, &RunOrigin{ID: t.ID, Name: t.Name})
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to list runs")
 		return

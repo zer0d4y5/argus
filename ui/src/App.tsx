@@ -91,7 +91,16 @@ export function App() {
       .then(([s, r]) => {
         setSummary(s);
         setRuns(r);
-        setSelectedRun((cur) => cur ?? (s.latestId || r.runs[0]?.id || null));
+        // Default selection: the served repo's latest run; otherwise the
+        // newest aggregated run — which may belong to a registered target,
+        // so its origin must ride along or the detail fetch 404s.
+        setSelectedRun((cur) => {
+          if (cur) return cur;
+          if (s.latestId) return s.latestId;
+          const first = r.runs[0];
+          if (first?.target) setSelectedRunTarget(first.target.id);
+          return first?.id ?? null;
+        });
       })
       .catch(onApiError);
   }, [authed, reloadKey, onApiError]);
@@ -198,17 +207,21 @@ export function App() {
               <label className="hidden items-center gap-1 text-xs text-gray-500 md:flex">
                 Run
                 <select
-                  value={selectedRun ?? ""}
+                  value={`${selectedRunTarget ?? ""}|${selectedRun ?? ""}`}
                   onChange={(e) => {
-                    setSelectedRun(e.target.value);
-                    setSelectedRunTarget(undefined);
+                    // Composite value: "<targetId>|<runId>" — run IDs are
+                    // timestamps and can collide across stores.
+                    const sep = e.target.value.indexOf("|");
+                    const tid = e.target.value.slice(0, sep);
+                    setSelectedRun(e.target.value.slice(sep + 1));
+                    setSelectedRunTarget(tid || undefined);
                     setSelectedRunCommit(undefined);
                   }}
-                  className="max-w-[190px] rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+                  className="max-w-[230px] rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
                 >
                   {runs.runs.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {fmtTime(r.createdAt)} ({r.total})
+                    <option key={`${r.target?.id ?? ""}|${r.id}`} value={`${r.target?.id ?? ""}|${r.id}`}>
+                      {r.target ? `${r.target.name} · ` : ""}{fmtTime(r.createdAt)} ({r.total})
                     </option>
                   ))}
                 </select>
@@ -247,9 +260,9 @@ export function App() {
           <Runs
             runs={runs}
             selectedId={selectedRun}
-            onSelect={(id) => {
+            onSelect={(id, targetId) => {
               setSelectedRun(id);
-              setSelectedRunTarget(undefined);
+              setSelectedRunTarget(targetId);
               setSelectedRunCommit(undefined);
               setTab("findings");
             }}

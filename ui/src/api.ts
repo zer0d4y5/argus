@@ -145,6 +145,9 @@ export interface RunListItem {
   gate: GateInfo;
   delta: DeltaCounts;
   verdicts: VerdictCounts;
+  // Origin of an aggregated run: the registered target it belongs to.
+  // Absent = the served repo's own history.
+  target?: { id: string; name: string };
 }
 export interface RunsResponse {
   runs: RunListItem[];

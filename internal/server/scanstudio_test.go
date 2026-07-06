@@ -317,12 +317,17 @@ func TestRunsReadByTargetID(t *testing.T) {
 	runID, _, _ := seedRun(t, f.scanDir)
 	view := f.mustLogin("vera")
 
-	// Default read: the served repo has no runs.
+	// Default read now AGGREGATES: the served repo has no runs of its own,
+	// but the registered target's run shows up, tagged with its origin, so
+	// console-launched runs are first-class in the Runs tab.
 	var list RunsResponse
 	rec := f.do("GET", "/api/runs", "", view)
 	_ = json.Unmarshal(rec.Body.Bytes(), &list)
-	if len(list.Runs) != 0 {
-		t.Fatalf("served repo runs = %d, want 0", len(list.Runs))
+	if len(list.Runs) != 1 || list.Runs[0].ID != runID {
+		t.Fatalf("aggregated runs = %+v, want the target's run", list.Runs)
+	}
+	if list.Runs[0].Target == nil || list.Runs[0].Target.ID != f.targetID || list.Runs[0].Target.Name == "" {
+		t.Fatalf("aggregated run must carry its origin, got %+v", list.Runs[0].Target)
 	}
 
 	// Target-scoped read resolves through the registry by opaque ID.
@@ -457,5 +462,44 @@ func TestMergeConfigPrecedence(t *testing.T) {
 	// Framework focus that empties the set is an executor error too.
 	if _, err := mergeConfig(base, root, jobs.Options{Scanners: []string{"gitleaks"}, Frameworks: []string{"CIS-AWS"}}); err == nil {
 		t.Error("empty narrowed set accepted at merge time")
+	}
+}
+
+// TestRunsAggregateDedupesSelfTarget: a registered target whose root IS the
+// served repo (the `appsec target add .` pattern) shares the served run
+// store; the aggregate listing must show each run once — as the served
+// repo's own (untagged) — never twice.
+func TestRunsAggregateDedupesSelfTarget(t *testing.T) {
+	f := newConsole(t, nil)
+	// Register the served repo under a DIFFERENT spelling (a symlink):
+	// dedupe must use filesystem identity, not path text — `serve -d .`
+	// vs an absolute registry path is the live pattern that bit.
+	link := filepath.Join(t.TempDir(), "self-link")
+	if err := os.Symlink(f.dir, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.registry.Add("self", link, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	runID, _, _ := seedRun(t, f.dir) // a run in the SERVED repo's store
+	view := f.mustLogin("vera")
+
+	var list RunsResponse
+	rec := f.do("GET", "/api/runs", "", view)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("runs: %d %s", rec.Code, rec.Body.String())
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &list)
+	var seen int
+	for _, r := range list.Runs {
+		if r.ID == runID {
+			seen++
+			if r.Target != nil {
+				t.Errorf("served-repo run tagged with target %+v; the self-target must dedupe as untagged", r.Target)
+			}
+		}
+	}
+	if seen != 1 {
+		t.Fatalf("run %s appears %d times in the aggregate, want exactly 1", runID, seen)
 	}
 }

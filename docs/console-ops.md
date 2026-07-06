@@ -469,6 +469,14 @@ content. No configured/reachable provider → 503 with an honest message.
   don't just delete) and a "Commit" row in the drawer. The S4 rule is
   unchanged and re-proven: history findings are SECRET findings — no
   snippet, ever, and the same payload scrub applies to the history pass.
+- **Aggregated run history**: `GET /api/runs` (no params) now lists the
+  served repo's runs plus every registered target's runs, each tagged
+  `target: {id, name}` (opaque registry ID + display name — never a path);
+  `?target=<id>` keeps the single-store view. Deltas are computed within a
+  store's own chronology, never across targets; a registered target whose
+  root is the served repo dedupes (the `target add .` pattern). The Runs tab
+  grows a Target column + filter, and selecting a run opens it in Findings
+  with the right store — so findings are filterable by any scan run.
 - **Skip accounting**: run detail shows the `coverage` block from the run
   file (schema 2.0.0) — SAST-covered / IaC-config / secrets-only /
   unsupported-source / binary / oversize counts with sample paths, plus

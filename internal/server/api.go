@@ -1,6 +1,10 @@
 package server
 
 import (
+	"os"
+	"path/filepath"
+	"sort"
+
 	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/coverage"
 	"github.com/leaky-hub/appsec/internal/model"
@@ -50,6 +54,14 @@ type TrendPoint struct {
 	RiskAvg    float64        `json:"riskAvg"`
 }
 
+// RunOrigin names the registered target a run belongs to in the aggregated
+// Runs listing. Absent = the served repo's own history. Only the opaque
+// registry ID and display name are exposed — never a path.
+type RunOrigin struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // RunListItem is a run as shown in the Runs (SecOps) list.
 type RunListItem struct {
 	ID         string          `json:"id"`
@@ -59,6 +71,9 @@ type RunListItem struct {
 	Gate       GateInfo        `json:"gate"`
 	Delta      runstore.Counts `json:"delta"`
 	Verdicts   VerdictCounts   `json:"verdicts"`
+	// Target tags runs from a registered target's store (aggregated listing,
+	// deep-scan follow-up). Omitted for the served repo's runs.
+	Target *RunOrigin `json:"target,omitempty"`
 }
 
 // RunsResponse is GET /api/runs.
@@ -232,8 +247,10 @@ func (s *Server) buildSummary() (SummaryResponse, error) {
 	return resp, nil
 }
 
-// buildRuns lists all runs with their delta vs the immediately-previous run.
-func (s *Server) buildRuns(store runstore.Store) (RunsResponse, error) {
+// buildRuns lists one store's runs with their delta vs the immediately-
+// previous run in THAT store (deltas never cross targets), tagged with
+// origin (nil = the served repo). Newest first.
+func (s *Server) buildRuns(store runstore.Store, origin *RunOrigin) (RunsResponse, error) {
 	runs, err := store.List()
 	if err != nil {
 		return RunsResponse{}, err
@@ -254,12 +271,50 @@ func (s *Server) buildRuns(store runstore.Store) (RunsResponse, error) {
 			Gate:       gateFor(doc.Findings, s.gate, s.gateName),
 			Delta:      delta.Counts(),
 			Verdicts:   countVerdicts(doc.Findings),
+			Target:     origin,
 		})
 		d := doc // copy for the next iteration's prev pointer
 		prev = &d
 	}
 	// Newest first for the list view.
 	reverse(out.Runs)
+	return out, nil
+}
+
+// buildRunsAggregate is the default GET /api/runs listing: the served repo's
+// runs plus every registered target's runs, each tagged with its origin,
+// merged newest-first. A registered target whose run store IS the served
+// repo's (the `appsec target add .` pattern) is skipped so runs never appear
+// twice. A single unreadable target must not blank the listing — it is
+// skipped like a corrupt run file.
+func (s *Server) buildRunsAggregate() (RunsResponse, error) {
+	out, err := s.buildRuns(s.store, nil)
+	if err != nil {
+		return RunsResponse{}, err
+	}
+	if s.targets == nil {
+		return out, nil
+	}
+	ts, err := s.targets.List()
+	if err != nil {
+		return out, nil
+	}
+	for _, t := range ts {
+		store := runstore.ForRepo(s.targets.Root(t))
+		if sameDir(store.Dir, s.store.Dir) {
+			continue
+		}
+		part, err := s.buildRuns(store, &RunOrigin{ID: t.ID, Name: t.Name})
+		if err != nil {
+			continue
+		}
+		out.Runs = append(out.Runs, part.Runs...)
+	}
+	// Re-sort the merged list newest-first; per-store deltas are already
+	// computed against the right predecessor.
+	sort.SliceStable(out.Runs, func(i, j int) bool {
+		return out.Runs[i].CreatedAt > out.Runs[j].CreatedAt
+	})
 	return out, nil
 }
 
@@ -324,6 +379,22 @@ func previousDoc(store runstore.Store, id string) *report.Document {
 		return nil
 	}
 	return &doc
+}
+
+// sameDir reports whether two directory paths name the same directory.
+// Textual comparison is not enough: the served store dir may be relative
+// (`serve -d .`) while the registry holds the absolute path, and macOS
+// spells /tmp as a symlink to /private/tmp — so prefer filesystem identity
+// and fall back to lexical comparison only when a side does not exist yet.
+func sameDir(a, b string) bool {
+	ai, aerr := os.Stat(a)
+	bi, berr := os.Stat(b)
+	if aerr == nil && berr == nil {
+		return os.SameFile(ai, bi)
+	}
+	aa, _ := filepath.Abs(a)
+	bb, _ := filepath.Abs(b)
+	return filepath.Clean(aa) == filepath.Clean(bb)
 }
 
 func reverse(items []RunListItem) {
