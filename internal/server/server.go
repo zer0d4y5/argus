@@ -363,7 +363,9 @@ func (s *Server) handleRunExport(w http.ResponseWriter, r *http.Request, store r
 		// context. Served inline so the browser renders (and prints) it.
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Disposition", `inline; filename="`+fname+`.html"`)
-		if err := report.WriteHTML(w, doc.Findings, s.htmlMeta(store, id, doc.Findings)); err != nil {
+		meta := s.htmlMeta(store, id, doc.Findings)
+		s.addWorkItemsToReport(&meta, r.URL.Query().Get("target"))
+		if err := report.WriteHTML(w, doc.Findings, meta); err != nil {
 			return
 		}
 	default:

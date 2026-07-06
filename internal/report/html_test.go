@@ -76,3 +76,27 @@ func TestWriteHTMLEmpty(t *testing.T) {
 		t.Error("empty report should state no findings")
 	}
 }
+
+// TestWriteHTMLWorkItems: the tickets and threat-model sections render when the
+// meta carries them, and their hostile text is escaped.
+func TestWriteHTMLWorkItems(t *testing.T) {
+	var buf strings.Builder
+	meta := HTMLMeta{
+		Tickets: []TicketReport{{ID: "tk-1", Title: "<b>SQLi</b>", Status: "open", Priority: "high", MaxSeverity: "critical", LinkCount: 2}},
+		ThreatModels: []ThreatModelReport{{Name: "Checkout", Components: 1, Threats: []ThreatReportRow{
+			{Category: "spoofing", Title: "Session hijack", Status: "open", Mitigation: "auth-session"},
+		}}},
+	}
+	if err := WriteHTML(&buf, nil, meta); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	for _, want := range []string{"Tickets", "tk-1", "critical", "Threat models", "Checkout", "spoofing", "auth-session"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+	if strings.Contains(out, "<b>SQLi</b>") {
+		t.Error("ticket title not escaped")
+	}
+}

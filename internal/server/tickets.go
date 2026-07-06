@@ -11,6 +11,7 @@ import (
 
 	"github.com/leaky-hub/appsec/internal/audit"
 	"github.com/leaky-hub/appsec/internal/disposition"
+	"github.com/leaky-hub/appsec/internal/report"
 	"github.com/leaky-hub/appsec/internal/runstore"
 	"github.com/leaky-hub/appsec/internal/targets"
 	"github.com/leaky-hub/appsec/internal/ticket"
@@ -435,6 +436,40 @@ func (s *Server) writeTicketErr(w http.ResponseWriter, err error) {
 		return
 	}
 	writeErr(w, http.StatusBadRequest, err.Error())
+}
+
+// addWorkItemsToReport fills the exported report's ticket and threat-model
+// sections for a target (empty targetID = the served repo). Best-effort: a store
+// error just leaves the section empty rather than failing the export.
+func (s *Server) addWorkItemsToReport(meta *report.HTMLMeta, targetID string) {
+	if s.tickets != nil {
+		if tks, err := s.tickets.List(ticket.ListFilter{TargetID: targetID}); err == nil && len(tks) > 0 {
+			links, _ := s.tickets.AllLinks()
+			cache := map[string]map[string]string{}
+			for _, t := range tks {
+				roll := s.rollup(links[t.ID], cache)
+				meta.Tickets = append(meta.Tickets, report.TicketReport{
+					ID: t.ID, Title: t.Title, Status: t.Status, Priority: t.Priority,
+					MaxSeverity: roll.Max, LinkCount: roll.Total,
+				})
+			}
+		}
+	}
+	if s.threats != nil {
+		if models, err := s.threats.ListModels(targetID); err == nil {
+			for _, m := range models {
+				comps, _ := s.threats.Components(m.ID)
+				threats, _ := s.threats.Threats(m.ID)
+				tmr := report.ThreatModelReport{Name: m.Name, Components: len(comps)}
+				for _, th := range threats {
+					tmr.Threats = append(tmr.Threats, report.ThreatReportRow{
+						Category: th.Category, Title: th.Title, Status: th.Status, Mitigation: th.Mitigation,
+					})
+				}
+				meta.ThreatModels = append(meta.ThreatModels, tmr)
+			}
+		}
+	}
 }
 
 func ptr(s string) *string { return &s }

@@ -25,6 +25,36 @@ type HTMLMeta struct {
 	// Dispositions maps a finding fingerprint to its workflow status
 	// (accepted-risk/fixed/…) so the report can show human triage decisions.
 	Dispositions map[string]string
+	// Tickets and ThreatModels are optional app-level context (the console
+	// passes them; the CLI leaves them empty). Plain view structs keep this
+	// package decoupled from the SQLite-backed ticket/threatmodel types.
+	Tickets      []TicketReport
+	ThreatModels []ThreatModelReport
+}
+
+// TicketReport is one ticket row in the exported report.
+type TicketReport struct {
+	ID          string
+	Title       string
+	Status      string
+	Priority    string
+	MaxSeverity string // highest linked-finding severity, "" if none
+	LinkCount   int
+}
+
+// ThreatModelReport is one threat model with its threats, for the report.
+type ThreatModelReport struct {
+	Name       string
+	Components int
+	Threats    []ThreatReportRow
+}
+
+// ThreatReportRow is one threat line in a model.
+type ThreatReportRow struct {
+	Category   string
+	Title      string
+	Status     string
+	Mitigation string
 }
 
 // WriteHTML renders a branded, print-optimized, fully self-contained HTML
@@ -316,6 +346,33 @@ var htmlTemplate = template.Must(template.New("report").Parse(`<!doctype html>
       {{end}}
     </div>
     {{end}}
+  {{end}}
+
+  {{if .Meta.Tickets}}
+  <h2>Tickets</h2>
+  <table>
+    <thead><tr><th>Ticket</th><th>Title</th><th>Priority</th><th>Status</th><th>Severity</th><th>Findings</th></tr></thead>
+    <tbody>
+      {{range .Meta.Tickets}}<tr><td>{{.ID}}</td><td>{{.Title}}</td><td>{{.Priority}}</td><td>{{.Status}}</td><td>{{if .MaxSeverity}}{{.MaxSeverity}}{{else}}—{{end}}</td><td>{{.LinkCount}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  {{end}}
+
+  {{if .Meta.ThreatModels}}
+  <h2>Threat models</h2>
+  {{range .Meta.ThreatModels}}
+  <div class="grp">
+    <h3>{{.Name}} <span class="k">· {{.Components}} component(s), {{len .Threats}} threat(s)</span></h3>
+    {{if .Threats}}
+    <table>
+      <thead><tr><th>STRIDE</th><th>Threat</th><th>Status</th><th>Suggested fix</th></tr></thead>
+      <tbody>
+        {{range .Threats}}<tr><td>{{.Category}}</td><td>{{.Title}}</td><td>{{.Status}}</td><td>{{if .Mitigation}}{{.Mitigation}}{{else}}—{{end}}</td></tr>{{end}}
+      </tbody>
+    </table>
+    {{end}}
+  </div>
+  {{end}}
   {{end}}
 
   <footer>
