@@ -188,7 +188,13 @@ async function getJSON<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  summary: () => getJSON<SummaryResponse>("api/summary"),
+  summary: (targetId?: string) => {
+    const base = "api/summary";
+    if (targetId) {
+      return getJSON<SummaryResponse>(`${base}?target=${encodeURIComponent(targetId)}`);
+    }
+    return getJSON<SummaryResponse>(base);
+  },
   runs: (targetId?: string) => {
     const base = "api/runs";
     if (targetId) {

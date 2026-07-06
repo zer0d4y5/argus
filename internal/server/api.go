@@ -187,9 +187,14 @@ func findingIDs(fs []model.Finding) []string {
 	return out
 }
 
-// buildSummary aggregates the latest run plus the full-history trend.
-func (s *Server) buildSummary() (SummaryResponse, error) {
-	runs, err := s.store.List()
+// buildSummary aggregates the latest run plus the full-history trend for the
+// given store — the served repo's default store, or a registered target's own
+// store (dir/git/cloud). Selecting a target in the console threads its store
+// through here exactly as the Runs and Findings tabs already do, so a run
+// launched against a target shows up in the Overview instead of silently
+// landing in a store nothing reads.
+func (s *Server) buildSummary(store runstore.Store) (SummaryResponse, error) {
+	runs, err := store.List()
 	if err != nil {
 		return SummaryResponse{}, err
 	}
@@ -202,7 +207,7 @@ func (s *Server) buildSummary() (SummaryResponse, error) {
 
 	// Trend across every run, chronological.
 	for _, r := range runs {
-		doc, err := s.store.Load(r.ID)
+		doc, err := store.Load(r.ID)
 		if err != nil {
 			continue // a corrupt run must not blank the whole trend
 		}
@@ -217,7 +222,7 @@ func (s *Server) buildSummary() (SummaryResponse, error) {
 
 	// Latest run drives the posture panels.
 	latest := runs[len(runs)-1]
-	doc, err := s.store.Load(latest.ID)
+	doc, err := store.Load(latest.ID)
 	if err != nil {
 		return resp, nil
 	}

@@ -168,7 +168,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.buildSummary()
+	store, ok := s.runStoreFor(w, r)
+	if !ok {
+		return
+	}
+	resp, err := s.buildSummary(store)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to build summary")
 		return

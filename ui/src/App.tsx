@@ -52,6 +52,9 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [targets, setTargets] = useState<Target[]>([]);
+  // "" = the served repo's own run store; otherwise a registered target's id.
+  // Overview/Runs/Findings all read this store.
+  const [activeTarget, setActiveTarget] = useState<string>("");
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -85,16 +88,22 @@ export function App() {
   const authed = me !== null && (!me.authRequired || user !== null);
 
   // Load read data once authenticated (or immediately in zero-users mode).
+  // Everything is scoped to the active target (empty = the served repo's own
+  // store): Overview, Runs, and the run picker all follow it, so a scan
+  // launched against a registered target shows up instead of vanishing into a
+  // store nothing reads. Changing the target resets the selected run.
   useEffect(() => {
     if (!authed) return;
-    Promise.all([api.summary(), api.runs()])
+    const tgt = activeTarget || undefined;
+    Promise.all([api.summary(tgt), api.runs(tgt)])
       .then(([s, r]) => {
         setSummary(s);
         setRuns(r);
-        setSelectedRun((cur) => cur ?? (s.latestId || r.runs?.[0]?.id || null));
+        setSelectedRunTarget(tgt);
+        setSelectedRun(s.latestId || r.runs?.[0]?.id || null);
       })
       .catch(onApiError);
-  }, [authed, reloadKey, onApiError]);
+  }, [authed, activeTarget, reloadKey, onApiError]);
 
   // Fetch targets when ops is enabled
   useEffect(() => {
@@ -127,6 +136,9 @@ export function App() {
   // A finished job links straight to its run: refresh the lists so the new
   // run exists in the picker, then open it in Findings.
   const openRun = (runId: string, targetId?: string, commit?: string) => {
+    // Switch the whole app to that run's target so Overview/Runs agree with
+    // the finding drawer, then open it.
+    setActiveTarget(targetId ?? "");
     setSelectedRun(runId);
     setSelectedRunTarget(targetId);
     setSelectedRunCommit(commit);
@@ -194,6 +206,24 @@ export function App() {
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
+            {opsEnabled && targets.length > 0 && (
+              <label className="hidden items-center gap-1 text-xs text-gray-500 lg:flex">
+                Target
+                <select
+                  value={activeTarget}
+                  onChange={(e) => setActiveTarget(e.target.value)}
+                  className="max-w-[200px] rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+                  title="Which run history to show across Overview, Runs, and Findings"
+                >
+                  <option value="">This repo</option>
+                  {targets.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}{t.type === "cloud" ? " (cloud)" : t.type === "git" ? " (git)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {runs.runs.length > 0 && (
               <label className="hidden items-center gap-1 text-xs text-gray-500 md:flex">
                 Run
@@ -201,7 +231,6 @@ export function App() {
                   value={selectedRun ?? ""}
                   onChange={(e) => {
                     setSelectedRun(e.target.value);
-                    setSelectedRunTarget(undefined);
                     setSelectedRunCommit(undefined);
                   }}
                   className="max-w-[190px] rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"

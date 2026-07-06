@@ -180,6 +180,51 @@ func TestCloudCredentialNeverInDurableState(t *testing.T) {
 	}
 }
 
+// TestSummaryIsTargetAware pins the fix for "runs execute but don't show in
+// Overview": /api/summary?target=<id> must read the target's own store, not
+// the served repo's default store. A cloud target's saved run must surface in
+// its summary while the default store stays empty.
+func TestSummaryIsTargetAware(t *testing.T) {
+	writeAWSConfig(t)
+	f := newConsole(t, nil)
+	admin := f.mustLogin("alice")
+
+	rec := f.do(http.MethodPost, "/api/targets",
+		`{"name":"cloud sum","provider":"aws","profileName":"security-audit"}`, admin)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create cloud target: %d %s", rec.Code, rec.Body.String())
+	}
+	var tgt struct {
+		ID string `json:"id"`
+	}
+	json.Unmarshal(rec.Body.Bytes(), &tgt)
+	target, err := f.registry.Get(tgt.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Save a run into the target's cloud store (as the executor does).
+	fixture, _ := os.ReadFile(filepath.Join("..", "..", "testdata", "cloud", "prowler-aws.json-ocsf"))
+	res, _ := cloudscan.ParseOCSF(fixture)
+	store := runstore.Store{Dir: f.registry.CloudRunStore(target)}
+	if _, err := store.Save(model.Normalize(res.Raw), time.Unix(1700000000, 0)); err != nil {
+		t.Fatal(err)
+	}
+
+	// Default store: empty summary.
+	var def SummaryResponse
+	json.Unmarshal(f.do(http.MethodGet, "/api/summary", "", admin).Body.Bytes(), &def)
+	if def.RunCount != 0 {
+		t.Errorf("default summary runCount = %d, want 0", def.RunCount)
+	}
+	// Target store: the cloud run shows up, categorized CLOUD.
+	var tsum SummaryResponse
+	json.Unmarshal(f.do(http.MethodGet, "/api/summary?target="+tgt.ID, "", admin).Body.Bytes(), &tsum)
+	if tsum.RunCount != 1 || tsum.Total == 0 || tsum.ByCategory["CLOUD"] == 0 {
+		t.Errorf("target summary = runCount %d total %d byCategory %v; want the cloud run", tsum.RunCount, tsum.Total, tsum.ByCategory)
+	}
+}
+
 func TestCloudTargetScanLaunchRejectsFilesystemOptions(t *testing.T) {
 	writeAWSConfig(t)
 	f := newConsole(t, nil)
