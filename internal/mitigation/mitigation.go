@@ -93,9 +93,20 @@ func load() {
 			loadErr = fmt.Errorf("mitigation: %s has no weakness id", e.Name())
 			return
 		}
+		if _, dup := byWeak[g.Weakness]; dup {
+			loadErr = fmt.Errorf("mitigation: duplicate weakness id %q", g.Weakness)
+			return
+		}
 		byWeak[g.Weakness] = g
 		for _, c := range g.CWEs {
-			byCWE[normalizeCWE(c)] = g.Weakness
+			nc := normalizeCWE(c)
+			if prev, dup := byCWE[nc]; dup {
+				// Two classes claiming the same CWE would make Lookup depend on
+				// file read order and silently misroute a finding's guidance.
+				loadErr = fmt.Errorf("mitigation: %s maps to both %q and %q", nc, prev, g.Weakness)
+				return
+			}
+			byCWE[nc] = g.Weakness
 		}
 		order = append(order, g.Weakness)
 	}

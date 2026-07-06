@@ -1,7 +1,12 @@
 {
   "weakness": "xss",
   "title": "Cross-Site Scripting (XSS)",
-  "cwes": ["CWE-79", "CWE-80", "CWE-83", "CWE-87"],
+  "cwes": [
+    "CWE-79",
+    "CWE-80",
+    "CWE-83",
+    "CWE-87"
+  ],
   "principle": "Treat all untrusted data as text and let the framework encode it for the output context (HTML body, attribute, JS, URL). Prefer APIs that set text, not markup. When you must render user-supplied HTML, sanitize it with a vetted allowlist library. The bug is almost always raw HTML built from input, or a template rendered without escaping.",
   "snippets": [
     {
@@ -22,8 +27,8 @@
       "language": "java",
       "library": "OWASP Java Encoder (and framework auto-escaping)",
       "vulnerable": "out.println(\"<p>\" + name + \"</p>\");",
-      "secure": "out.println(\"<p>\" + Encoder.forHtml(name) + \"</p>\");",
-      "note": "Encode for the exact context: Encoder.forHtml, forHtmlAttribute, forJavaScript, forUriComponent. In templates keep escaping on (Thymeleaf th:text escapes; th:utext does not)."
+      "secure": "out.println(\"<p>\" + Encode.forHtml(name) + \"</p>\");  // org.owasp.encoder.Encode",
+      "note": "Encode for the exact context: Encode.forHtml, Encode.forHtmlAttribute, Encode.forJavaScript, Encode.forUriComponent (all static on org.owasp.encoder.Encode). In templates keep escaping on (Thymeleaf th:text escapes; th:utext does not)."
     },
     {
       "language": "go",
@@ -34,7 +39,13 @@
     }
   ],
   "references": [
-    {"title": "OWASP Cross Site Scripting Prevention Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"},
-    {"title": "CWE-79: Cross-site Scripting", "url": "https://cwe.mitre.org/data/definitions/79.html"}
+    {
+      "title": "OWASP Cross Site Scripting Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    },
+    {
+      "title": "CWE-79: Cross-site Scripting",
+      "url": "https://cwe.mitre.org/data/definitions/79.html"
+    }
   ]
 }

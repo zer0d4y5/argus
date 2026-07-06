@@ -71,6 +71,41 @@ func TestLookupByCWEAndLanguage(t *testing.T) {
 	}
 }
 
+// TestCWEsAreUnique enforces the invariant the load guard now rejects: no two
+// weakness classes may claim the same CWE, or Lookup would misroute a finding's
+// guidance depending on file read order.
+func TestCWEsAreUnique(t *testing.T) {
+	if err := ensureLoaded(); err != nil {
+		t.Fatalf("library failed to load: %v", err)
+	}
+	seen := map[string]string{}
+	for _, g := range List() {
+		for _, c := range g.CWEs {
+			nc := normalizeCWE(c)
+			if prev, dup := seen[nc]; dup {
+				t.Errorf("%s maps to both %q and %q", nc, prev, g.Weakness)
+			}
+			seen[nc] = g.Weakness
+		}
+	}
+}
+
+// TestOpenRedirectRejectsBackslash is a tripwire: every open-redirect secure
+// snippet must guard the "/\evil.com" form (a backslash browsers normalize to
+// "/"), not only "//". A revert that drops the backslash check reopens the
+// bypass, so each secure snippet must reference a backslash.
+func TestOpenRedirectRejectsBackslash(t *testing.T) {
+	g, ok := Get("open-redirect")
+	if !ok {
+		t.Fatal("open-redirect entry missing")
+	}
+	for _, s := range g.Snippets {
+		if !strings.Contains(s.Secure, `\`) {
+			t.Errorf("open-redirect/%s secure snippet has no backslash guard: %q", s.Language, s.Secure)
+		}
+	}
+}
+
 func TestLanguageForFile(t *testing.T) {
 	cases := map[string]string{
 		"app/db.py": "python", "src/x.tsx": "javascript", "Main.java": "java",

@@ -1,7 +1,10 @@
 {
   "weakness": "sqli",
   "title": "SQL Injection",
-  "cwes": ["CWE-89", "CWE-564", "CWE-943"],
+  "cwes": [
+    "CWE-89",
+    "CWE-564"
+  ],
   "principle": "Keep user input out of query text. Send the SQL and the values separately with parameterized queries (prepared statements) so the driver treats input as data, never as executable SQL. An ORM's query builder is safe; its raw-SQL escape hatch and any string concatenation or interpolation are not.",
   "snippets": [
     {
@@ -34,7 +37,13 @@
     }
   ],
   "references": [
-    {"title": "OWASP SQL Injection Prevention Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"},
-    {"title": "CWE-89: SQL Injection", "url": "https://cwe.mitre.org/data/definitions/89.html"}
+    {
+      "title": "OWASP SQL Injection Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+    },
+    {
+      "title": "CWE-89: SQL Injection",
+      "url": "https://cwe.mitre.org/data/definitions/89.html"
+    }
   ]
 }

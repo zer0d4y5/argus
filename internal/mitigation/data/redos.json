@@ -1,7 +1,9 @@
 {
   "weakness": "redos",
   "title": "Regular Expression Denial of Service (ReDoS)",
-  "cwes": ["CWE-1333", "CWE-400", "CWE-730"],
+  "cwes": [
+    "CWE-1333"
+  ],
   "principle": "Keep untrusted input away from regexes that can backtrack exponentially. Avoid nested or overlapping quantifiers like (a+)+ or (.*)*; anchor patterns, bound repetition, and prefer a linear-time engine or plain string operations. If a user supplies the pattern, don't run it at all.",
   "snippets": [
     {
@@ -34,7 +36,13 @@
     }
   ],
   "references": [
-    {"title": "OWASP Regular expression Denial of Service (ReDoS)", "url": "https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS"},
-    {"title": "CWE-1333: Inefficient Regular Expression Complexity", "url": "https://cwe.mitre.org/data/definitions/1333.html"}
+    {
+      "title": "OWASP Regular expression Denial of Service (ReDoS)",
+      "url": "https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS"
+    },
+    {
+      "title": "CWE-1333: Inefficient Regular Expression Complexity",
+      "url": "https://cwe.mitre.org/data/definitions/1333.html"
+    }
   ]
 }

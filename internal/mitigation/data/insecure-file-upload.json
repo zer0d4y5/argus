@@ -1,14 +1,17 @@
 {
   "weakness": "insecure-file-upload",
   "title": "Unrestricted File Upload",
-  "cwes": ["CWE-434", "CWE-646"],
+  "cwes": [
+    "CWE-434",
+    "CWE-646"
+  ],
   "principle": "Decide what a file IS by its content and your rules, not by its name. Validate the type by sniffing content, generate your own random storage name with a safe extension, store outside the web root (or on object storage) so it can't be executed, and cap the size. Never trust the client-supplied filename or Content-Type.",
   "snippets": [
     {
       "language": "python",
       "library": "a content-type allowlist + a generated name outside web root",
       "vulnerable": "f = request.files['file']\nf.save(os.path.join('/var/www/uploads', f.filename))",
-      "secure": "import secrets, imghdr\nf = request.files['file']\nif imghdr.what(f) not in {'png', 'jpeg'}: abort(400)\nname = secrets.token_hex(16) + '.png'\nf.save(os.path.join(UPLOAD_DIR, name))   # UPLOAD_DIR is not web-served",
+      "secure": "import os, secrets, filetype       # imghdr was removed in Python 3.13\nf = request.files['file']\nhead = f.stream.read(261); f.stream.seek(0)\nkind = filetype.guess(head)\nif kind is None or kind.mime not in {'image/png', 'image/jpeg'}: abort(400)\next = {'image/png': '.png', 'image/jpeg': '.jpg'}[kind.mime]\nname = secrets.token_hex(16) + ext\nf.save(os.path.join(UPLOAD_DIR, name))   # UPLOAD_DIR is not web-served",
       "note": "f.filename is attacker-controlled (shell.php, ../..). Sniff the content, mint your own name, and store where the server won't execute it."
     },
     {
@@ -27,7 +30,13 @@
     }
   ],
   "references": [
-    {"title": "OWASP File Upload Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"},
-    {"title": "CWE-434: Unrestricted Upload of File with Dangerous Type", "url": "https://cwe.mitre.org/data/definitions/434.html"}
+    {
+      "title": "OWASP File Upload Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"
+    },
+    {
+      "title": "CWE-434: Unrestricted Upload of File with Dangerous Type",
+      "url": "https://cwe.mitre.org/data/definitions/434.html"
+    }
   ]
 }

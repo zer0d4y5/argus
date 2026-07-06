@@ -1,40 +1,48 @@
 {
   "weakness": "open-redirect",
   "title": "Open Redirect",
-  "cwes": ["CWE-601"],
-  "principle": "Don't send a redirect to a URL the user supplies. Redirect only to relative paths within your own app, or map an opaque key to a known destination. If you must accept a target, allowlist the exact hosts and reject anything with its own scheme or host — including protocol-relative //evil.com.",
+  "cwes": [
+    "CWE-601"
+  ],
+  "principle": "Don't send a redirect to a URL the user supplies. Redirect only to relative paths within your own app, or map an opaque key to a known destination. If you must accept a target, allowlist the exact hosts and reject anything with its own scheme or host, including protocol-relative //evil.com and the /\\evil.com form that browsers normalize to //.",
   "snippets": [
     {
       "language": "python",
       "library": "a local-only redirect check (Werkzeug/Django url_has_allowed_host_and_scheme)",
       "vulnerable": "return redirect(request.args['next'])",
-      "secure": "from urllib.parse import urlparse\nnxt = request.args.get('next', '/')\nif urlparse(nxt).netloc or not nxt.startswith('/'):\n    nxt = '/'\nreturn redirect(nxt)",
+      "secure": "from urllib.parse import urlparse\nnxt = request.args.get('next', '/')\n# Same-site paths only. urlparse leaves netloc empty for '/\\\\evil.com',\n# but a browser reads the backslash as '/', so reject a leading // or /\\\\ too.\nif urlparse(nxt).netloc or not nxt.startswith('/') or nxt[:2] in ('//', '/\\\\'):\n    nxt = '/'\nreturn redirect(nxt)",
       "note": "Django ships django.utils.http.url_has_allowed_host_and_scheme for exactly this. A value with a netloc (host) or one starting with // is off-site."
     },
     {
       "language": "javascript",
       "library": "a relative-path guard before res.redirect",
       "vulnerable": "res.redirect(req.query.url);",
-      "secure": "const url = req.query.url || '/';\nif (!url.startsWith('/') || url.startsWith('//')) return res.redirect('/');\nres.redirect(url);",
-      "note": "Reject //host (protocol-relative) and any absolute URL. Better: pass a short key (?next=dashboard) and look up the path server-side."
+      "secure": "const url = req.query.url || '/';\n// Leading '/' whose next char is neither '/' nor '\\\\' (a browser normalizes\n// '/\\\\' to '//', making it protocol-relative and off-site).\nif (!/^\\/[^/\\\\]/.test(url)) return res.redirect('/');\nres.redirect(url);",
+      "note": "Reject //host and /\\host (both resolve off-site) and any absolute URL. Better: pass a short key (?next=dashboard) and look up the path server-side."
     },
     {
       "language": "java",
       "library": "a same-app path check before sendRedirect",
       "vulnerable": "response.sendRedirect(request.getParameter(\"url\"));",
-      "secure": "String url = request.getParameter(\"url\");\nif (url == null || !url.startsWith(\"/\") || url.startsWith(\"//\")) url = \"/\";\nresponse.sendRedirect(url);",
+      "secure": "String url = request.getParameter(\"url\");\nif (url == null || !url.startsWith(\"/\") || url.startsWith(\"//\") || url.startsWith(\"/\\\\\")) url = \"/\";\nresponse.sendRedirect(url);",
       "note": "Only redirect to app-relative paths, or an allowlist. Spring's UriComponentsBuilder plus an allowlist check works for cross-host cases."
     },
     {
       "language": "go",
       "library": "a relative-path guard before http.Redirect",
       "vulnerable": "http.Redirect(w, r, r.URL.Query().Get(\"next\"), http.StatusFound)",
-      "secure": "next := r.URL.Query().Get(\"next\")\nif !strings.HasPrefix(next, \"/\") || strings.HasPrefix(next, \"//\") {\n    next = \"/\"\n}\nhttp.Redirect(w, r, next, http.StatusFound)",
-      "note": "Confirm the target is a single-slash absolute path on your own site; reject // and any parsed URL with a Host."
+      "secure": "next := r.URL.Query().Get(\"next\")\n// Same-site paths only: a leading \"/\" that is not \"//\" or \"/\\\\\" (a browser\n// treats \"/\\\\\" as \"//\", i.e. protocol-relative and off-site).\nif !strings.HasPrefix(next, \"/\") || strings.HasPrefix(next, \"//\") || strings.HasPrefix(next, \"/\\\\\") {\n    next = \"/\"\n}\nhttp.Redirect(w, r, next, http.StatusFound)",
+      "note": "Confirm the target is a single-slash absolute path on your own site; reject //, /\\, and any parsed URL with a Host."
     }
   ],
   "references": [
-    {"title": "OWASP Unvalidated Redirects and Forwards Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"},
-    {"title": "CWE-601: URL Redirection to Untrusted Site", "url": "https://cwe.mitre.org/data/definitions/601.html"}
+    {
+      "title": "OWASP Unvalidated Redirects and Forwards Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"
+    },
+    {
+      "title": "CWE-601: URL Redirection to Untrusted Site",
+      "url": "https://cwe.mitre.org/data/definitions/601.html"
+    }
   ]
 }

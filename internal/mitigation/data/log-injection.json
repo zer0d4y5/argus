@@ -1,7 +1,9 @@
 {
   "weakness": "log-injection",
   "title": "Log Injection / Forging",
-  "cwes": ["CWE-117", "CWE-93"],
+  "cwes": [
+    "CWE-117"
+  ],
   "principle": "Neutralize newlines and control characters in anything untrusted before it reaches a log line, so an attacker can't forge entries or split a record. Prefer structured logging (key/value or JSON), which keeps user data in a field the parser can't confuse with the log format.",
   "snippets": [
     {
@@ -34,7 +36,13 @@
     }
   ],
   "references": [
-    {"title": "OWASP Logging Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"},
-    {"title": "CWE-117: Improper Output Neutralization for Logs", "url": "https://cwe.mitre.org/data/definitions/117.html"}
+    {
+      "title": "OWASP Logging Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+    },
+    {
+      "title": "CWE-117: Improper Output Neutralization for Logs",
+      "url": "https://cwe.mitre.org/data/definitions/117.html"
+    }
   ]
 }

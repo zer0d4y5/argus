@@ -1,15 +1,23 @@
 {
   "weakness": "auth-session",
   "title": "Authentication & Session Management",
-  "cwes": ["CWE-256", "CWE-287", "CWE-311", "CWE-312", "CWE-384", "CWE-522", "CWE-613", "CWE-620", "CWE-916"],
+  "cwes": [
+    "CWE-256",
+    "CWE-287",
+    "CWE-384",
+    "CWE-522",
+    "CWE-613",
+    "CWE-620",
+    "CWE-916"
+  ],
   "principle": "Store passwords only as slow, salted adaptive hashes (bcrypt, scrypt, or Argon2id) — never plaintext, MD5, or SHA-256. On every successful login regenerate the session identifier to defeat session fixation, and set the cookie HttpOnly, Secure, and SameSite. Give sessions an idle and absolute timeout, and invalidate them server-side on logout.",
   "snippets": [
     {
       "language": "python",
       "library": "argon2-cffi or bcrypt; regenerate the session on login",
       "vulnerable": "if user.password == request.form['password']:  # plaintext compare\n    session['uid'] = user.id",
-      "secure": "from argon2 import PasswordHasher\nph = PasswordHasher()\n# at signup: user.hash = ph.hash(password)\nph.verify(user.hash, password)          # raises on mismatch\nsession.clear(); session.regenerate()   # new session id after auth\nsession['uid'] = user.id",
-      "note": "Compare with the hasher's verify (constant-time), never ==. Set SESSION_COOKIE_HTTPONLY, _SECURE, and _SAMESITE. Rotate the id on privilege change too."
+      "secure": "from argon2 import PasswordHasher\nfrom argon2.exceptions import VerifyMismatchError\nph = PasswordHasher()\n# at signup: user.hash = ph.hash(password)\ntry:\n    ph.verify(user.hash, password)      # raises on mismatch\nexcept VerifyMismatchError:\n    abort(401)\nsession.clear()                         # drop any pre-auth session\nsession['uid'] = user.id                # Flask signs a fresh cookie\nsession.permanent = True",
+      "note": "Flask's default session is a signed cookie, so there is no server-side id to fixate: session.clear() plus a new value is the rotation. On a server-side store (Flask-Session/Login) rotate the id explicitly. Set SESSION_COOKIE_HTTPONLY, _SECURE, _SAMESITE=Lax. Use ph.check_needs_rehash to upgrade parameters over time."
     },
     {
       "language": "javascript",
@@ -34,8 +42,17 @@
     }
   ],
   "references": [
-    {"title": "OWASP Password Storage Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"},
-    {"title": "OWASP Session Management Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"},
-    {"title": "CWE-384: Session Fixation", "url": "https://cwe.mitre.org/data/definitions/384.html"}
+    {
+      "title": "OWASP Password Storage Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+    },
+    {
+      "title": "OWASP Session Management Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    },
+    {
+      "title": "CWE-384: Session Fixation",
+      "url": "https://cwe.mitre.org/data/definitions/384.html"
+    }
   ]
 }

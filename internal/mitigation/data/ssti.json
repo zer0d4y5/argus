@@ -1,7 +1,9 @@
 {
   "weakness": "ssti",
   "title": "Server-Side Template Injection (SSTI)",
-  "cwes": ["CWE-1336", "CWE-94", "CWE-95"],
+  "cwes": [
+    "CWE-1336"
+  ],
   "principle": "Never let user input become the template. Templates are code; rendering an attacker-controlled template string can run arbitrary server code. Keep templates as fixed files (or constants) and pass user data in as context variables, which the engine escapes and treats as data.",
   "snippets": [
     {
@@ -34,7 +36,13 @@
     }
   ],
   "references": [
-    {"title": "OWASP Testing for Server-Side Template Injection", "url": "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/18-Testing_for_Server-side_Template_Injection"},
-    {"title": "CWE-1336: Server-Side Template Injection", "url": "https://cwe.mitre.org/data/definitions/1336.html"}
+    {
+      "title": "OWASP Testing for Server-Side Template Injection",
+      "url": "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/18-Testing_for_Server-side_Template_Injection"
+    },
+    {
+      "title": "CWE-1336: Server-Side Template Injection",
+      "url": "https://cwe.mitre.org/data/definitions/1336.html"
+    }
   ]
 }
