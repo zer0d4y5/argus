@@ -55,6 +55,7 @@ var authzTable = []authzRule{
 	{http.MethodGet, "/api/scans/", auth.RoleViewer, true},
 	{http.MethodPost, "/api/scans", auth.RoleOperator, false},
 	{http.MethodPost, "/api/explain", auth.RoleOperator, false},
+	{http.MethodPost, "/api/remediate", auth.RoleOperator, false},
 	{http.MethodPost, "/api/cloud/posture-summary", auth.RoleOperator, false},
 
 	{http.MethodGet, "/api/users", auth.RoleAdmin, false},

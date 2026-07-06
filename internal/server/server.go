@@ -116,6 +116,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/scans/", s.handleScanByID)                      // GET /api/scans/{jobId}
 	mux.HandleFunc("/api/frameworks", s.handleFrameworks)                // GET (viewer)
 	mux.HandleFunc("/api/explain", s.handleExplain)                      // POST (operator)
+	mux.HandleFunc("/api/remediate", s.handleRemediate)                  // POST (operator): on-demand assisted remediation, never persisted
 	mux.HandleFunc("/api/cloud/posture-summary", s.handlePostureSummary) // POST (operator): on-demand, never persisted
 	mux.HandleFunc("/api/audit", s.handleAudit)                          // GET (admin)
 	mux.HandleFunc("/", s.handleStatic)
