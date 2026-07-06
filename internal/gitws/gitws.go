@@ -167,8 +167,8 @@ func (s Syncer) env() []string {
 	}
 	return append(os.Environ(),
 		"GIT_ALLOW_PROTOCOL="+allow,
-		"GIT_TERMINAL_PROMPT=0",   // fail, never prompt, on missing credentials
-		"GIT_ASKPASS=/bin/false",  // belt and braces for GUI askpass paths
+		"GIT_TERMINAL_PROMPT=0",  // fail, never prompt, on missing credentials
+		"GIT_ASKPASS=/bin/false", // belt and braces for GUI askpass paths
 	)
 }
 

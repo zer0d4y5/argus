@@ -209,6 +209,13 @@ export const api = {
     }
     return getJSON<RunDetail>(base);
   },
+  // The download URL for a run export (SARIF or JSON). Server sets
+  // Content-Disposition; the browser downloads. GET (viewer) — no CSRF.
+  exportUrl: (id: string, format: "sarif" | "json", targetId?: string) => {
+    const q = new URLSearchParams({ format });
+    if (targetId) q.set("target", targetId);
+    return `api/runs/${encodeURIComponent(id)}/export?${q.toString()}`;
+  },
 };
 
 export const SEVERITIES: Severity[] = ["critical", "high", "medium", "low", "info"];
@@ -375,6 +382,11 @@ export const opsApi = {
 
   deleteTarget: (id: string): Promise<void> =>
     send<void>("DELETE", `api/targets/${encodeURIComponent(id)}`),
+
+  deleteRun: (id: string, targetId?: string): Promise<void> => {
+    const q = targetId ? `?target=${encodeURIComponent(targetId)}` : "";
+    return send<void>("DELETE", `api/runs/${encodeURIComponent(id)}${q}`);
+  },
   
   updateTarget: (id: string, patch: { name?: string; scanners?: string[]; profile?: string; config?: TargetConfig }): Promise<Target> => 
     send<Target>("PATCH", `api/targets/${encodeURIComponent(id)}`, patch),

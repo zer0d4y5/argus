@@ -238,16 +238,18 @@ func mergeConfig(t targets.Target, root string, opts jobs.Options) (config.Confi
 	return cfg, cfg.Validate()
 }
 
-// repoConfig loads the scanned tree's own appsec.yml, falling back to
-// defaults when absent.
+// repoConfig loads the scanned tree's own config (bulwark.yml, then the
+// legacy appsec.yml), falling back to defaults when absent.
 func repoConfig(root string) (config.Config, error) {
-	cfgPath := filepath.Join(root, "appsec.yml")
-	if _, err := os.Stat(cfgPath); err == nil {
-		cfg, err := config.Load(cfgPath)
-		if err != nil {
-			return cfg, fmt.Errorf("target config: %w", err)
+	for _, name := range config.DefaultConfigNames {
+		cfgPath := filepath.Join(root, name)
+		if _, err := os.Stat(cfgPath); err == nil {
+			cfg, err := config.Load(cfgPath)
+			if err != nil {
+				return cfg, fmt.Errorf("target config: %w", err)
+			}
+			return cfg, nil
 		}
-		return cfg, nil
 	}
 	return config.Default(), nil
 }

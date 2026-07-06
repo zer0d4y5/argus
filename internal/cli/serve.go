@@ -29,7 +29,7 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Serve the web console: scan history, and (with users) scan launching",
 	Long: `Starts the local-first web console over the scan history saved with
-'appsec scan --save' (in <dir>/.appsec/runs).
+'bulwark scan --save' (in <dir>/.appsec/runs).
 
 Authentication is decided by <dir>/.appsec/users.json:
 
@@ -38,11 +38,11 @@ Authentication is decided by <dir>/.appsec/users.json:
     bootstrap command.
   - ONE OR MORE users: every API route requires a login (viewer, operator,
     or admin role). Operators launch scans against registered targets
-    ('appsec target add' — a local directory or a remote https git repo)
+    ('bulwark target add' — a local directory or a remote https git repo)
     through a strictly serial job queue, optionally scoped to a subpath or
     focused on compliance frameworks; admins manage users, targets,
     per-target scan configuration, and the audit log. Bootstrap the first
-    admin with 'appsec user add <name> --role admin'.
+    admin with 'bulwark user add <name> --role admin'.
 
 Remote git targets are cloned shallowly into <dir>/.appsec/workspace/<id>
 (https only; the scanned commit is recorded on the job and in the audit
@@ -105,7 +105,7 @@ func printAuthStatus(_ context.Context, users *auth.Store, addr string) {
 	case err != nil:
 		fmt.Fprintf(os.Stderr, "WARNING: users file unreadable (%v) — all authentication refused until fixed.\n", err)
 	case n == 0:
-		fmt.Fprintln(os.Stderr, "==> no users configured: read-only console, NO login. Bootstrap ops with `appsec user add <name> --role admin`.")
+		fmt.Fprintln(os.Stderr, "==> no users configured: read-only console, NO login. Bootstrap ops with `bulwark user add <name> --role admin`.")
 		if !isLoopback(addr) {
 			fmt.Fprintf(os.Stderr, "WARNING: %s is not loopback — this console has NO AUTH and is now reachable off-host.\n", addr)
 		}

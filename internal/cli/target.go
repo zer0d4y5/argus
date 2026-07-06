@@ -98,7 +98,7 @@ var targetListCmd = &cobra.Command{
 			return err
 		}
 		if len(list) == 0 {
-			fmt.Println("no targets registered (appsec target add <path> --name <label>)")
+			fmt.Println("no targets registered (bulwark target add <path> --name <label>)")
 			return nil
 		}
 		fmt.Printf("%-20s %-20s %-5s %-10s %-25s %s\n", "ID", "NAME", "TYPE", "PROFILE", "SCANNERS", "WHERE")

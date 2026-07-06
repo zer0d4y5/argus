@@ -23,7 +23,7 @@ import (
 func init() {
 	complyCmd.Flags().StringP("format", "f", "markdown", "Report format: markdown or json")
 	complyCmd.Flags().StringP("output", "o", "", "Output file path (default is stdout)")
-	complyCmd.Flags().StringP("config", "c", "", "Path to appsec.yml configuration file")
+	complyCmd.Flags().StringP("config", "c", "", "Path to bulwark.yml (or appsec.yml) configuration file")
 	complyCmd.Flags().String("run", "", "Assess a saved run by ID instead of scanning (see .appsec/runs)")
 	complyCmd.Flags().Bool("latest", false, "Assess the most recent saved run instead of scanning")
 	rootCmd.AddCommand(complyCmd)
@@ -37,7 +37,7 @@ benchmarks) and reports per-framework control coverage: violated controls with
 evidence, controls with no violations detected, and the areas static scanning
 cannot assess.
 
-By default it scans the target path (same scanners as 'appsec scan', without
+By default it scans the target path (same scanners as 'bulwark scan', without
 AI triage — the assessment is fully deterministic). Use --latest or --run <id>
 to assess a saved run instead. The report never gates: exit code 0 unless the
 assessment itself fails.`,
@@ -150,7 +150,7 @@ func savedRunFindings(target, runID string) ([]model.Finding, string, error) {
 			return nil, "", fmt.Errorf("list saved runs: %w", err)
 		}
 		if len(runs) == 0 {
-			return nil, "", fmt.Errorf("no saved runs under %s (run `appsec scan %s --save` first)", store.Dir, target)
+			return nil, "", fmt.Errorf("no saved runs under %s (run `bulwark scan %s --save` first)", store.Dir, target)
 		}
 		runID = runs[len(runs)-1].ID
 	}

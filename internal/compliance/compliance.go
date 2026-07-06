@@ -26,7 +26,7 @@ var dataFS embed.FS
 // Control is one assessable framework control: a target of at least one
 // mapping rule, i.e. a control the scanners can produce evidence against.
 type Control struct {
-	ID    string `json:"id"`    // e.g. "V5.3.4", "6.2.4", "2.1"
+	ID    string `json:"id"` // e.g. "V5.3.4", "6.2.4", "2.1"
 	Title string `json:"title"`
 }
 

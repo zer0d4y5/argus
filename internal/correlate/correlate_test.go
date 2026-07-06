@@ -208,8 +208,8 @@ func TestCollapseThreeWay(t *testing.T) {
 			Location: model.Location{File: "cmd.go", StartLine: 5, EndLine: 5}}
 	}
 	in := []model.Finding{
-		mk("z.rule", "Command injection here"),                     // mid length
-		mk("a.rule", "Cmd injection"),                              // shortest
+		mk("z.rule", "Command injection here"),                    // mid length
+		mk("a.rule", "Cmd injection"),                             // shortest
 		mk("m.rule", "OS command injection from tainted request"), // longest: survivor
 	}
 	out := Correlate(in)

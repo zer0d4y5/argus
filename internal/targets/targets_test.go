@@ -21,10 +21,10 @@ func TestValidatePath(t *testing.T) {
 		{dir, true},
 		{"relative/path", false},
 		{"./also-relative", false},
-		{dir + "/..", false},                      // ".." rejected loudly
-		{filepath.Join(dir, "..", "x"), false},    // embedded ".."
-		{"/", false},                              // filesystem root
-		{file, false},                             // not a directory
+		{dir + "/..", false},                   // ".." rejected loudly
+		{filepath.Join(dir, "..", "x"), false}, // embedded ".."
+		{"/", false},                           // filesystem root
+		{file, false},                          // not a directory
 		{filepath.Join(dir, "does-not-exist"), false},
 	}
 	for _, c := range cases {

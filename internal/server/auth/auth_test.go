@@ -33,7 +33,7 @@ func TestHashAndVerifyPassword(t *testing.T) {
 func TestVerifyPasswordFailsClosedOnGarbage(t *testing.T) {
 	for _, enc := range []string{
 		"", "not-a-hash", "$argon2id$v=19$m=65536,t=1,p=4$!!$!!",
-		"$argon2i$v=19$m=65536,t=1,p=4$AAAA$AAAA",              // wrong variant
+		"$argon2i$v=19$m=65536,t=1,p=4$AAAA$AAAA",                       // wrong variant
 		"$argon2id$v=19$m=99999999,t=1,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAA", // memory bomb
 	} {
 		if VerifyPassword(enc, "anything") {

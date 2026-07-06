@@ -225,6 +225,60 @@ func TestSummaryIsTargetAware(t *testing.T) {
 	}
 }
 
+// TestRunDeleteAndExport covers the two new run-management endpoints against
+// a target's own store: export streams SARIF/JSON, delete removes the run
+// (admin only), and the audit records the delete.
+func TestRunDeleteAndExport(t *testing.T) {
+	writeAWSConfig(t)
+	f := newConsole(t, nil)
+	admin := f.mustLogin("alice")
+	oper := f.mustLogin("oscar")
+
+	rec := f.do(http.MethodPost, "/api/targets",
+		`{"name":"cloud del","provider":"aws","profileName":"security-audit"}`, admin)
+	var tgt struct {
+		ID string `json:"id"`
+	}
+	json.Unmarshal(rec.Body.Bytes(), &tgt)
+	target, _ := f.registry.Get(tgt.ID)
+	fixture, _ := os.ReadFile(filepath.Join("..", "..", "testdata", "cloud", "prowler-aws.json-ocsf"))
+	res, _ := cloudscan.ParseOCSF(fixture)
+	store := runstore.Store{Dir: f.registry.CloudRunStore(target)}
+	meta, _ := store.Save(model.Normalize(res.Raw), time.Unix(1700000000, 0))
+
+	// Export SARIF.
+	ex := f.do(http.MethodGet, "/api/runs/"+meta.ID+"/export?format=sarif&target="+tgt.ID, "", oper)
+	if ex.Code != http.StatusOK {
+		t.Fatalf("export sarif: %d %s", ex.Code, ex.Body.String())
+	}
+	if ct := ex.Header().Get("Content-Type"); !strings.Contains(ct, "sarif") {
+		t.Errorf("export content-type = %q, want sarif", ct)
+	}
+	if !strings.Contains(ex.Header().Get("Content-Disposition"), "attachment") {
+		t.Error("export must set an attachment Content-Disposition")
+	}
+	if !strings.Contains(ex.Body.String(), `"version": "2.1.0"`) {
+		t.Error("SARIF export body malformed")
+	}
+
+	// Delete: operator is forbidden, admin succeeds.
+	if r := f.do(http.MethodDelete, "/api/runs/"+meta.ID+"?target="+tgt.ID, "", oper); r.Code != http.StatusForbidden {
+		t.Errorf("operator delete got %d, want 403", r.Code)
+	}
+	if r := f.do(http.MethodDelete, "/api/runs/"+meta.ID+"?target="+tgt.ID, "", admin); r.Code != http.StatusOK {
+		t.Fatalf("admin delete got %d: %s", r.Code, r.Body.String())
+	}
+	// Gone now.
+	if r := f.do(http.MethodGet, "/api/runs/"+meta.ID+"?target="+tgt.ID, "", admin); r.Code != http.StatusNotFound {
+		t.Errorf("deleted run still loads: %d", r.Code)
+	}
+	// Audit recorded it.
+	auditBody := f.do(http.MethodGet, "/api/audit", "", admin).Body.String()
+	if !strings.Contains(auditBody, "run.delete") {
+		t.Error("run.delete not in audit log")
+	}
+}
+
 func TestCloudTargetScanLaunchRejectsFilesystemOptions(t *testing.T) {
 	writeAWSConfig(t)
 	f := newConsole(t, nil)

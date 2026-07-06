@@ -66,15 +66,30 @@ func Default() Config {
 	}
 }
 
-// Load reads configuration from path. An empty path means "appsec.yml in the
-// CWD if present": a missing default file yields Default() silently, but a
-// missing EXPLICIT path is an error — silently ignoring a config the user
-// asked for would apply the wrong severity gate.
+// DefaultConfigNames are the config filenames Load looks for in the CWD when
+// no explicit path is given, in preference order: the Bulwark name first, the
+// legacy appsec name second (accepted for compatibility). The docs use
+// bulwark.yml.
+var DefaultConfigNames = []string{"bulwark.yml", "appsec.yml"}
+
+// Load reads configuration from path. An empty path means "the default config
+// file in the CWD if present" (bulwark.yml, then appsec.yml): a missing
+// default file yields Default() silently, but a missing EXPLICIT path is an
+// error — silently ignoring a config the user asked for would apply the wrong
+// severity gate.
 func Load(path string) (Config, error) {
 	cfg := Default()
 	explicit := path != ""
 	if !explicit {
-		path = "appsec.yml"
+		for _, name := range DefaultConfigNames {
+			if _, err := os.Stat(name); err == nil {
+				path = name
+				break
+			}
+		}
+		if path == "" {
+			return cfg, nil // no default config present — use defaults
+		}
 	}
 
 	data, err := os.ReadFile(path)
