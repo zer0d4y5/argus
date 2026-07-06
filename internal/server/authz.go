@@ -57,6 +57,8 @@ var authzTable = []authzRule{
 	{http.MethodPost, "/api/explain", auth.RoleOperator, false},
 	{http.MethodPost, "/api/remediate", auth.RoleOperator, false},
 	{http.MethodPost, "/api/cloud/posture-summary", auth.RoleOperator, false},
+	{http.MethodPost, "/api/dispositions", auth.RoleOperator, false},    // set finding workflow status
+	{http.MethodDelete, "/api/dispositions/", auth.RoleOperator, false}, // clear to open
 
 	{http.MethodGet, "/api/users", auth.RoleAdmin, false},
 	{http.MethodPost, "/api/users", auth.RoleAdmin, false},

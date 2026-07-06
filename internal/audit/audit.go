@@ -22,19 +22,20 @@ const auditFileName = "audit.jsonl"
 
 // Event names, kept to a closed vocabulary so the log is greppable.
 const (
-	EventLoginSuccess  = "login.success"
-	EventLoginFailure  = "login.failure"
-	EventUserCreate    = "user.create"
-	EventUserUpdate    = "user.update"
-	EventUserDelete    = "user.delete"
-	EventTargetCreate  = "target.create"
-	EventTargetUpdate  = "target.update"
-	EventTargetDelete  = "target.delete"
-	EventScanLaunch    = "scan.launch"
-	EventScanFinish    = "scan.finish"
-	EventScanExplain   = "scan.explain"
-	EventScanRemediate = "scan.remediate"
-	EventRunDelete     = "run.delete"
+	EventLoginSuccess   = "login.success"
+	EventLoginFailure   = "login.failure"
+	EventUserCreate     = "user.create"
+	EventUserUpdate     = "user.update"
+	EventUserDelete     = "user.delete"
+	EventTargetCreate   = "target.create"
+	EventTargetUpdate   = "target.update"
+	EventTargetDelete   = "target.delete"
+	EventScanLaunch     = "scan.launch"
+	EventScanFinish     = "scan.finish"
+	EventScanExplain    = "scan.explain"
+	EventScanRemediate  = "scan.remediate"
+	EventRunDelete      = "run.delete"
+	EventFindingDispose = "finding.dispose"
 )
 
 // Entry is one audit line.

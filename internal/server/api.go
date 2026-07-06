@@ -1,8 +1,11 @@
 package server
 
 import (
+	"path/filepath"
+
 	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/coverage"
+	"github.com/leaky-hub/appsec/internal/disposition"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/owasp"
 	"github.com/leaky-hub/appsec/internal/report"
@@ -103,6 +106,12 @@ type RunDetail struct {
 	// did not look at. Absent for runs saved before 2.0.0; the UI
 	// feature-detects.
 	Coverage *coverage.Accounting `json:"coverage,omitempty"`
+	// Dispositions overlays the target's finding-workflow state (keyed by
+	// finding fingerprint) onto this run — human status/note that follows a
+	// finding across scans. Only ids present in this run are included. A
+	// finding present here with status "fixed" is a REGRESSION (marked fixed
+	// but still detected). Never stored in the run file; joined at read time.
+	Dispositions map[string]disposition.Record `json:"dispositions,omitempty"`
 }
 
 const rfc3339 = "2006-01-02T15:04:05Z07:00"
@@ -294,22 +303,42 @@ func (s *Server) buildRunDetail(store runstore.Store, id string) (RunDetail, err
 		}
 	}
 
+	// Overlay the target's finding-workflow dispositions (keyed by
+	// fingerprint), limited to the findings present in this run.
+	dispositions := map[string]disposition.Record{}
+	if all, err := dispositionStore(store).All(); err == nil {
+		for _, f := range doc.Findings {
+			if rec, ok := all[f.ID]; ok {
+				dispositions[f.ID] = rec
+			}
+		}
+	}
+
 	return RunDetail{
-		ID:          id,
-		CreatedAt:   createdAt,
-		Total:       doc.Summary.Total,
-		BySeverity:  doc.Summary.BySeverity,
-		ByCategory:  doc.Summary.ByCategory,
-		OWASP:       owasp.Rollup(doc.Findings),
-		Compliance:  complianceSummary(doc.Findings),
-		Gate:        gateFor(doc.Findings, s.gate, s.gateName),
-		Verdicts:    countVerdicts(doc.Findings),
-		Delta:       delta.Counts(),
-		NewIDs:      findingIDs(delta.New),
-		ResolvedIDs: findingIDs(delta.Resolved),
-		Findings:    doc.Findings,
-		Coverage:    doc.Coverage,
+		ID:           id,
+		CreatedAt:    createdAt,
+		Total:        doc.Summary.Total,
+		BySeverity:   doc.Summary.BySeverity,
+		ByCategory:   doc.Summary.ByCategory,
+		OWASP:        owasp.Rollup(doc.Findings),
+		Compliance:   complianceSummary(doc.Findings),
+		Gate:         gateFor(doc.Findings, s.gate, s.gateName),
+		Verdicts:     countVerdicts(doc.Findings),
+		Delta:        delta.Counts(),
+		NewIDs:       findingIDs(delta.New),
+		ResolvedIDs:  findingIDs(delta.Resolved),
+		Findings:     doc.Findings,
+		Coverage:     doc.Coverage,
+		Dispositions: dispositions,
 	}, nil
+}
+
+// dispositionStore resolves the finding-workflow store that sits beside a run
+// store: dispositions.json in the .appsec dir that also holds runs/. Works
+// uniformly for the served repo, dir/git targets, and cloud targets, since
+// every run store's Dir is `<...>/.appsec[/cloud/<id>]/runs`.
+func dispositionStore(store runstore.Store) *disposition.Store {
+	return disposition.At(filepath.Dir(store.Dir))
 }
 
 // previousDoc returns the run immediately before id chronologically, or nil.
