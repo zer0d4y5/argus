@@ -162,6 +162,17 @@ export interface RunsResponse {
   runs: RunListItem[];
 }
 
+// A finding's durable human disposition (workflow status), keyed by
+// fingerprint so it follows the finding across re-scans. Absence = "open".
+export type DispositionStatus = "in-progress" | "accepted-risk" | "false-positive" | "fixed";
+export interface Disposition {
+  findingId: string;
+  status: DispositionStatus;
+  note?: string;
+  actor: string;
+  updatedAt: string;
+}
+
 export interface RunDetail {
   id: string;
   createdAt: string;
@@ -177,6 +188,9 @@ export interface RunDetail {
   resolvedIds: string[];
   findings: Finding[];
   coverage?: CoverageAccounting;
+  // Per-finding workflow dispositions for findings present in this run,
+  // keyed by finding id. Absent/omitted findings are "open".
+  dispositions?: Record<string, Disposition>;
 }
 
 async function getJSON<T>(path: string): Promise<T> {
@@ -426,4 +440,12 @@ export const opsApi = {
 
   remediate: (req: { targetId?: string; runId: string; findingId: string }): Promise<RemediationResponse> =>
     send<RemediationResponse>("POST", "api/remediate", req),
+
+  setDisposition: (req: { targetId?: string; findingId: string; status: DispositionStatus; note?: string }): Promise<Disposition> =>
+    send<Disposition>("POST", "api/dispositions", req),
+
+  clearDisposition: (findingId: string, targetId?: string): Promise<void> => {
+    const q = targetId ? `?target=${encodeURIComponent(targetId)}` : "";
+    return send<void>("DELETE", `api/dispositions/${encodeURIComponent(findingId)}${q}`);
+  },
 };

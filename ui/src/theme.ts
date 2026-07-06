@@ -61,6 +61,22 @@ export const VERDICT_LABEL: Record<string, string> = {
   uncertain: "Uncertain",
 };
 
+// Finding workflow disposition (human judgment). "open" is the default and
+// has no chip. Distinct palette from the LLM verdict chips so the two are not
+// confused.
+export const DISPOSITION_LABEL: Record<string, string> = {
+  "in-progress": "In progress",
+  "accepted-risk": "Accepted risk",
+  "false-positive": "False positive",
+  fixed: "Fixed",
+};
+export const DISPOSITION_CHIP: Record<string, string> = {
+  "in-progress": "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+  "accepted-risk": "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  "false-positive": "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+  fixed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+};
+
 export const VERDICT_CHIP: Record<string, string> = {
   "true-positive": "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   "false-positive": "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",

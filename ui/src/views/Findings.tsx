@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-import { CoverageAccounting, ExplainResponse, Finding, locationLabel, opsApi, RemediationArtifact, RemediationResponse, RiskSignal, RunDetail, Severity, SEVERITIES } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { CoverageAccounting, Disposition, DispositionStatus, ExplainResponse, Finding, locationLabel, opsApi, RemediationArtifact, RemediationResponse, RiskSignal, RunDetail, Severity, SEVERITIES } from "../api";
 import { Panel, SeverityBadge, CategoryBadge, EmptyState } from "../components";
-import { VERDICT_CHIP, VERDICT_LABEL, riskColor } from "../theme";
+import { DISPOSITION_CHIP, DISPOSITION_LABEL, VERDICT_CHIP, VERDICT_LABEL, riskColor } from "../theme";
 
 const SEV_RANK: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
 
@@ -88,8 +88,24 @@ export function Findings({
   const [cat, setCat] = useState<string>("all");
   const [tool, setTool] = useState<string>("all");
   const [verdict, setVerdict] = useState<string>("all");
+  const [status, setStatus] = useState<string>("all");
   const [minRisk, setMinRisk] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Local, optimistic overlay of finding dispositions seeded from the run
+  // detail; re-seeded when the run changes. Operator+ can set/clear. A finding
+  // with status "fixed" that is still present in this run is a REGRESSION.
+  const canDispose = !!canExplain; // operator+, same gate as explain/remediate
+  const [dispositions, setDispositions] = useState<Record<string, Disposition>>(detail.dispositions ?? {});
+  useEffect(() => { setDispositions(detail.dispositions ?? {}); }, [detail.id, detail.dispositions]);
+  const setDisposition = async (findingId: string, s: DispositionStatus, note: string) => {
+    const rec = await opsApi.setDisposition({ targetId: origin?.targetId, findingId, status: s, note });
+    setDispositions((prev) => ({ ...prev, [findingId]: rec }));
+  };
+  const clearDisposition = async (findingId: string) => {
+    await opsApi.clearDisposition(findingId, origin?.targetId);
+    setDispositions((prev) => { const next = { ...prev }; delete next[findingId]; return next; });
+  };
 
   // Explain + remediate lifecycles, per finding (cached client-side).
   const [explainState, setExplainState] = useState<Record<string, ExplainState>>({});
@@ -128,6 +144,13 @@ export function Findings({
       .filter((f) => verdict === "all" || (verdict === "untriaged" ? !f.triage : f.triage?.verdict === verdict))
       .filter((f) => (f.riskScore ?? 0) >= minRisk)
       .filter((f) => framework === "all" || (f.complianceControls ?? []).some((c) => c.startsWith(framework + ":")))
+      .filter((f) => {
+        if (status === "all") return true;
+        const st = dispositions[f.id]?.status;
+        if (status === "open") return !st;
+        if (status === "regression") return st === "fixed"; // fixed but still present
+        return st === status;
+      })
       .filter(
         (f) =>
           needle === "" ||
@@ -139,7 +162,7 @@ export function Findings({
           (f.cwes ?? []).some((c) => c.toLowerCase().includes(needle)),
       )
       .sort((a, b) => (b.riskScore ?? 0) - (a.riskScore ?? 0) || SEV_RANK[b.severity] - SEV_RANK[a.severity]);
-  }, [detail.findings, q, sev, cat, tool, verdict, minRisk, framework]);
+  }, [detail.findings, q, sev, cat, tool, verdict, minRisk, framework, status, dispositions]);
 
   const selected = filtered.find((f) => f.id === selectedId) ?? filtered[0] ?? null;
 
@@ -207,6 +230,12 @@ export function Findings({
               options={["all", "true-positive", "false-positive", "uncertain", "untriaged"]}
             />
             <Select
+              value={status}
+              onChange={setStatus}
+              label="Status"
+              options={["all", "open", "in-progress", "accepted-risk", "false-positive", "fixed", "regression"]}
+            />
+            <Select
               value={framework}
               onChange={onFrameworkChange}
               label="Framework"
@@ -260,6 +289,16 @@ export function Findings({
                             NEW
                           </span>
                         )}
+                        {dispositions[f.id]?.status === "fixed" && (
+                          <span className="rounded bg-red-100 px-1 text-[10px] font-bold text-red-700 dark:bg-red-900/50 dark:text-red-300" title="Marked fixed but still detected — a regression">
+                            REGRESSED
+                          </span>
+                        )}
+                        {dispositions[f.id] && dispositions[f.id].status !== "fixed" && (
+                          <span className={`rounded px-1 text-[10px] font-semibold ${DISPOSITION_CHIP[dispositions[f.id].status]}`}>
+                            {DISPOSITION_LABEL[dispositions[f.id].status]}
+                          </span>
+                        )}
                         <span className="line-clamp-1 font-mono text-xs">{f.title}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
@@ -289,14 +328,14 @@ export function Findings({
 
       {/* Detail pane */}
       <div className="lg:col-span-2">
-        {selected ? <Detail f={selected} isNew={newSet.has(selected.id)} origin={origin} canExplain={canExplain} explainState={explainState[selected.id]} onExplain={() => handleExplain(selected)} remediateState={remediateState[selected.id]} onRemediate={() => handleRemediate(selected)} canSuppress={canSuppress} onSuppress={onSuppress} /> : null}
+        {selected ? <Detail f={selected} isNew={newSet.has(selected.id)} origin={origin} canExplain={canExplain} explainState={explainState[selected.id]} onExplain={() => handleExplain(selected)} remediateState={remediateState[selected.id]} onRemediate={() => handleRemediate(selected)} canSuppress={canSuppress} onSuppress={onSuppress} disposition={dispositions[selected.id]} canDispose={canDispose} onDispose={(s, n) => setDisposition(selected.id, s, n)} onClearDispose={() => clearDisposition(selected.id)} /> : null}
       </div>
     </div>
     </div>
   );
 }
 
-function Detail({ f, isNew, origin, canExplain, explainState, onExplain, remediateState, onRemediate, canSuppress, onSuppress }: {
+function Detail({ f, isNew, origin, canExplain, explainState, onExplain, remediateState, onRemediate, canSuppress, onSuppress, disposition, canDispose, onDispose, onClearDispose }: {
   f: Finding;
   isNew: boolean;
   origin?: { targetId?: string; gitUrl?: string; commit?: string };
@@ -307,6 +346,10 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain, remedia
   onRemediate: () => void;
   canSuppress?: boolean;
   onSuppress?: (ruleId: string) => void;
+  disposition?: Disposition;
+  canDispose?: boolean;
+  onDispose: (status: DispositionStatus, note: string) => void;
+  onClearDispose: () => void;
 }) {
   // Forge deep link logic
   let forgeLink = null;
@@ -399,6 +442,10 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain, remedia
           )}
           <span className="text-xs text-gray-400">{(f.tools ?? [f.tool]).join(", ")}</span>
         </div>
+
+        {/* Workflow disposition (operator+): durable human status, keyed by
+            fingerprint so it follows this finding across re-scans. */}
+        <DispositionControl disposition={disposition} canDispose={canDispose} onDispose={onDispose} onClear={onClearDispose} />
 
         {/* Code Frame */}
         {f.location.snippet && (
@@ -587,6 +634,83 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain, remedia
         )}
       </div>
     </Panel>
+  );
+}
+
+// DispositionControl: set/clear a finding's durable workflow status + note.
+// Read-only (a chip) for viewers; interactive for operator+. The note is a
+// justification (accepted-risk) or context; it is audited by status, not text.
+const DISPO_OPTIONS: DispositionStatus[] = ["in-progress", "accepted-risk", "false-positive", "fixed"];
+function DispositionControl({ disposition, canDispose, onDispose, onClear }: {
+  disposition?: Disposition;
+  canDispose?: boolean;
+  onDispose: (status: DispositionStatus, note: string) => void;
+  onClear: () => void;
+}) {
+  const [note, setNote] = useState(disposition?.note ?? "");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setNote(disposition?.note ?? ""); }, [disposition?.findingId, disposition?.status]);
+
+  const current = disposition?.status ?? "open";
+  const regressed = disposition?.status === "fixed";
+  const act = async (fn: () => Promise<void> | void) => { setBusy(true); try { await fn(); } finally { setBusy(false); } };
+
+  if (!canDispose) {
+    // Viewer: read-only status.
+    if (!disposition) return null;
+    return (
+      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-gray-800 dark:bg-gray-800/50">
+        <span className="text-gray-500">Status: </span>
+        <span className={`rounded px-1.5 py-0.5 font-semibold ${DISPOSITION_CHIP[disposition.status]}`}>{DISPOSITION_LABEL[disposition.status]}</span>
+        {disposition.note && <p className="mt-1 whitespace-pre-wrap break-words text-gray-600 dark:text-gray-300">{disposition.note}</p>}
+        <p className="mt-1 text-[10px] text-gray-400">{disposition.actor}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${regressed ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/20" : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50"}`}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-semibold text-gray-500">Status</span>
+        <button
+          onClick={() => act(onClear)}
+          disabled={busy}
+          className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${current === "open" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"}`}
+        >
+          Open
+        </button>
+        {DISPO_OPTIONS.map((s) => (
+          <button
+            key={s}
+            onClick={() => act(() => onDispose(s, note))}
+            disabled={busy}
+            className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${current === s ? DISPOSITION_CHIP[s] + " ring-1 ring-current" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"}`}
+          >
+            {DISPOSITION_LABEL[s]}
+          </button>
+        ))}
+        {regressed && <span className="ml-auto text-[10px] font-bold text-red-600 dark:text-red-400" title="Marked fixed but still detected in this run">⟳ REGRESSION</span>}
+      </div>
+      <div className="mt-2 flex items-start gap-2">
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Note / justification (saved with the status)"
+          rows={2}
+          className="w-full resize-y rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+        />
+        {disposition && note !== (disposition.note ?? "") && (
+          <button
+            onClick={() => act(() => onDispose(disposition.status, note))}
+            disabled={busy}
+            className="shrink-0 rounded bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            Save note
+          </button>
+        )}
+      </div>
+      {disposition && <p className="mt-1 text-[10px] text-gray-400">by {disposition.actor}</p>}
+    </div>
   );
 }
 
