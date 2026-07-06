@@ -5,74 +5,168 @@
       "language": "Python",
       "file": "python/vuln.py",
       "canaries": [
-        { "cwe": "CWE-78", "name": "OS command injection" },
-        { "cwe": "CWE-327", "name": "Weak hash (MD5)" }
+        {
+          "cwe": "CWE-78",
+          "name": "OS command injection"
+        },
+        {
+          "cwe": "CWE-327",
+          "name": "Weak hash (MD5)"
+        }
       ]
     },
     {
       "language": "JavaScript",
       "file": "js/vuln.js",
       "canaries": [
-        { "cwe": "CWE-78", "name": "OS command injection" },
-        { "cwe": "CWE-79", "name": "Cross-site scripting" },
-        { "cwe": "CWE-95", "name": "Code injection (eval)" }
+        {
+          "cwe": "CWE-78",
+          "name": "OS command injection"
+        },
+        {
+          "cwe": "CWE-79",
+          "name": "Cross-site scripting"
+        },
+        {
+          "cwe": "CWE-95",
+          "name": "Code injection (eval)"
+        }
       ]
     },
     {
       "language": "TypeScript",
       "file": "ts/vuln.ts",
       "canaries": [
-        { "cwe": "CWE-78", "name": "OS command injection" }
+        {
+          "cwe": "CWE-78",
+          "name": "OS command injection"
+        }
       ]
     },
     {
       "language": "Go",
       "file": "go/main.go",
       "canaries": [
-        { "cwe": "CWE-89", "name": "SQL injection" },
-        { "cwe": "CWE-328", "name": "Weak hash (MD5)" }
+        {
+          "cwe": "CWE-89",
+          "name": "SQL injection"
+        },
+        {
+          "cwe": "CWE-328",
+          "name": "Weak hash (MD5)"
+        }
       ]
     },
     {
       "language": "Java",
       "file": "java/Vuln.java",
       "canaries": [
-        { "cwe": "CWE-89", "name": "SQL injection" },
-        { "cwe": "CWE-502", "name": "Insecure deserialization" }
+        {
+          "cwe": "CWE-89",
+          "name": "SQL injection"
+        },
+        {
+          "cwe": "CWE-502",
+          "name": "Insecure deserialization"
+        }
       ]
     },
     {
       "language": "C#",
       "file": "csharp/vuln.cs",
       "canaries": [
-        { "cwe": "CWE-89", "name": "SQL injection" }
+        {
+          "cwe": "CWE-89",
+          "name": "SQL injection"
+        }
       ]
     },
     {
       "language": "Ruby",
       "file": "ruby/vuln.rb",
       "canaries": [
-        { "cwe": "CWE-89", "name": "SQL injection" },
-        { "cwe": "CWE-79", "name": "Cross-site scripting" },
-        { "cwe": "CWE-94", "name": "Code injection" },
-        { "cwe": "CWE-502", "name": "Insecure deserialization" }
+        {
+          "cwe": "CWE-89",
+          "name": "SQL injection"
+        },
+        {
+          "cwe": "CWE-79",
+          "name": "Cross-site scripting"
+        },
+        {
+          "cwe": "CWE-94",
+          "name": "Code injection"
+        },
+        {
+          "cwe": "CWE-502",
+          "name": "Insecure deserialization"
+        }
       ]
     },
     {
       "language": "PHP",
       "file": "php/vuln.php",
       "canaries": [
-        { "cwe": "CWE-78", "name": "OS command injection" },
-        { "cwe": "CWE-79", "name": "Cross-site scripting" },
-        { "cwe": "CWE-89", "name": "SQL injection" },
-        { "cwe": "CWE-94", "name": "Code injection" }
+        {
+          "cwe": "CWE-78",
+          "name": "OS command injection"
+        },
+        {
+          "cwe": "CWE-79",
+          "name": "Cross-site scripting"
+        },
+        {
+          "cwe": "CWE-89",
+          "name": "SQL injection"
+        },
+        {
+          "cwe": "CWE-94",
+          "name": "Code injection"
+        }
       ]
     },
     {
       "language": "Kotlin",
       "file": "kotlin/Vuln.kt",
       "canaries": [
-        { "cwe": "CWE-328", "name": "Weak hash (MD5)" }
+        {
+          "cwe": "CWE-328",
+          "name": "Weak hash (MD5)"
+        }
+      ]
+    },
+    {
+      "language": "Rust",
+      "file": "rust/vuln.rs",
+      "canaries": [
+        {
+          "cwe": "CWE-807",
+          "name": "Reliance on untrusted input in a security decision"
+        },
+        {
+          "cwe": "CWE-242",
+          "name": "Use of inherently dangerous function (unsafe)"
+        }
+      ]
+    },
+    {
+      "language": "Scala",
+      "file": "scala/Vuln.scala",
+      "canaries": [
+        {
+          "cwe": "CWE-89",
+          "name": "SQL injection (tainted interpolation)"
+        }
+      ]
+    },
+    {
+      "language": "C",
+      "file": "c/vuln.c",
+      "canaries": [
+        {
+          "cwe": "CWE-676",
+          "name": "Use of dangerous function (gets)"
+        }
       ]
     }
   ]

@@ -73,6 +73,12 @@ var sastExtensions = map[string]bool{
 	".rb":   true,
 	".php":  true,
 	".kt":   true, ".kts": true,
+	// Cloud-posture session: languages that landed with proven plants.
+	".rs":    true,              // rust (p/rust)
+	".scala": true, ".sc": true, // scala (p/scala)
+	".c": true, ".h": true, //nolint // c (p/security-audit's C rules)
+	// Swift (.swift) and Elixir (.ex/.exs) did NOT land — their packs caught
+	// nothing plantable — so they stay in unsupportedSourceExtensions below.
 }
 
 // iacConfigExtensions / iacConfigNames: files the IaC scanners
@@ -96,10 +102,13 @@ var iacConfigNames = map[string]bool{
 // profile pack analyzes. These get secrets-only coverage and the accounting
 // says so — this is the "we did NOT statically analyze this" list.
 var unsupportedSourceExtensions = map[string]bool{
-	".c": true, ".h": true, ".cpp": true, ".cc": true, ".cxx": true, ".hpp": true,
-	".rs": true, ".swift": true, ".scala": true, ".sc": true,
-	".m": true, ".mm": true, ".pl": true, ".pm": true, ".lua": true,
-	".dart": true, ".ex": true, ".exs": true, ".erl": true, ".hrl": true,
+	// .c/.h/.rs/.scala/.sc moved to sastExtensions this session (landed
+	// languages). .cpp/.cc/etc stay unsupported: C++ is a different rule set
+	// than the C rules that landed.
+	".cpp": true, ".cc": true, ".cxx": true, ".hpp": true,
+	".swift": true, // did not land
+	".m":     true, ".mm": true, ".pl": true, ".pm": true, ".lua": true,
+	".dart": true, ".ex": true, ".exs": true, ".erl": true, ".hrl": true, // elixir/erlang did not land
 	".clj": true, ".cljs": true, ".hs": true, ".ml": true, ".mli": true,
 	".fs": true, ".fsx": true, ".r": true, ".jl": true, ".nim": true,
 	".zig": true, ".sol": true, ".groovy": true, ".sh": true, ".bash": true,
