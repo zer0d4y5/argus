@@ -12,6 +12,7 @@ import {
   Target,
 } from "./api";
 import { Loading, ErrorNote, Wordmark, EmptyState } from "./components";
+import { CommandPalette, Command } from "./CommandPalette";
 import { useToast, useConfirm } from "./toast";
 import { fmtTime } from "./theme";
 import { Overview } from "./views/Overview";
@@ -113,6 +114,7 @@ export function App() {
   const [findingsFramework, setFindingsFramework] = useState<string>(initial.fw);
   const [findingsSeverity, setFindingsSeverity] = useState<string>(initial.sev);
   const [findingsStatus, setFindingsStatus] = useState<string>(initial.status);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Keep the URL in lockstep with the view: pushState on navigation-significant
   // changes (tab/target/run) so Back works, replaceState for incidental filter
@@ -149,6 +151,19 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
+
+  // Cmd/Ctrl-K opens the command palette from anywhere; it toggles so the same
+  // chord closes it. Ignored while typing in a field other than to open it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Session expiry mid-use surfaces as a 401 on any call: drop back to the
   // login page instead of a dead error screen.
@@ -375,8 +390,92 @@ export function App() {
   ];
   const activeTab = tabs.some((t) => t.id === tab) ? tab : "overview";
 
+  // Command palette actions, rebuilt from live state (tabs, targets, filters).
+  // Picking a filter or target drops you into Findings, where it takes effect.
+  const commands: Command[] = [
+    ...tabs.map((t) => ({
+      id: `nav-${t.id}`,
+      group: "Go to",
+      label: t.label,
+      keywords: "view tab navigate",
+      run: () => setTab(t.id),
+    })),
+    {
+      id: "target-all",
+      group: "Target",
+      label: "All targets (portfolio)",
+      keywords: "scope overview aggregate",
+      run: () => {
+        setActiveTarget(ALL_TARGETS);
+        setTab("overview");
+      },
+    },
+    {
+      id: "target-repo",
+      group: "Target",
+      label: "This repo",
+      keywords: "scope served",
+      run: () => {
+        setActiveTarget("");
+        setTab("findings");
+      },
+    },
+    ...targets.map((t) => ({
+      id: `target-${t.id}`,
+      group: "Target",
+      label: `${t.name}${t.type === "cloud" ? " (cloud)" : t.type === "git" ? " (git)" : ""}`,
+      keywords: "scope",
+      run: () => {
+        setActiveTarget(t.id);
+        setTab("findings");
+      },
+    })),
+    ...(["critical", "high", "medium", "low"] as const).map((sev) => ({
+      id: `sev-${sev}`,
+      group: "Filter severity",
+      label: `Severity: ${sev}`,
+      keywords: "risk",
+      run: () => {
+        setFindingsSeverity(sev);
+        setTab("findings");
+      },
+    })),
+    ...(["open", "in-progress", "accepted-risk", "false-positive", "fixed"] as const).map((st) => ({
+      id: `status-${st}`,
+      group: "Filter status",
+      label: `Status: ${st}`,
+      keywords: "disposition workflow",
+      run: () => {
+        setFindingsStatus(st);
+        setTab("findings");
+      },
+    })),
+    {
+      id: "filters-clear",
+      group: "Filter status",
+      label: "Clear all filters",
+      keywords: "reset severity status framework",
+      run: () => {
+        setFindingsSeverity("all");
+        setFindingsStatus("all");
+        setFindingsFramework("all");
+      },
+    },
+    {
+      id: "toggle-theme",
+      group: "Actions",
+      label: dark ? "Switch to light theme" : "Switch to dark theme",
+      keywords: "dark mode appearance",
+      run: () => setDark((d) => !d),
+    },
+    ...(user
+      ? [{ id: "sign-out", group: "Actions", label: "Sign out", keywords: "logout", run: handleLogout }]
+      : []),
+  ];
+
   return (
     <div className="mx-auto min-h-full max-w-7xl px-4 pb-16">
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
       <header className="sticky top-0 z-10 -mx-4 mb-4 border-b border-gray-200 bg-gray-50/90 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-950/90">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
@@ -437,8 +536,16 @@ export function App() {
               </div>
             )}
             <button
+              onClick={() => setPaletteOpen(true)}
+              className="hidden items-center gap-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-500 hover:bg-gray-200 sm:flex dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              title="Command palette"
+            >
+              <span>Search</span>
+              <kbd className="font-mono text-[10px]">⌘K</kbd>
+            </button>
+            <button
               onClick={() => setDark((d) => !d)}
-              className="rounded-lg border border-gray-300 px-2 py-1 text-sm dark:border-gray-700"
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-700"
               title="Toggle theme"
             >
               {dark ? "☀️" : "🌙"}
