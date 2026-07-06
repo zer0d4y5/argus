@@ -29,16 +29,34 @@ Same ethos as the OWASP rollup (`internal/owasp`), generalized:
 |---|---|---|---|
 | `ASVS` | OWASP ASVS 4.0.3 | SAST, SECRET, SCA | CWE; category for SECRET/SCA |
 | `PCI-DSS` | PCI DSS v4.0 | SAST, SECRET, SCA, IAC | CWE; category for SECRET/SCA/IAC |
-| `CIS-AWS` | CIS AWS Foundations Benchmark v1.5.0 | IAC | rule IDs / families → benchmark section |
+| `CIS-AWS` | CIS AWS Foundations Benchmark v1.5.0 | IAC, CLOUD | IAC: rule IDs / families → benchmark section. CLOUD: prowler check IDs → requirement (prowler's own mapping, see below) |
 | `CIS-DOCKER` | CIS Docker Benchmark v1.6.0 | IAC | rule families → benchmark section |
 | `CIS-K8S` | CIS Kubernetes Benchmark v1.8.0 | IAC | rule IDs → benchmark section |
 
-CIS mapping is deliberately at **section granularity** (e.g. `CIS-AWS:2.1`
-"Simple Storage Service (S3)", not a sub-control number): checkov/trivy rules
-and CIS sub-controls do not line up one-to-one across benchmark versions, and
-claiming an exact sub-control we did not verify would be overclaiming. A
-section-level claim ("this finding violates the S3 storage section of the
-benchmark") is the strongest statement the rule text supports.
+CIS mapping for **IaC findings** is deliberately at **section granularity**
+(e.g. `CIS-AWS:2.1` "Simple Storage Service (S3)", not a sub-control
+number): checkov/trivy rules and CIS sub-controls do not line up one-to-one
+across benchmark versions, and claiming an exact sub-control we did not
+verify would be overclaiming. A section-level claim ("this finding violates
+the S3 storage section of the benchmark") is the strongest statement the
+rule text supports.
+
+CIS mapping for **CLOUD findings** (cloud-posture session) is at
+**requirement granularity** (`CIS-AWS:1.20`), because the mapping is not
+ours: the check→requirement rules were **materialized verbatim from prowler
+5.31's embedded CIS v1.5 framework data** (`cis_1.5_aws.json`, 63
+requirements, all check-mapped) — a deterministic passthrough of the
+engine's own version-pinned mapping, never invented here. Prowler's CIS
+version (1.5) matches our pinned data file (1.5.0) exactly, so no
+intersection loss applies; `TestCISPassthroughMatchesProwler` proves on the
+recorded fixture that the engine reproduces prowler's own per-finding
+mapping. Sections 1 (IAM) and 4 (Monitoring) left `notAssessable`: they
+were unassessable for *IaC-only* scanning, and live posture scanning is
+exactly what assesses them. Cloud findings scope by provider
+(`providerScope: ["aws"]` + `meta.provider`) rather than rule-ID prefix —
+an Azure posture finding is *out of scope* for the AWS benchmark, never
+"unmapped". On a prowler upgrade, regenerate the materialized rules from
+the new embedded framework data and re-run the passthrough test.
 
 ## Data format
 
