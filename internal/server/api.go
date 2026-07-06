@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -76,13 +77,21 @@ type RunsResponse struct {
 
 // SummaryResponse is GET /api/summary — the Overview (GRC) payload.
 type SummaryResponse struct {
-	RunCount   int            `json:"runCount"`
-	LatestID   string         `json:"latestId"`
-	CreatedAt  string         `json:"createdAt"`
-	Total      int            `json:"total"`
-	BySeverity map[string]int `json:"bySeverity"`
-	ByCategory map[string]int `json:"byCategory"`
-	OWASP      []owasp.Bucket `json:"owasp"`
+	RunCount int `json:"runCount"`
+	// TotalTargets and ScannedTargets are set only for the portfolio aggregate:
+	// how many targets the portfolio spans, and how many contributed a readable
+	// latest run. ScannedTargets < TotalTargets means some targets are never
+	// scanned or their latest run could not be read, so the portfolio is not a
+	// clean pass over everything. Unreadable > 0 forces the gate to fail rather
+	// than let a target with real findings silently vanish into a green board.
+	TotalTargets   int            `json:"totalTargets,omitempty"`
+	ScannedTargets int            `json:"scannedTargets,omitempty"`
+	LatestID       string         `json:"latestId"`
+	CreatedAt      string         `json:"createdAt"`
+	Total          int            `json:"total"`
+	BySeverity     map[string]int `json:"bySeverity"`
+	ByCategory     map[string]int `json:"byCategory"`
+	OWASP          []owasp.Bucket `json:"owasp"`
 	// Compliance is the per-framework control rollup for the latest run,
 	// computed report-side like OWASP (stored run files are never rewritten).
 	Compliance []compliance.FrameworkSummary `json:"compliance"`
@@ -275,11 +284,13 @@ func (s *Server) buildSummary(store runstore.Store) (SummaryResponse, error) {
 		})
 	}
 
-	// Latest run drives the posture panels.
+	// Latest run drives the posture panels. If it can't be read, surface the
+	// error rather than returning a zero-value (passing) gate — a corrupt latest
+	// run must not read as a clean board.
 	latest := runs[len(runs)-1]
 	doc, err := store.Load(latest.ID)
 	if err != nil {
-		return resp, nil
+		return SummaryResponse{}, fmt.Errorf("load latest run %s: %w", latest.ID, err)
 	}
 	resp.LatestID = latest.ID
 	resp.CreatedAt = latest.CreatedAt.Format(rfc3339)
@@ -305,24 +316,46 @@ func (s *Server) buildSummary(store runstore.Store) (SummaryResponse, error) {
 func (s *Server) buildAggregateSummary() (SummaryResponse, error) {
 	resp := SummaryResponse{BySeverity: map[string]int{}, ByCategory: map[string]int{}, OWASP: owasp.Rollup(nil), Compliance: complianceSummary(nil), Trend: []TrendPoint{}}
 	var all []model.Finding
-	disp := map[string]disposition.Record{}
+	rollup := map[string]int{
+		disposition.StatusOpen: 0, disposition.StatusInProgress: 0,
+		disposition.StatusAcceptedRisk: 0, disposition.StatusFalsePositive: 0,
+		disposition.StatusFixed: 0, "regression": 0,
+	}
 	var latest time.Time
-	for _, store := range s.storesForAggregate() {
+	// The gate and disposition rollup are folded PER TARGET, not over the union.
+	// Fingerprints carry no target identity, so a risk accepted on one target
+	// would otherwise suppress an identical-fingerprint finding on another, and
+	// the portfolio gate must fail if ANY target fails.
+	gateFailed := false
+	suppressed := 0
+	unreadable := 0
+	stores := s.storesForAggregate()
+	resp.TotalTargets = len(stores)
+	for _, store := range stores {
 		runs, err := store.List()
-		if err != nil || len(runs) == 0 {
+		if err != nil {
+			unreadable++ // a store we can't read must not silently pass
 			continue
 		}
-		resp.RunCount += len(runs)
+		if len(runs) == 0 {
+			continue // a never-scanned target: counted in TotalTargets, not scanned
+		}
 		r := runs[len(runs)-1]
 		doc, err := store.Load(r.ID)
 		if err != nil {
+			unreadable++ // corrupt latest run: don't drop the target into a green board
 			continue
 		}
+		resp.ScannedTargets++
+		resp.RunCount += len(runs)
 		all = append(all, doc.Findings...)
-		if d, err := dispositionStore(store).All(); err == nil {
-			for k, v := range d {
-				disp[k] = v
-			}
+
+		storeDisp, _ := dispositionStore(store).All()
+		g := gateFor(doc.Findings, storeDisp, s.gate, s.gateName)
+		gateFailed = gateFailed || g.Failed
+		suppressed += g.Suppressed
+		for k, v := range dispositionRollup(storeDisp, doc.Findings) {
+			rollup[k] += v
 		}
 		if r.CreatedAt.After(latest) {
 			latest = r.CreatedAt
@@ -340,9 +373,9 @@ func (s *Server) buildAggregateSummary() (SummaryResponse, error) {
 	resp.OWASP = owasp.Rollup(all)
 	resp.Compliance = complianceSummary(all)
 	resp.RiskBands = riskBands(all)
-	resp.Gate = gateFor(all, disp, s.gate, s.gateName)
+	resp.Gate = GateInfo{Threshold: s.gateName, Failed: gateFailed || unreadable > 0, Suppressed: suppressed}
 	resp.Verdicts = countVerdicts(all)
-	resp.Dispositions = dispositionRollup(disp, all)
+	resp.Dispositions = rollup
 	return resp, nil
 }
 

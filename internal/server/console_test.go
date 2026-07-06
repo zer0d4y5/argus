@@ -165,6 +165,18 @@ func TestAuthzMatrix(t *testing.T) {
 		{"GET", "/api/runs/2026-01-01T00-00-00Z", 401, pass, pass, pass},
 
 		{"GET", "/api/frameworks", 401, pass, pass, pass},
+		{"GET", "/api/mitigations", 401, pass, pass, pass},
+
+		{"DELETE", "/api/runs/2026-01-01T00-00-00Z", 401, 403, 403, pass}, // prune a run: admin
+
+		// LLM seams and finding-workflow mutations: operator+, audited.
+		{"POST", "/api/remediate", 401, 403, pass, pass},
+		{"POST", "/api/validate", 401, 403, pass, pass},
+		{"POST", "/api/cloud/posture-summary", 401, 403, pass, pass},
+		{"POST", "/api/dispositions", 401, 403, pass, pass},
+		{"POST", "/api/dispositions/bulk", 401, 403, pass, pass},
+		{"DELETE", "/api/dispositions/deadbeef", 401, 403, pass, pass},
+		{"GET", "/api/cloud/profiles", 401, 403, 403, pass}, // admin-only registration form
 
 		{"GET", "/api/targets", 401, pass, pass, pass},
 		{"POST", "/api/targets", 401, 403, 403, pass},

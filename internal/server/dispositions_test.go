@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -177,5 +179,60 @@ func TestAggregateSummary(t *testing.T) {
 	}
 	if agg.BySeverity["high"] != scoped.BySeverity["high"] {
 		t.Errorf("aggregate severity mix diverged: %v vs %v", agg.BySeverity, scoped.BySeverity)
+	}
+}
+
+// TestAggregateDeduplicatesServedRoot: registering the served repo itself as a
+// target must not double-count its findings in the portfolio. Its run store
+// resolves to the same directory as the served store and is collapsed (F1).
+func TestAggregateDeduplicatesServedRoot(t *testing.T) {
+	f := newConsole(t, nil)
+	seedRun(t, f.dir)
+	if _, err := f.registry.Add("dupe", f.dir, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	oper := f.mustLogin("oscar")
+
+	var scoped, agg SummaryResponse
+	json.Unmarshal(f.do("GET", "/api/summary", "", oper).Body.Bytes(), &scoped)
+	json.Unmarshal(f.do("GET", "/api/summary?target=@all", "", oper).Body.Bytes(), &agg)
+	if scoped.Total == 0 {
+		t.Fatal("served summary is empty; fixture seeding failed")
+	}
+	if agg.Total != scoped.Total {
+		t.Errorf("served root registered as a target double-counted: agg=%d scoped=%d", agg.Total, scoped.Total)
+	}
+}
+
+// TestAggregateCorruptRunFailsClosed: a target whose latest run cannot be read
+// must not silently vanish into a passing portfolio. The gate fails and the
+// scanned/total counts show the gap (F2).
+func TestAggregateCorruptRunFailsClosed(t *testing.T) {
+	f := newConsole(t, nil)
+	seedRun(t, f.dir) // served store: one readable HIGH run
+
+	// A second dir target with its own run, which we then corrupt.
+	other := t.TempDir()
+	seedRun(t, other)
+	if _, err := f.registry.Add("other", other, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	runsDir := filepath.Join(other, ".appsec", "runs")
+	entries, err := os.ReadDir(runsDir)
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("no run files to corrupt in %s: %v", runsDir, err)
+	}
+	if err := os.WriteFile(filepath.Join(runsDir, entries[0].Name()), []byte("{ not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	oper := f.mustLogin("oscar")
+	var agg SummaryResponse
+	json.Unmarshal(f.do("GET", "/api/summary?target=@all", "", oper).Body.Bytes(), &agg)
+	if !agg.Gate.Failed {
+		t.Error("aggregate gate passed despite an unreadable target run; must fail closed")
+	}
+	if agg.ScannedTargets >= agg.TotalTargets {
+		t.Errorf("scanned=%d total=%d: an unreadable target should widen the gap", agg.ScannedTargets, agg.TotalTargets)
 	}
 }

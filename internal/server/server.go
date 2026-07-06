@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -219,7 +220,43 @@ func (s *Server) storesForAggregate() []runstore.Store {
 			stores = append(stores, runstore.ForRepo(s.targets.Root(t)))
 		}
 	}
-	return stores
+	return dedupeStores(stores)
+}
+
+// dedupeStores drops run stores that resolve to the same directory, so a target
+// registered at the served root (or via a symlink, a trailing slash, or a
+// case-differing path on a case-insensitive filesystem) is not counted twice in
+// the portfolio aggregate. Identity is the symlink-resolved path, with an
+// os.SameFile check to catch aliases a string compare misses.
+func dedupeStores(stores []runstore.Store) []runstore.Store {
+	out := make([]runstore.Store, 0, len(stores))
+	seen := map[string]bool{}
+	var kept []os.FileInfo
+	for _, st := range stores {
+		canon := st.Dir
+		if resolved, err := filepath.EvalSymlinks(st.Dir); err == nil {
+			canon = resolved
+		}
+		if seen[canon] {
+			continue
+		}
+		if fi, err := os.Stat(canon); err == nil {
+			dup := false
+			for _, k := range kept {
+				if os.SameFile(fi, k) {
+					dup = true
+					break
+				}
+			}
+			if dup {
+				continue
+			}
+			kept = append(kept, fi)
+		}
+		seen[canon] = true
+		out = append(out, st)
+	}
+	return out
 }
 
 func (s *Server) handleRuns(w http.ResponseWriter, r *http.Request) {
