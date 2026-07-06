@@ -19,8 +19,8 @@ and are overridable per repo via `semgrep_rulesets:`.
 | Profile | semgrep packs | Intended use | Relative cost |
 |---|---|---|---|
 | `fast` | `p/ci` | tight PR gates, low noise | fastest |
-| `standard` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin` | default — broad multi-language audit | ~1 pack-set, moderate |
-| `max` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/default`, `p/secrets`, `p/gosec`, `p/nodejsscan`, `p/react`, `p/command-injection`, `p/sql-injection`, `p/xss`, `p/jwt`, `p/insecure-transport`, `p/bandit`, `p/findsecbugs`, `p/security-code-scan`, `p/mobsfscan`, `p/phpcs-security-audit` | deep audit; recall over noise (triage handles FPs) | highest (adds p/default) |
+| `standard` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/rust`, `p/scala` | default — broad multi-language audit | ~1 pack-set, moderate |
+| `max` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/rust`, `p/scala`, `p/default`, `p/secrets`, `p/gosec`, `p/nodejsscan`, `p/react`, `p/command-injection`, `p/sql-injection`, `p/xss`, `p/jwt`, `p/insecure-transport`, `p/bandit`, `p/findsecbugs`, `p/security-code-scan`, `p/mobsfscan`, `p/phpcs-security-audit` | deep audit; recall over noise (triage handles FPs) | highest (adds p/default) |
 
 ## Language × weakness coverage
 
@@ -37,6 +37,9 @@ and are overridable per repo via `semgrep_rulesets:`.
 | Ruby | ✅ | · | ✅ | ✅ | ✅ | · |
 | PHP | ✅ | ✅ | ✅ | ✅ | · | · |
 | Kotlin | · | ◐ | · | · | · | ✅ |
+| Rust | · | · | · | · | · | · |
+| Scala | ✅ | · | · | · | · | · |
+| C | · | · | · | · | · | · |
 
 ## Canaries (regression guard)
 
@@ -51,6 +54,9 @@ Each is asserted detected under `standard` by `TestPolyglotCoverage`:
 - **Ruby** — SQL injection (CWE-89); Cross-site scripting (CWE-79); Code injection (CWE-94); Insecure deserialization (CWE-502)
 - **PHP** — OS command injection (CWE-78); Cross-site scripting (CWE-79); SQL injection (CWE-89); Code injection (CWE-94)
 - **Kotlin** — Weak hash (MD5) (CWE-328)
+- **Rust** — Reliance on untrusted input in a security decision (CWE-807); Use of inherently dangerous function (unsafe) (CWE-242)
+- **Scala** — SQL injection (tainted interpolation) (CWE-89)
+- **C** — Use of dangerous function (gets) (CWE-676)
 
 ## Known gaps (honest accounting)
 
@@ -60,9 +66,22 @@ None among the labeled classes — every weakness class shown is caught by at le
 
 - **semgrep (SAST)** — the breadth engine. `standard` runs a security-audit +
   OWASP-Top-Ten base plus a per-language pack for Python, JS, TS, Go, Java, C#,
-  Ruby, PHP, and Kotlin. `max` adds `p/default`, `p/secrets`, `p/gosec`, and
-  framework/category packs, which is what lifts Kotlin command injection,
-  Python string-format SQLi, and TS weak-crypto into coverage (see ◐ cells).
+  Ruby, PHP, Kotlin, **Rust** (`p/rust`), and **Scala** (`p/scala`). `max` adds
+  `p/default`, `p/secrets`, `p/gosec`, and framework/category packs, which is
+  what lifts Kotlin command injection, Python string-format SQLi, and TS
+  weak-crypto into coverage (see ◐ cells).
+- **New languages (cloud-posture session), honest accounting.** Five were
+  evaluated against the earn-your-slot bar (a pack lands only with a fixture
+  plant it detects). **Rust** and **Scala** landed with dedicated packs
+  (`p/rust`: untrusted-input CWE-807, unsafe-usage CWE-242; `p/scala`:
+  tainted-sql-string CWE-89). **C** landed too, but through
+  `p/security-audit`'s own C rules (`insecure-use-gets-fn`, CWE-676) — a
+  dedicated `p/c` added nothing over it on the plants, so it was NOT added.
+  **Swift** and **Elixir** did NOT land: `p/swift` and `p/elixir` (thin
+  registry packs) caught none of their fixture plants even with `p/default`;
+  their fixtures remain as `PLANT-GAP` documentation and `.swift`/`.ex` stay
+  "unsupported source" in skip accounting. Nothing is claimed that a scan
+  did not prove.
 - **gitleaks (SECRET)** — default ruleset (100+ credential patterns) is
   sufficient; secret material is redacted before it ever reaches a report or an
   LLM. No per-language tuning needed — secrets are language-agnostic.
@@ -105,6 +124,29 @@ Wide rulesets raise false-positive volume — that is the intended tradeoff. The
 Phase 2 AI triage layer is the answer: every finding gets a local-LLM verdict and
 a 0–10 risk score, so `standard`/`max` breadth stays actionable instead of
 drowning the reviewer. Breadth + triage is the pairing the demo shows.
+
+## Noise metric (correlation collapse, measured)
+
+Wide profiles flag one weakness through several overlapping rules; the
+same-tool collapse in `internal/correlate` merges those into one finding
+(same tool + same file + overlapping range + shared CWE + different rule
+IDs), unioning the evidence and recording absorbed rule IDs in
+`meta.alsoRuleIds`. Collapse is NOT suppression: `TestProfileRecall`
+asserts the plant catch set is identical before and after correlation at
+every profile. Counts below are from the live scan that generated this file.
+
+| Profile | Findings pre-correlate | Post-correlate | Duplicates collapsed | Findings per plant (post) | Safe-code false flags |
+|---|---:|---:|---:|---:|---:|
+| `standard` | 36 | 33 | 3 | 0.8 | 0/7 |
+| `max` | 90 | 62 | 28 | 1.6 | 1/7 |
+
+**Safe-code false flags** is the precision metric (locked decision 2): the
+number of labeled `PLANT-FP` safe-code plants (parameterized SQL, constant
+shell args, strong hashes, vendor example keys in tests) a profile wrongly
+flagged for the class they resemble. It is MEASURED, not asserted, and not
+suppressed — a deterministic rule never drops a finding for looking like an
+FP; triage (the LLM oracle) and `--exclude-fp` are the only removal paths.
+
 
 ## Infrastructure-as-Code coverage
 

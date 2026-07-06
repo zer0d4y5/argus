@@ -30,5 +30,8 @@ def safe_parse():
     result = yaml.safe_load(data)
     return str(result)
 
+# PLANT(FP): hardcoded /tmp path, but a constant used read-only at startup (CWE-377 not exploitable here)
+LOG_PATH = "/tmp/app.log"
+
 if __name__ == '__main__':
     app.run(debug=True)

@@ -2,9 +2,11 @@ package coverage
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/leaky-hub/appsec/internal/correlate"
 	"github.com/leaky-hub/appsec/internal/scanner"
 )
 
@@ -64,6 +66,24 @@ func TestProfileRecall(t *testing.T) {
 		}
 		caughtBy[prof] = CaughtPlants(plants, DetectedCWEs(findings))
 		t.Logf("%s: %d/%d plants caught", prof, len(caughtBy[prof]), len(plants))
+
+		// No-suppression proof for the noise collapse (locked decision 1):
+		// correlation is collapse, never suppression, so the plant catch set
+		// must be IDENTICAL before and after Correlate at every profile. A
+		// plant missing here means a merge swallowed a real detection.
+		correlated := correlate.Correlate(findings)
+		after := CaughtPlants(plants, DetectedCWEs(correlated))
+		for id := range caughtBy[prof] {
+			if !after[id] {
+				t.Errorf("SUPPRESSED: plant %s caught by %s pre-correlate but gone post-correlate", id, prof)
+			}
+		}
+		for id := range after {
+			if !caughtBy[prof][id] {
+				t.Errorf("plant %s appears only post-correlate under %s — impossible unless correlation fabricates evidence", id, prof)
+			}
+		}
+		t.Logf("%s noise: %d findings pre-correlate, %d post-correlate, catch set identical", prof, len(findings), len(correlated))
 	}
 
 	// Each plant: caught by its min profile and everything above it.
@@ -81,6 +101,40 @@ func TestProfileRecall(t *testing.T) {
 					p.ID, prof, p.MinProfile)
 			}
 		}
+	}
+
+	// FP measurement (locked decision 2): scan the safe-code PLANT-FP set at
+	// each profile and count how many fire. This is measured precision, not a
+	// pass/fail gate — a wide profile flagging safe code is the honest cost of
+	// recall, published in docs/coverage.md. We only assert the count is
+	// stable-or-better going down the profile ladder (fast ≤ standard ≤ max
+	// FP hits, since packs only accrete), and log the specifics.
+	fpPlants, err := ParseFPPlants(polyglotRoot)
+	if err != nil {
+		t.Fatalf("ParseFPPlants: %v", err)
+	}
+	if len(fpPlants) == 0 {
+		t.Fatal("no PLANT-FP safe-code plants — precision is unmeasured")
+	}
+	fpHitCount := map[string]int{}
+	for _, prof := range []string{scanner.ProfileFast, scanner.ProfileStandard, scanner.ProfileMax} {
+		findings, err := Scan(ctx, prof, polyglotRoot)
+		if err != nil {
+			t.Fatalf("%s FP scan: %v", prof, err)
+		}
+		hits := FPHits(fpPlants, DetectedCWEs(findings))
+		fpHitCount[prof] = len(hits)
+		ids := make([]string, 0, len(hits))
+		for id := range hits {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		t.Logf("%s FP: %d/%d safe-code plants false-flagged %v", prof, len(hits), len(fpPlants), ids)
+	}
+	if fpHitCount[scanner.ProfileFast] > fpHitCount[scanner.ProfileStandard] ||
+		fpHitCount[scanner.ProfileStandard] > fpHitCount[scanner.ProfileMax] {
+		t.Errorf("FP hits must be monotonic across the profile ladder (packs only accrete): fast=%d standard=%d max=%d",
+			fpHitCount[scanner.ProfileFast], fpHitCount[scanner.ProfileStandard], fpHitCount[scanner.ProfileMax])
 	}
 
 	// Inclusion chain on plant IDs, not counts: everything fast catches,

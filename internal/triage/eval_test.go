@@ -65,6 +65,17 @@ func evalSet(t *testing.T) []labeled {
 			Location: model.Location{File: path.Join(evalRoot, file), StartLine: line, EndLine: line},
 		}}
 	}
+	// cloud models a prowler CLOUD finding: no source file, resource UID in
+	// location.Resource, prowler check categories in meta (what the triage
+	// prompt surfaces). Cloud findings are judged from metadata only.
+	cloud := func(name string, tp bool, sev model.Severity, rule, title, desc, resource, categories string) labeled {
+		return labeled{name: name, truePositive: tp, finding: model.Finding{
+			Tool: "prowler", Tools: []string{"prowler"}, Category: model.CategoryCloud,
+			RuleID: rule, Title: title, Description: desc, Severity: sev,
+			Location: model.Location{Resource: resource},
+			Meta:     map[string]string{"provider": "aws", "categories": categories, "service": strings.SplitN(rule, "_", 2)[0]},
+		}}
+	}
 
 	return []labeled{
 		sast("sqli-fstring", true, "vuln_app.py", `cur.execute(query)`,
@@ -106,6 +117,53 @@ func evalSet(t *testing.T) []labeled {
 			Remediation: "Upgrade pyyaml to 5.4 or later.",
 			Location:    model.Location{File: path.Join(evalRoot, "requirements.txt"), StartLine: anchorLine(t, "requirements.txt", "pyyaml==5.3.1")},
 		}},
+
+		// --- Cloud posture cases (cloud-posture session, locked decision 10).
+		// Judged from metadata only — no source, no credential. TP cases must
+		// never be marked false-positive; the FP cases are checks whose own
+		// description establishes they are benign in context.
+		cloud("cloud-iam-admin-policy", true, model.SeverityCritical,
+			"iam_aws_attached_policy_no_administrative_privileges",
+			"Attached IAM policy allows full administrative privileges",
+			"The AWS-managed AdministratorAccess policy (Action '*' on Resource '*') is attached to a principal, granting unrestricted control of the account.",
+			"arn:aws:iam::123456789012:role/deploy", "identity-access"),
+		cloud("cloud-ec2-public-ip", true, model.SeverityHigh,
+			"ec2_instance_public_ip",
+			"EC2 instance has a public IP address",
+			"The instance is internet-facing with a public IPv4 address, expanding its attack surface.",
+			"arn:aws:ec2:us-east-1:123456789012:instance/i-0abc", "internet-exposed"),
+		cloud("cloud-rds-unencrypted", true, model.SeverityMedium,
+			"rds_instance_storage_encrypted",
+			"RDS instance storage is not encrypted at rest",
+			"The database instance stores data without at-rest encryption; a disk or snapshot compromise exposes plaintext data.",
+			"arn:aws:rds:us-east-1:123456789012:db/prod-db", "encryption"),
+		cloud("cloud-s3-public-acl", true, model.SeverityHigh,
+			"s3_bucket_public_access",
+			"S3 bucket allows public access via ACL",
+			"The bucket ACL grants READ to AllUsers, exposing its objects to anyone on the internet.",
+			"arn:aws:s3:::data-exports", "internet-exposed"),
+		cloud("cloud-mfa-delete-scratch", false, model.SeverityLow,
+			"s3_bucket_no_mfa_delete",
+			"S3 bucket MFA Delete is not enabled",
+			"MFA Delete guards against accidental or malicious object-version deletion. This bucket is a CI scratch bucket, emptied and recreated on every pipeline run, holding no durable or sensitive data.",
+			"arn:aws:s3:::ci-scratch-ephemeral", "resilience"),
+		cloud("cloud-macie-optional-region", false, model.SeverityLow,
+			"macie_is_enabled",
+			"Amazon Macie is not enabled in this region",
+			"Macie provides managed sensitive-data discovery for S3. No S3 buckets exist in this region and none are provisioned here by policy, so Macie coverage is not applicable.",
+			"arn:aws:macie2:ap-south-1:123456789012:account", "gen-ai"),
+
+		// --- A few more code cases to keep the corpus broad (>= 20 total).
+		sast("path-traversal", true, "vuln_app.py", `open(os.path.join(BASE_DIR, filename))`,
+			"python.lang.security.audit.path-traversal.path-traversal-open",
+			"Path traversal in open()",
+			"User-controlled filename flows into open() without containment; a value like ../../etc/passwd escapes the intended directory.", "CWE-22"),
+		secret("stripe-live-key-prod", true, "prod.env", "STRIPE_SECRET_KEY",
+			"stripe-access-token", "Stripe Secret Key"),
+		sast("hardcoded-tmp-path-benign", false, "safe_app.py", `LOG_PATH = "/tmp/app.log"`,
+			"python.lang.correctness.tmp.hardcoded-tmp-path",
+			"Hardcoded /tmp path",
+			"A hardcoded /tmp path can be a symlink race in some contexts; here it is a constant log path used read-only at startup, not attacker-influenced.", "CWE-377"),
 	}
 }
 

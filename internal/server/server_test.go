@@ -227,6 +227,22 @@ func TestEmptyStore(t *testing.T) {
 	}
 }
 
+// TestEmptyStoreListsAreArraysNotNull: an empty run store must serialize list
+// fields as JSON [] (never null) — the console indexes runs[0] and maps over
+// trend, so a null there crashes the whole SPA. Assert on the RAW bytes.
+func TestEmptyStoreListsAreArraysNotNull(t *testing.T) {
+	s := New(Options{Store: runstore.Store{Dir: t.TempDir()}, GateName: "high"})
+
+	runsBody, _ := io.ReadAll(do(t, s, "/api/runs").Body)
+	if strings.Contains(string(runsBody), `"runs":null`) {
+		t.Errorf(`/api/runs returned "runs":null on empty store — must be []: %s`, runsBody)
+	}
+	sumBody, _ := io.ReadAll(do(t, s, "/api/summary").Body)
+	if strings.Contains(string(sumBody), `"trend":null`) {
+		t.Errorf(`/api/summary returned "trend":null on empty store — must be []: %s`, sumBody)
+	}
+}
+
 // The compliance rollup rides the summary and run-detail payloads, and stored
 // findings are enriched with control chips at read time (pre-1.2.0 runs too).
 func TestComplianceInAPI(t *testing.T) {

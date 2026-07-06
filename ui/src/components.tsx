@@ -3,6 +3,29 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Severity, GateInfo } from "./api";
 import { SEV_CHIP, SEV_COLOR, CATEGORY_CHIP, CATEGORY_LABEL, CATEGORY_COLOR } from "./theme";
 
+// Logo is the Bulwark mark: a shield with a check. Inline SVG (no asset
+// fetch, CSP-safe), sized by the `size` prop, tinted by currentColor's
+// sibling classes on the wrapper.
+export function Logo({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+      <path d="M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4Z" className="fill-blue-600 dark:fill-blue-500" />
+      <path d="m10.6 15.2-2.8-2.8 1.4-1.4 1.4 1.4 4-4 1.4 1.4-5.4 5.4Z" className="fill-white" />
+    </svg>
+  );
+}
+
+// Wordmark is the Logo + "Bulwark" name, used in the header and the login
+// page so the brand is one component, not a scattered string.
+export function Wordmark({ size = 22, className = "" }: { size?: number; className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-2 ${className}`}>
+      <Logo size={size} />
+      <span className="font-bold tracking-tight">Bulwark</span>
+    </span>
+  );
+}
+
 export function Panel({
   title,
   children,
@@ -83,7 +106,7 @@ export function CategoryBadge({ category, compact = false }: { category: string;
 // Known categories come first in canonical order; unknown categories present
 // in the data are appended, never hidden.
 export function CategoryBreakdown({ byCategory }: { byCategory: Record<string, number> }) {
-  const order = ["SAST", "SECRET", "SCA", "IAC", "DAST"];
+  const order = ["SAST", "SECRET", "SCA", "IAC", "DAST", "CLOUD"];
   const extras = Object.keys(byCategory).filter((c) => !order.includes(c)).sort();
   const entries = [...order, ...extras]
     .map((cat) => ({ cat, count: byCategory[cat] || 0 }))

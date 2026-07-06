@@ -1,5 +1,5 @@
 // Package runstore persists scan reports as timestamped run files and computes
-// run-to-run deltas. It is the file-based history the `appsec serve` console
+// run-to-run deltas. It is the file-based history the `bulwark serve` console
 // reads (no database in this phase).
 //
 // SECURITY-CRITICAL: the delta logic is the one place a finding can silently
@@ -127,6 +127,24 @@ func (s Store) Load(id string) (report.Document, error) {
 		return doc, fmt.Errorf("runstore: parse run %s: %w", id, err)
 	}
 	return doc, nil
+}
+
+// Delete removes a single run file by ID. The ID is validated as a run
+// timestamp and confined to the store directory — the same path-traversal
+// defense as Load, since this is reachable from the API. A missing file is
+// reported as not-found so the caller can return 404 rather than 500.
+func (s Store) Delete(id string) error {
+	if _, err := timeFromID(id); err != nil {
+		return fmt.Errorf("runstore: invalid run id %q", id)
+	}
+	if strings.ContainsAny(id, `/\`) || strings.Contains(id, "..") {
+		return fmt.Errorf("runstore: invalid run id %q", id)
+	}
+	path := filepath.Join(s.Dir, id+fileExt)
+	if err := os.Remove(path); err != nil {
+		return fmt.Errorf("runstore: delete run %s: %w", id, err)
+	}
+	return nil
 }
 
 // Latest returns the most recent run's metadata, or ok=false if none exist.

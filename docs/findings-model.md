@@ -1,6 +1,6 @@
 # Unified Findings Model
 
-**Schema version: 2.0.0** (`model.SchemaVersion`)
+**Schema version: 2.1.0** (`model.SchemaVersion`)
 
 This is the single most important contract in the platform. Every scanner
 adapter maps its native output *into* this model; every downstream stage —
@@ -47,13 +47,13 @@ Produced by `model.Normalize`. JSON field names are camelCase as tagged in
 |---|---|
 | `id` | Stable fingerprint (see below) |
 | `tool` / `tools` | Primary reporting tool / all tools after correlation |
-| `category` | `SAST` \| `SECRET` \| `SCA` \| `IAC` \| `DAST` |
+| `category` | `SAST` \| `SECRET` \| `SCA` \| `IAC` \| `DAST` \| `CLOUD` (2.1.0, cloud security posture) |
 | `ruleId`, `title`, `description` | |
 | `severity` | **Banded deterministic risk** (2.0.0): a pure function of the stage-2 deterministic risk score — see the canonical band table in `docs/risk-scoring.md`. Scale: `critical` > `high` > `medium` > `low` > `info`. This is what the severity gate, reporters, SARIF level/security-severity, and all rollups read. LLM-free by construction (banding never sees the stage-3 triage adjustment) |
 | `toolSeverity` | **New in 2.0.0.** What `model.NormalizeSeverity` produces from the tool's native severity — the stage-1 risk input and the "tool said: …" audit trail. Always present in ≥2.0.0 documents; absent (JSON-omitted) in older documents, where `severity` itself is tool-normalized. Readers must feature-detect, never assume |
 | `rawSeverity` | Tool-native string, verbatim, preserved for audit |
 | `confidence` | Tool-reported, free-form for now |
-| `location` | `{file, startLine, endLine, url, snippet}` — `url` reserved for DAST; `snippet` optional (1.4.0, see below) |
+| `location` | `{file, resource, startLine, endLine, url, snippet}` — `url` reserved for DAST; `snippet` optional (1.4.0, see below); `resource` optional (2.1.0): the cloud resource UID/ARN a `CLOUD` finding is about — cloud posture findings have no file, and `resource` is their place-slot, including in the fingerprint (see below) |
 | `package`, `cve`, `cwes` | SCA / classification identity |
 | `remediation` | |
 | `meta`, `rawPayload` | Tool passthrough |
@@ -145,11 +145,20 @@ when present, are captured verbatim into `meta.benchmarks` — never into
 ## Fingerprint (stable ID)
 
 `model.Fingerprint` = first 32 hex chars of SHA-256 over
-`(algver, tool, category, ruleId, file, startLine, package, cve)` with NUL
-separators. Properties:
+`(algver, tool, category, ruleId, place, startLine, package, cve)` with NUL
+separators, where `place` = `location.file` when non-empty, else
+`location.resource` (2.1.0). Properties:
 
 - **Stable across runs** on the same code: no description text, severity, or
   raw payload in the hash (tools reword these between versions).
+- **The file slot is a documented overload** (2.1.0): for every finding with
+  a file — all pre-cloud findings — the hash input is byte-identical to what
+  algorithm v1 always produced, so no existing ID moved (pinned by a golden
+  test). A `CLOUD` finding has no file; its resource UID/ARN fills the slot,
+  giving the same check on the same resource the same ID across runs — run
+  deltas work for cloud runs with zero new machinery. Chosen over minting a
+  fingerprint v2 to keep every existing ID stable; the cost is this
+  documented overload of one hash position.
 - **Tool-scoped**: two tools reporting the same issue get different IDs;
   cross-tool identity is *correlation's* job, via correlation keys, so that
   merging logic can evolve without invalidating stored fingerprints.
@@ -172,12 +181,32 @@ can have. When in doubt, don't merge.
 - **Code findings** (same category only): exact `ruleId + file + startLine`,
   or *cross-tool* fuzzy match = same file + overlapping line range + shared
   CWE. Findings without line info never fuzzy-merge.
+- **Same-tool SAST noise collapse** (2.1.0 pipeline, locked decision of the
+  cloud-posture session): the same tool flagging the same weakness (shared
+  CWE) at an overlapping range in one file via *different rule IDs* is one
+  finding — the duplicate shape wide semgrep profiles produce. The survivor
+  is the finding with the most specific title (longest; smallest rule ID as
+  tie-break) and keeps its fingerprint; absorbed rule IDs are recorded in
+  `meta.alsoRuleIds` (sorted, comma-joined). SAST only: a second gitleaks
+  rule is a different credential claim, and distinct IaC/CLOUD checks on one
+  resource are distinct controls. The recall eval asserts plant catch sets
+  are identical pre/post-correlate — collapse, never suppression.
 - Merges take max severity, union `tools`/`cwes`, keep first non-empty
   description/remediation, and widen the location. Nothing is discarded.
 
 ## Versioning rules
 
 - `SchemaVersion` (semver) is embedded in JSON reports.
+- **2.1.0** (cloud-posture): added the `CLOUD` category and optional
+  `location.resource` (cloud resource UID/ARN). Additive only; 2.0.0
+  documents remain valid. The fingerprint algorithm stays `v1` — its file
+  slot takes `location.file` when set, else `location.resource` (see
+  Fingerprint above); byte-identical for every finding that has a file or
+  lacks both, proven by golden test. `CLOUD` findings flow through the same
+  severity banding, risk scoring (with their own reviewed stage-2 signal
+  table), compliance mapping, and triage seams as every other category — no
+  special-cased severity. Readers must treat `location.resource` as the
+  place-slot for findings without a file.
 - **2.0.0** (deep-scan): **severity semantics changed** — `severity` is now
   the banded deterministic risk score (canonical band table in
   `docs/risk-scoring.md`), no longer the tool-normalized value; the

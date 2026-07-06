@@ -1,0 +1,56 @@
+name: bulwark
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  bulwark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install scanners
+        run: |
+          pipx install semgrep
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v${LATEST_RELEASE}/gitleaks_${LATEST_RELEASE}_linux_x64.tar.gz" | sudo tar -xz -C /usr/local/bin gitleaks
+
+      - name: Build bulwark CLI
+        run: go build -o bulwark ./cmd/bulwark
+
+      - name: Run unit tests
+        run: go test -short ./...
+
+      - name: Demo scan of vulnerable fixture (SARIF)
+        # Uses the demo config: no ignore_paths, so the planted findings show.
+        run: ./bulwark scan testdata/fixture -c .github/bulwark-demo.yml -o results.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        # Code scanning is not enabled on this private repo (needs Advanced
+        # Security), so the upload fails with "Resource not accessible by
+        # integration". Keep attempting it — it starts working the moment the
+        # repo goes public — but never fail the build on it.
+        continue-on-error: true
+        with:
+          sarif_file: results.sarif
+          category: bulwark-fixture-demo
+
+      - name: Gate on high severity findings
+        # Repo's bulwark.yml ignores testdata/**, so this gates the real code.
+        run: ./bulwark scan . --fail-severity high

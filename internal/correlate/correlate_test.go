@@ -68,14 +68,19 @@ func TestCorrelateCrossToolCWEOverlap(t *testing.T) {
 	}
 }
 
+// TestCorrelateNeverMergesDifferentIssues is the adversarial guard on the
+// noise collapse: every pair here is two DIFFERENT issues that must survive
+// correlation separately. A failure means a real finding silently vanished —
+// the worst failure this tool can have.
 func TestCorrelateNeverMergesDifferentIssues(t *testing.T) {
 	in := []model.Finding{
-		// Same tool, same file+line, different rules: two real findings.
+		// Same tool, same line, different rules, DIFFERENT CWEs: an SQLi and
+		// an XSS on one line are two real findings, not noise.
 		{Tool: "semgrep", Tools: []string{"semgrep"}, Category: model.CategorySAST,
-			RuleID: "rule.a", CWEs: []string{"CWE-89"},
+			RuleID: "rule.sqli", CWEs: []string{"CWE-89"},
 			Location: model.Location{File: "app.py", StartLine: 10}},
 		{Tool: "semgrep", Tools: []string{"semgrep"}, Category: model.CategorySAST,
-			RuleID: "rule.b", CWEs: []string{"CWE-89"},
+			RuleID: "rule.xss", CWEs: []string{"CWE-79"},
 			Location: model.Location{File: "app.py", StartLine: 10}},
 		// Different category on the same line: secret != SAST.
 		{Tool: "gitleaks", Tools: []string{"gitleaks"}, Category: model.CategorySecret,
@@ -86,6 +91,186 @@ func TestCorrelateNeverMergesDifferentIssues(t *testing.T) {
 	}
 	if out := Correlate(in); len(out) != 4 {
 		t.Errorf("distinct issues must never merge, got %d findings from 4", len(out))
+	}
+}
+
+// TestCollapseNeverMergesAdversarialPairs exhausts the near-miss shapes of
+// the same-tool collapse: each case fails exactly one collapse condition and
+// must stay two findings.
+func TestCollapseNeverMergesAdversarialPairs(t *testing.T) {
+	base := func(rule string, cwes []string, start, end int) model.Finding {
+		return model.Finding{Tool: "semgrep", Tools: []string{"semgrep"},
+			Category: model.CategorySAST, RuleID: rule, CWEs: cwes,
+			Location: model.Location{File: "app.py", StartLine: start, EndLine: end}}
+	}
+	cases := []struct {
+		name string
+		a, b model.Finding
+	}{
+		{"different CWE", base("r.a", []string{"CWE-89"}, 10, 10), base("r.b", []string{"CWE-78"}, 10, 10)},
+		{"no CWE on one side", base("r.a", []string{"CWE-89"}, 10, 10), base("r.b", nil, 10, 10)},
+		{"no CWE on either side", base("r.a", nil, 10, 10), base("r.b", nil, 10, 10)},
+		{"non-overlapping ranges", base("r.a", []string{"CWE-89"}, 10, 12), base("r.b", []string{"CWE-89"}, 13, 15)},
+		{"different file", base("r.a", []string{"CWE-89"}, 10, 10),
+			func() model.Finding {
+				f := base("r.b", []string{"CWE-89"}, 10, 10)
+				f.Location.File = "other.py"
+				return f
+			}()},
+		{"different tool same category", base("r.a", []string{"CWE-89"}, 10, 10),
+			func() model.Finding {
+				// Disjoint CWEs so the existing cross-tool CWE-overlap path
+				// cannot merge this pair — isolates the same-tool condition.
+				f := base("r.b", []string{"CWE-78"}, 10, 10)
+				f.Tool = "codeql"
+				f.Tools = []string{"codeql"}
+				return f
+			}()},
+	}
+	for _, tc := range cases {
+		if out := Correlate([]model.Finding{tc.a, tc.b}); len(out) != 2 {
+			t.Errorf("%s: got %d findings, want 2 — collapse merged two different issues", tc.name, len(out))
+		}
+	}
+}
+
+// TestCollapseNeverTouchesNonSAST: same-tool different-rule duplicates in
+// SECRET and IAC stay separate even with shared CWEs — a second gitleaks rule
+// is a different credential claim, two checkov rules are two controls.
+func TestCollapseNeverTouchesNonSAST(t *testing.T) {
+	for _, cat := range []string{model.CategorySecret, model.CategoryIaC} {
+		in := []model.Finding{
+			{Tool: "t", Tools: []string{"t"}, Category: cat, RuleID: "r.a",
+				CWEs:     []string{"CWE-798"},
+				Location: model.Location{File: "Dockerfile", StartLine: 3}},
+			{Tool: "t", Tools: []string{"t"}, Category: cat, RuleID: "r.b",
+				CWEs:     []string{"CWE-798"},
+				Location: model.Location{File: "Dockerfile", StartLine: 3}},
+		}
+		if out := Correlate(in); len(out) != 2 {
+			t.Errorf("%s: same-tool collapse must be SAST-only, got %d findings", cat, len(out))
+		}
+	}
+}
+
+// TestCollapseSameToolSharedCWE pins locked decision 1: the same tool
+// flagging one weakness at one place via different rule IDs collapses to one
+// finding that unions the evidence — highest toolSeverity, most specific
+// title, absorbed rule IDs in meta.alsoRuleIds, survivor fingerprint intact.
+func TestCollapseSameToolSharedCWE(t *testing.T) {
+	low, high := model.SeverityLow, model.SeverityHigh
+	a := model.Finding{ID: "id-a", Tool: "semgrep", Tools: []string{"semgrep"},
+		Category: model.CategorySAST, RuleID: "python.sqli.generic",
+		Title:    "SQL injection", // shorter: absorbed
+		Severity: high, ToolSeverity: &high, RawSeverity: "ERROR",
+		CWEs:     []string{"CWE-89"},
+		Location: model.Location{File: "app.py", StartLine: 10, EndLine: 12}}
+	b := model.Finding{ID: "id-b", Tool: "semgrep", Tools: []string{"semgrep"},
+		Category: model.CategorySAST, RuleID: "python.flask.tainted-sql-string",
+		Title:    "Tainted data flows into a SQL string", // longest: survivor
+		Severity: low, ToolSeverity: &low, RawSeverity: "WARNING",
+		CWEs:     []string{"CWE-89", "CWE-707"},
+		Location: model.Location{File: "app.py", StartLine: 11, EndLine: 11}}
+
+	out := Correlate([]model.Finding{a, b})
+	if len(out) != 1 {
+		t.Fatalf("got %d findings, want 1 (same-tool shared-CWE duplicates must collapse)", len(out))
+	}
+	f := out[0]
+	if f.ID != "id-b" || f.RuleID != "python.flask.tainted-sql-string" {
+		t.Errorf("survivor must be the most specific title's finding with identity intact; got rule %q id %q", f.RuleID, f.ID)
+	}
+	if f.Title != "Tainted data flows into a SQL string" {
+		t.Errorf("collapse must keep the most specific title, got %q", f.Title)
+	}
+	if f.Severity != high || f.ToolSeverity == nil || *f.ToolSeverity != high || f.RawSeverity != "ERROR" {
+		t.Errorf("collapse must keep the highest toolSeverity (+raw), got %v/%v/%q", f.Severity, f.ToolSeverity, f.RawSeverity)
+	}
+	if got := f.Meta["alsoRuleIds"]; got != "python.sqli.generic" {
+		t.Errorf("meta.alsoRuleIds = %q, want absorbed rule recorded", got)
+	}
+	if len(f.CWEs) != 2 {
+		t.Errorf("collapse must union CWEs, got %v", f.CWEs)
+	}
+	if f.Location.StartLine != 10 || f.Location.EndLine != 12 {
+		t.Errorf("collapse must widen location, got %+v", f.Location)
+	}
+}
+
+// TestCollapseThreeWay: three rules on one line fold into one finding with
+// both absorbed rule IDs recorded, sorted and comma-joined, regardless of
+// arrival order.
+func TestCollapseThreeWay(t *testing.T) {
+	mk := func(rule, title string) model.Finding {
+		return model.Finding{Tool: "semgrep", Tools: []string{"semgrep"},
+			Category: model.CategorySAST, RuleID: rule, Title: title,
+			CWEs:     []string{"CWE-78"},
+			Location: model.Location{File: "cmd.go", StartLine: 5, EndLine: 5}}
+	}
+	in := []model.Finding{
+		mk("z.rule", "Command injection here"),                    // mid length
+		mk("a.rule", "Cmd injection"),                             // shortest
+		mk("m.rule", "OS command injection from tainted request"), // longest: survivor
+	}
+	out := Correlate(in)
+	if len(out) != 1 {
+		t.Fatalf("got %d findings, want 1", len(out))
+	}
+	if out[0].RuleID != "m.rule" {
+		t.Errorf("survivor = %q, want m.rule (longest title)", out[0].RuleID)
+	}
+	if got, want := out[0].Meta["alsoRuleIds"], "a.rule,z.rule"; got != want {
+		t.Errorf("alsoRuleIds = %q, want %q (sorted, comma-joined)", got, want)
+	}
+}
+
+// TestCollapseDeterministicAcrossOrder: survivor choice and alsoRuleIds must
+// not depend on input order, or run deltas would churn.
+func TestCollapseDeterministicAcrossOrder(t *testing.T) {
+	mk := func(rule, title string) model.Finding {
+		return model.Finding{Tool: "semgrep", Tools: []string{"semgrep"},
+			Category: model.CategorySAST, RuleID: rule, Title: title,
+			CWEs:     []string{"CWE-89"},
+			Location: model.Location{File: "db.py", StartLine: 7, EndLine: 7}}
+	}
+	a, b := mk("r.aaa", "Same length title!"), mk("r.bbb", "Same length titleX")
+	fwd := Correlate([]model.Finding{a, b})
+	rev := Correlate([]model.Finding{b, a})
+	if len(fwd) != 1 || len(rev) != 1 {
+		t.Fatalf("want 1 finding each order, got %d/%d", len(fwd), len(rev))
+	}
+	if fwd[0].RuleID != rev[0].RuleID || fwd[0].Meta["alsoRuleIds"] != rev[0].Meta["alsoRuleIds"] {
+		t.Errorf("collapse is order-dependent: %q/%q vs %q/%q",
+			fwd[0].RuleID, fwd[0].Meta["alsoRuleIds"], rev[0].RuleID, rev[0].Meta["alsoRuleIds"])
+	}
+	// Equal-length titles: the smaller rule ID must win in both orders.
+	if fwd[0].RuleID != "r.aaa" {
+		t.Errorf("tie-break survivor = %q, want r.aaa (smallest rule ID)", fwd[0].RuleID)
+	}
+}
+
+// TestCollapseDoesNotMutateInputMeta: collapse must copy-on-write the Meta
+// map — adapters share Meta with their RawFinding records.
+func TestCollapseDoesNotMutateInputMeta(t *testing.T) {
+	meta := map[string]string{"k": "v"}
+	long := model.Finding{Tool: "semgrep", Tools: []string{"semgrep"},
+		Category: model.CategorySAST, RuleID: "r.long",
+		Title: "The much longer, more specific title", Meta: meta,
+		CWEs:     []string{"CWE-89"},
+		Location: model.Location{File: "a.py", StartLine: 1, EndLine: 1}}
+	short := model.Finding{Tool: "semgrep", Tools: []string{"semgrep"},
+		Category: model.CategorySAST, RuleID: "r.short", Title: "Short",
+		CWEs:     []string{"CWE-89"},
+		Location: model.Location{File: "a.py", StartLine: 1, EndLine: 1}}
+	out := Correlate([]model.Finding{long, short})
+	if len(out) != 1 {
+		t.Fatalf("want collapse, got %d", len(out))
+	}
+	if _, leaked := meta["alsoRuleIds"]; leaked {
+		t.Error("collapse mutated the input Meta map — must copy-on-write")
+	}
+	if out[0].Meta["k"] != "v" {
+		t.Error("collapse must carry existing meta keys through the copy")
 	}
 }
 

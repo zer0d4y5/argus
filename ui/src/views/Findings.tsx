@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CoverageAccounting, ExplainResponse, Finding, opsApi, RiskSignal, RunDetail, Severity, SEVERITIES } from "../api";
+import { CoverageAccounting, ExplainResponse, Finding, locationLabel, opsApi, RiskSignal, RunDetail, Severity, SEVERITIES } from "../api";
 import { Panel, SeverityBadge, CategoryBadge, EmptyState } from "../components";
 import { VERDICT_CHIP, VERDICT_LABEL, riskColor } from "../theme";
 
@@ -63,6 +63,8 @@ export function Findings({
   detail,
   origin,
   canExplain,
+  canSuppress,
+  onSuppress,
 }: {
   detail: RunDetail;
   origin?: {
@@ -71,6 +73,8 @@ export function Findings({
     commit?: string;
   };
   canExplain?: boolean;
+  canSuppress?: boolean;
+  onSuppress?: (ruleId: string) => void;
 }) {
   const [q, setQ] = useState("");
   const [sev, setSev] = useState<string>("all");
@@ -123,6 +127,7 @@ export function Findings({
           f.title.toLowerCase().includes(needle) ||
           (f.description ?? "").toLowerCase().includes(needle) ||
           (f.location.file ?? "").toLowerCase().includes(needle) ||
+          (f.location.resource ?? "").toLowerCase().includes(needle) ||
           f.ruleId.toLowerCase().includes(needle) ||
           (f.cwes ?? []).some((c) => c.toLowerCase().includes(needle)),
       )
@@ -238,7 +243,7 @@ export function Findings({
                       </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
                         <CategoryBadge category={f.category} compact />
-                        <span className="truncate">{f.location.file}</span>
+                        <span className="truncate">{locationLabel(f.location)}</span>
                       </div>
                     </td>
                     <td className="py-1.5 pr-2">
@@ -263,20 +268,22 @@ export function Findings({
 
       {/* Detail pane */}
       <div className="lg:col-span-2">
-        {selected ? <Detail f={selected} isNew={newSet.has(selected.id)} origin={origin} canExplain={canExplain} explainState={explainState[selected.id]} onExplain={() => handleExplain(selected)} /> : null}
+        {selected ? <Detail f={selected} isNew={newSet.has(selected.id)} origin={origin} canExplain={canExplain} explainState={explainState[selected.id]} onExplain={() => handleExplain(selected)} canSuppress={canSuppress} onSuppress={onSuppress} /> : null}
       </div>
     </div>
     </div>
   );
 }
 
-function Detail({ f, isNew, origin, canExplain, explainState, onExplain }: {
+function Detail({ f, isNew, origin, canExplain, explainState, onExplain, canSuppress, onSuppress }: {
   f: Finding;
   isNew: boolean;
   origin?: { targetId?: string; gitUrl?: string; commit?: string };
   canExplain?: boolean;
   explainState?: ExplainState;
   onExplain: () => void;
+  canSuppress?: boolean;
+  onSuppress?: (ruleId: string) => void;
 }) {
   // Forge deep link logic
   let forgeLink = null;
@@ -395,11 +402,8 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain }: {
         <h3 className="break-words font-mono text-sm font-semibold">{f.title}</h3>
         {f.description && <p className="whitespace-pre-wrap break-words text-gray-600 dark:text-gray-300">{f.description}</p>}
 
-        <Row label="Location">
-          <code className="break-all text-xs">
-            {f.location.file}
-            {f.location.startLine ? `:${f.location.startLine}` : ""}
-          </code>
+        <Row label={f.location.resource && !f.location.file ? "Resource" : "Location"}>
+          <code className="break-all text-xs">{locationLabel(f.location)}</code>
         </Row>
         {f.meta?.commit && (
           <Row label="Commit"><code className="break-all text-xs">{f.meta.commit}</code></Row>
@@ -451,6 +455,21 @@ function Detail({ f, isNew, origin, canExplain, explainState, onExplain }: {
         )}
 
         <RiskSignals signals={f.riskSignals} />
+
+        {/* Actions: explain (operator+) and suppress (admin, target-scoped) */}
+        {(canExplain || canSuppress) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {canSuppress && f.ruleId && (
+              <button
+                onClick={() => onSuppress?.(f.ruleId)}
+                className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                title={`Add rule "${f.ruleId}" to this target's ignore list so it stops appearing (admin, audited)`}
+              >
+                Suppress rule
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Explain Button & Result */}
         {canExplain && (

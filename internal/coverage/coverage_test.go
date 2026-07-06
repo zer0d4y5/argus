@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/leaky-hub/appsec/internal/correlate"
 	"github.com/leaky-hub/appsec/internal/scanner"
 )
 
@@ -100,6 +101,28 @@ func TestPolyglotCoverage(t *testing.T) {
 		t.Fatalf("max scan: %v", err)
 	}
 
+	// Noise metric (locked decision 1): before/after correlation counts on
+	// this same live scan, published so the collapse's effect is measured,
+	// not asserted. TestProfileRecall holds the no-suppression proof.
+	plants, err := ParsePlants(polyglotRoot)
+	if err != nil {
+		t.Fatalf("ParsePlants: %v", err)
+	}
+	fpPlants, err := ParseFPPlants(polyglotRoot)
+	if err != nil {
+		t.Fatalf("ParseFPPlants: %v", err)
+	}
+	stdFP := len(FPHits(fpPlants, stdDetected))
+	maxFP := len(FPHits(fpPlants, DetectedCWEs(maxFindings)))
+	noise := []NoiseStats{
+		{Profile: scanner.ProfileStandard, Before: len(stdFindings),
+			After: len(correlate.Correlate(stdFindings)), Plants: len(plants),
+			FPHits: stdFP, FPPlants: len(fpPlants)},
+		{Profile: scanner.ProfileMax, Before: len(maxFindings),
+			After: len(correlate.Correlate(maxFindings)), Plants: len(plants),
+			FPHits: maxFP, FPPlants: len(fpPlants)},
+	}
+
 	// The published matrix includes the IaC section from Phase 4 on, so a
 	// doc-regenerating run requires the full toolchain — a doc without IaC
 	// rows would silently understate coverage.
@@ -119,6 +142,7 @@ func TestPolyglotCoverage(t *testing.T) {
 	}
 
 	md := GenerateMarkdown(labels, stdDetected, DetectedCWEs(maxFindings)) +
+		"\n" + GenerateNoiseSection(noise) +
 		"\n" + GenerateIaCSection(iacLabels, iacFindings)
 	if err := os.WriteFile(docsPath, []byte(md), 0o644); err != nil {
 		t.Fatalf("write %s: %v", docsPath, err)

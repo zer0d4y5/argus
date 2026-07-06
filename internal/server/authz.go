@@ -15,7 +15,7 @@ import (
 
 // bootstrapHint names the command that creates the first user; it is the
 // body of every 403 in zero-users mode.
-const bootstrapHint = "console operations are disabled: no users configured — bootstrap with `appsec user add <name> --role admin`"
+const bootstrapHint = "console operations are disabled: no users configured — bootstrap with `bulwark user add <name> --role admin`"
 
 // authzRule is one row of the policy.
 type authzRule struct {
@@ -36,7 +36,8 @@ var authzTable = []authzRule{
 
 	{http.MethodGet, "/api/summary", auth.RoleViewer, true},
 	{http.MethodGet, "/api/runs", auth.RoleViewer, true},
-	{http.MethodGet, "/api/runs/", auth.RoleViewer, true},
+	{http.MethodGet, "/api/runs/", auth.RoleViewer, true},    // detail + export (read)
+	{http.MethodDelete, "/api/runs/", auth.RoleAdmin, false}, // prune a run
 
 	{http.MethodGet, "/api/frameworks", auth.RoleViewer, true},
 
@@ -45,10 +46,16 @@ var authzTable = []authzRule{
 	{http.MethodPatch, "/api/targets/", auth.RoleAdmin, false},
 	{http.MethodDelete, "/api/targets/", auth.RoleAdmin, false},
 
+	// Cloud profile discovery reveals local-config profile NAMES and feeds the
+	// admin-only cloud-target registration form — admin, and refused in
+	// zero-users mode like every other config-disclosing route.
+	{http.MethodGet, "/api/cloud/profiles", auth.RoleAdmin, false},
+
 	{http.MethodGet, "/api/scans", auth.RoleViewer, true},
 	{http.MethodGet, "/api/scans/", auth.RoleViewer, true},
 	{http.MethodPost, "/api/scans", auth.RoleOperator, false},
 	{http.MethodPost, "/api/explain", auth.RoleOperator, false},
+	{http.MethodPost, "/api/cloud/posture-summary", auth.RoleOperator, false},
 
 	{http.MethodGet, "/api/users", auth.RoleAdmin, false},
 	{http.MethodPost, "/api/users", auth.RoleAdmin, false},

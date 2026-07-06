@@ -116,6 +116,10 @@ func buildExplainPrompt(f model.Finding, nonce string) string {
 	if f.Location.File != "" {
 		writeField(&b, "location", fmt.Sprintf("%s:%d-%d", f.Location.File, f.Location.StartLine, f.Location.EndLine))
 	}
+	// Cloud findings have no file; the resource UID/ARN is their location.
+	if f.Location.Resource != "" {
+		writeField(&b, "resource", sanitizeText(f.Location.Resource, maxTitleRunes))
+	}
 	if f.Triage != nil {
 		writeField(&b, "triage_verdict", f.Triage.Verdict)
 		writeField(&b, "triage_rationale", sanitizeText(f.Triage.Rationale, maxRationaleRunes))

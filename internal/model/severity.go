@@ -118,6 +118,9 @@ func SeverityForScore(score float64) Severity {
 //	trivy-config: same scale as trivy (same engine, misconfiguration pass)
 //	checkov:  CRITICAL/HIGH/MEDIUM/LOW/INFO verbatim when present; OSS checkov
 //	          emits NO severity for most checks -> medium
+//	prowler:  Critical/High/Medium/Low verbatim, Informational -> info,
+//	          empty -> medium (an un-scored posture failure is unassessed,
+//	          not harmless — same policy as trivy UNKNOWN)
 //
 // UNKNOWN from trivy maps to medium, not info: an un-scored CVE is
 // unassessed, not harmless, and mapping it to info would let the severity
@@ -173,6 +176,21 @@ func NormalizeSeverity(tool, raw string) Severity {
 			// OSS checkov emits no severity; un-scored != harmless.
 			return SeverityMedium
 		}
+		return SeverityMedium
+	case "prowler":
+		switch v {
+		case "CRITICAL":
+			return SeverityCritical
+		case "HIGH":
+			return SeverityHigh
+		case "MEDIUM":
+			return SeverityMedium
+		case "LOW":
+			return SeverityLow
+		case "INFORMATIONAL", "INFO":
+			return SeverityInfo
+		}
+		// Empty or a new native value: un-scored != harmless.
 		return SeverityMedium
 	}
 	// Unknown tool: try the string directly, then fail toward medium so the

@@ -34,6 +34,12 @@ type Plant struct {
 // plantLabel matches the structured plant tag inside any comment syntax.
 var plantLabel = regexp.MustCompile(`PLANT\(([a-z0-9-]+),\s*min-profile=(fast|standard|max),\s*(CWE-\d+)\)`)
 
+// fpPlantLabel matches a false-positive-measurement plant: safe code that
+// resembles a weakness class and must NOT be flagged for that CWE. The `-FP`
+// suffix and the two-field shape (no min-profile) keep it disjoint from the
+// PLANT regex, so the recall parser never mistakes one for the other.
+var fpPlantLabel = regexp.MustCompile(`PLANT-FP\(([a-z0-9-]+),\s*(CWE-\d+)\)`)
+
 // ParsePlants walks the fixture root and extracts every structured plant
 // label. It fails loudly on label mistakes — a duplicate ID or a duplicate
 // (file, CWE) pair would make the recall eval silently ambiguous.
@@ -94,4 +100,67 @@ func CaughtPlants(plants []Plant, detected map[string]map[string]bool) map[strin
 		}
 	}
 	return caught
+}
+
+// FPPlant is one labeled safe-code plant: the correct, non-vulnerable form of
+// a weakness class that must NOT be flagged for FPPlant.CWE.
+type FPPlant struct {
+	ID   string
+	File string
+	CWE  string
+	Line int
+}
+
+// ParseFPPlants walks the fixture root and extracts every PLANT-FP label. It
+// fails loudly on a duplicate ID; unlike PLANT, a duplicate (file, CWE) is
+// allowed (two safe constructs of the same class in one file are both worth
+// measuring, and matching is by set membership, not per-plant attribution).
+func ParseFPPlants(root string) ([]FPPlant, error) {
+	var plants []FPPlant
+	byID := map[string]string{}
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !d.Type().IsRegular() {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("recall: read %s: %w", path, err)
+		}
+		rel, rerr := filepath.Rel(root, path)
+		if rerr != nil {
+			rel = path
+		}
+		rel = filepath.ToSlash(rel)
+		for i, line := range strings.Split(string(data), "\n") {
+			m := fpPlantLabel.FindStringSubmatch(line)
+			if m == nil {
+				continue
+			}
+			p := FPPlant{ID: m[1], File: rel, CWE: m[2], Line: i + 1}
+			if prev, dup := byID[p.ID]; dup {
+				return fmt.Errorf("recall: duplicate FP-plant ID %q (%s and %s)", p.ID, prev, rel)
+			}
+			byID[p.ID] = rel
+			plants = append(plants, p)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(plants, func(i, j int) bool { return plants[i].ID < plants[j].ID })
+	return plants, nil
+}
+
+// FPHits returns the IDs of FP-plants that were (wrongly) flagged: their
+// (file, CWE) appears in the detection map. An empty result means perfect
+// precision on the safe-code set — no false positive fired.
+func FPHits(plants []FPPlant, detected map[string]map[string]bool) map[string]bool {
+	hits := map[string]bool{}
+	for _, p := range plants {
+		if set := detected[p.File]; set != nil && set[p.CWE] {
+			hits[p.ID] = true
+		}
+	}
+	return hits
 }

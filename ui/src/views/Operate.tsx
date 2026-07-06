@@ -101,12 +101,16 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
     setLaunching(true);
     setLaunchError(null);
     try {
+      // Cloud posture targets take only the triage toggle — the filesystem
+      // knobs are hidden and the server rejects them, so never send stale
+      // scanner/profile/scope state left over from a code target.
+      const isCloud = selectedTarget?.type === "cloud";
       const options: JobOptions = {};
-      if (scanners.size > 0) options.scanners = Array.from(scanners);
-      if (profile) options.profile = profile;
+      if (!isCloud && scanners.size > 0) options.scanners = Array.from(scanners);
+      if (!isCloud && profile) options.profile = profile;
       if (triage !== "default") options.triage = triage === "on";
-      if (scope.trim()) options.scope = scope.trim();
-      if (selectedFrameworks.size > 0) options.frameworks = Array.from(selectedFrameworks);
+      if (!isCloud && scope.trim()) options.scope = scope.trim();
+      if (!isCloud && selectedFrameworks.size > 0) options.frameworks = Array.from(selectedFrameworks);
 
       const job = await opsApi.launchScan(selectedTargetId, options);
       setJobs((prev) => [job, ...prev]);
@@ -173,7 +177,7 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
                   className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
                 >
                   {targets.map((t) => (
-                    <option key={t.id} value={t.id}>{t.type === "git" ? `${t.name} (git)` : t.name}</option>
+                    <option key={t.id} value={t.id}>{t.type === "git" ? `${t.name} (git)` : t.type === "cloud" ? `${t.name} (cloud)` : t.name}</option>
                   ))}
                 </select>
                 {selectedTarget?.type === "git" && selectedTarget.url && (
@@ -181,8 +185,18 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
                     {selectedTarget.url}{selectedTarget.branch ? `@${selectedTarget.branch}` : ""}
                   </p>
                 )}
+                {selectedTarget?.type === "cloud" && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    cloud · {selectedTarget.provider} · profile {selectedTarget.profileName}
+                    {selectedTarget.regions && selectedTarget.regions.length ? ` · ${selectedTarget.regions.join(",")}` : ""}
+                    <br />prowler posture scan — scanner/profile/scope options do not apply
+                  </p>
+                )}
               </div>
 
+              {/* Filesystem scan options — hidden for cloud posture targets,
+                  whose only knob is the AI-triage toggle below. */}
+              {selectedTarget?.type !== "cloud" && (<>
               {/* Scanners Checkboxes */}
               <div className="md:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Scanners</label>
@@ -260,6 +274,7 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
                   ))}
                 </select>
               </div>
+              </>)}
 
               {/* Triage Select */}
               <div>

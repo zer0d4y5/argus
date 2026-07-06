@@ -153,7 +153,7 @@ func TestAuthzMatrix(t *testing.T) {
 	view := f.mustLogin("vera")
 
 	cases := []struct {
-		method, path                 string
+		method, path                  string
 		anon, viewer, operator, admin int
 	}{
 		{"GET", "/api/health", pass, pass, pass, pass},
@@ -260,7 +260,7 @@ func TestZeroUsersMode(t *testing.T) {
 		if rec.Code != http.StatusForbidden {
 			t.Errorf("%s %s = %d in zero-users mode, want 403", c.method, c.path, rec.Code)
 		}
-		if !strings.Contains(rec.Body.String(), "appsec user add") {
+		if !strings.Contains(rec.Body.String(), "bulwark user add") {
 			t.Errorf("%s %s body lacks bootstrap hint: %s", c.method, c.path, rec.Body.String())
 		}
 	}

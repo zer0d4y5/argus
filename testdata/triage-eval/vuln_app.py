@@ -31,5 +31,15 @@ def parse():
     result = yaml.load(data)
     return str(result)
 
+BASE_DIR = "/var/www/uploads"
+
+@app.route('/download')
+def download():
+    # PLANT(TP): Path traversal — user-controlled filename into open() with no containment (CWE-22)
+    import os
+    filename = request.args.get('name')
+    with open(os.path.join(BASE_DIR, filename)) as fh:
+        return fh.read()
+
 if __name__ == '__main__':
     app.run(debug=True)

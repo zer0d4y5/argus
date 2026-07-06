@@ -70,7 +70,7 @@ var userListCmd = &cobra.Command{
 			return err
 		}
 		if len(users) == 0 {
-			fmt.Println("no users configured — the console runs read-only without login (bootstrap: appsec user add <name> --role admin)")
+			fmt.Println("no users configured — the console runs read-only without login (bootstrap: bulwark user add <name> --role admin)")
 			return nil
 		}
 		fmt.Printf("%-20s %-10s %-20s %s\n", "USERNAME", "ROLE", "ID", "CREATED")

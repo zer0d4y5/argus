@@ -24,7 +24,7 @@ still catching runtime issues.
   curated `fast|standard|max` scan profiles running per-language semgrep packs
   across nine languages; a labeled polyglot fixture set with a coverage test
   and a generated language × weakness matrix (`docs/coverage.md`); file-based
-  run history (`scan --save`); and the first web console (`appsec serve`) with
+  run history (`scan --save`); and the first web console (`bulwark serve`) with
   three persona views — Overview (GRC), Findings (AppSec), Runs (SecOps) —
   served from the single embedded binary, rendering hostile finding data inert.
   ✅ = every labeled plant detected under `standard`; the console shows a real
@@ -61,7 +61,7 @@ still catching runtime issues.
   and CIS-derived IaC coverage at section granularity (**CIS AWS Foundations
   v1.5.0, CIS Docker v1.6.0, CIS Kubernetes v1.8.0** via rule-ID families).
   The always-on pipeline stage writes `complianceControls`
-  (`"<FRAMEWORK>:<control-id>"`, schema **1.2.0**); `appsec comply` produces
+  (`"<FRAMEWORK>:<control-id>"`, schema **1.2.0**); `bulwark comply` produces
   the auditor-shaped gap report (Markdown + JSON) with violated /
   no-violations-detected / not-assessable buckets that never overclaim
   (unmapped findings are listed, never dropped; totals reconcile, tested);

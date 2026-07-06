@@ -7,10 +7,22 @@ export type Severity = "critical" | "high" | "medium" | "low" | "info";
 
 export interface Location {
   file?: string;
+  resource?: string; // cloud findings (schema 2.1.0): resource UID/ARN, no file
   startLine?: number;
   endLine?: number;
   url?: string;
   snippet?: Snippet;
+}
+
+// locationLabel is the one place the UI decides how to name a finding's
+// place: file:line for code, the resource UID/ARN for cloud findings (which
+// have no file), a dash when neither exists. Feature-detect, never assume.
+export function locationLabel(loc: Location): string {
+  if (loc.file) {
+    return loc.startLine ? `${loc.file}:${loc.startLine}` : loc.file;
+  }
+  if (loc.resource) return loc.resource;
+  return "—";
 }
 
 export interface Triage {
@@ -176,7 +188,13 @@ async function getJSON<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  summary: () => getJSON<SummaryResponse>("api/summary"),
+  summary: (targetId?: string) => {
+    const base = "api/summary";
+    if (targetId) {
+      return getJSON<SummaryResponse>(`${base}?target=${encodeURIComponent(targetId)}`);
+    }
+    return getJSON<SummaryResponse>(base);
+  },
   runs: (targetId?: string) => {
     const base = "api/runs";
     if (targetId) {
@@ -190,6 +208,13 @@ export const api = {
       return getJSON<RunDetail>(`${base}?target=${encodeURIComponent(targetId)}`);
     }
     return getJSON<RunDetail>(base);
+  },
+  // The download URL for a run export (SARIF or JSON). Server sets
+  // Content-Disposition; the browser downloads. GET (viewer) — no CSRF.
+  exportUrl: (id: string, format: "sarif" | "json", targetId?: string) => {
+    const q = new URLSearchParams({ format });
+    if (targetId) q.set("target", targetId);
+    return `api/runs/${encodeURIComponent(id)}/export?${q.toString()}`;
   },
 };
 
@@ -216,15 +241,23 @@ export interface TargetConfig {
 
 export interface Target {
   id: string; name: string;
-  type?: "dir" | "git";
+  type?: "dir" | "git" | "cloud";
   path?: string;
   url?: string; branch?: string;
+  // Cloud targets (schema 2.1.0): a provider + a profile NAME (never a key)
+  // and an optional region filter.
+  provider?: string; profileName?: string; regions?: string[];
   scanners?: string[]; profile?: string;
   config?: TargetConfig;
   createdAt: string;
 }
 
 export interface TargetsResponse { targets: Target[]; }
+
+// Cloud profile discovery: the closed list of profile NAMES the console host
+// has locally, per provider. Names only — never key material.
+export interface CloudProviderProfiles { provider: string; profiles: string[]; }
+export interface CloudProfilesResponse { providers: CloudProviderProfiles[]; }
 
 export interface JobOptions { scanners?: string[]; profile?: string; triage?: boolean | null; scope?: string; frameworks?: string[] }
 
@@ -338,11 +371,22 @@ export const opsApi = {
   targets: (): Promise<TargetsResponse> => 
     send<TargetsResponse>("GET", "api/targets"),
   
-  createTarget: (t: { name: string; path?: string; url?: string; branch?: string; scanners?: string[]; profile?: string }): Promise<Target> => 
+  createTarget: (t: { name: string; path?: string; url?: string; branch?: string; provider?: string; profileName?: string; regions?: string[]; scanners?: string[]; profile?: string }): Promise<Target> =>
     send<Target>("POST", "api/targets", t),
-  
-  deleteTarget: (id: string): Promise<void> => 
+
+  cloudProfiles: (): Promise<CloudProfilesResponse> =>
+    send<CloudProfilesResponse>("GET", "api/cloud/profiles"),
+
+  postureSummary: (targetId: string, runId: string): Promise<{ summary: string; model: string }> =>
+    send<{ summary: string; model: string }>("POST", "api/cloud/posture-summary", { targetId, runId }),
+
+  deleteTarget: (id: string): Promise<void> =>
     send<void>("DELETE", `api/targets/${encodeURIComponent(id)}`),
+
+  deleteRun: (id: string, targetId?: string): Promise<void> => {
+    const q = targetId ? `?target=${encodeURIComponent(targetId)}` : "";
+    return send<void>("DELETE", `api/runs/${encodeURIComponent(id)}${q}`);
+  },
   
   updateTarget: (id: string, patch: { name?: string; scanners?: string[]; profile?: string; config?: TargetConfig }): Promise<Target> => 
     send<Target>("PATCH", `api/targets/${encodeURIComponent(id)}`, patch),

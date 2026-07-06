@@ -26,7 +26,7 @@ var dataFS embed.FS
 // Control is one assessable framework control: a target of at least one
 // mapping rule, i.e. a control the scanners can produce evidence against.
 type Control struct {
-	ID    string `json:"id"`    // e.g. "V5.3.4", "6.2.4", "2.1"
+	ID    string `json:"id"` // e.g. "V5.3.4", "6.2.4", "2.1"
 	Title string `json:"title"`
 }
 
@@ -59,7 +59,13 @@ type Framework struct {
 	// misconfiguration is OUT OF SCOPE for the AWS benchmark, not an AWS
 	// mapping gap ("unmapped" must mean "our curation has no answer", never
 	// "different platform").
-	RuleIDScope   []string        `json:"ruleIdScope,omitempty"`
+	RuleIDScope []string `json:"ruleIdScope,omitempty"`
+	// ProviderScope is RuleIDScope's analogue for CLOUD findings (schema
+	// 2.1.0): prowler check IDs carry no provider prefix, but every cloud
+	// finding carries meta.provider. An Azure posture finding is OUT OF
+	// SCOPE for the AWS benchmark, not unmapped. Applies to CLOUD findings
+	// only; empty means every provider is in scope.
+	ProviderScope []string        `json:"providerScope,omitempty"`
 	Controls      []Control       `json:"controls"`
 	NotAssessable []NotAssessable `json:"notAssessable"`
 	Rules         []Rule          `json:"rules"`
@@ -128,6 +134,7 @@ func validate(fw *Framework) error {
 	valid := map[string]bool{
 		model.CategorySAST: true, model.CategorySecret: true,
 		model.CategorySCA: true, model.CategoryIaC: true, model.CategoryDAST: true,
+		model.CategoryCloud: true,
 	}
 	for _, c := range fw.Scope {
 		if !valid[c] {
@@ -137,6 +144,11 @@ func validate(fw *Framework) error {
 	for _, p := range fw.RuleIDScope {
 		if p == "" {
 			return fmt.Errorf("ruleIdScope entries must be non-empty")
+		}
+	}
+	for _, p := range fw.ProviderScope {
+		if p == "" {
+			return fmt.Errorf("providerScope entries must be non-empty")
 		}
 	}
 	fw.controlTitle = make(map[string]string, len(fw.Controls))
@@ -203,6 +215,21 @@ func (fw *Framework) inScope(f model.Finding) bool {
 		}
 	}
 	if !ok {
+		return false
+	}
+	if f.Category == model.CategoryCloud {
+		// Cloud findings scope by provider (meta.provider), not by rule-ID
+		// prefix: prowler check IDs have no provider prefix, and "unmapped"
+		// must never mean "different cloud".
+		if len(fw.ProviderScope) == 0 {
+			return true
+		}
+		provider := f.Meta["provider"]
+		for _, p := range fw.ProviderScope {
+			if p == provider {
+				return true
+			}
+		}
 		return false
 	}
 	if len(fw.RuleIDScope) == 0 {

@@ -12,11 +12,11 @@ scoring, and compliance mapping.
       v
 [ core ]       normalize · correlate/dedup · AI triage · risk score · compliance map · severity gate
       v
-[ surfaces ]   CLI · GitHub Action · SARIF / Markdown / JSON · gap report (`appsec comply`) · web console (`appsec serve`)
+[ surfaces ]   CLI · GitHub Action · SARIF / Markdown / JSON · gap report (`bulwark comply`) · web console (`bulwark serve`)
 ```
 
 The scan pipeline itself lives in `internal/pipeline` and has exactly two
-callers: the `appsec scan` CLI command (a thin flag-parsing wrapper) and the
+callers: the `bulwark scan` CLI command (a thin flag-parsing wrapper) and the
 console's serial job queue. Both run the same code path end to end.
 
 ## Package layout
@@ -43,7 +43,7 @@ console's serial job queue. Both run the same code path end to end.
 | `internal/jobs` | strictly serial scan queue, bounded pending, in-memory state | one scan at a time protects the runstore and the single-queue Ollama triage |
 | `internal/audit` | append-only `.appsec/audit.jsonl` (logins, CRUD, config changes, scan launch/finish/explain) | the durable provenance record — run files carry no launchedBy |
 
-## Data flow of `appsec scan <target>`
+## Data flow of `bulwark scan <target>`
 
 1. Load `appsec.yml` (flags override file values).
 2. Build the adapter list; skip unavailable tools with a stderr NOTE (never a

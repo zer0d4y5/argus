@@ -233,11 +233,19 @@ func resultMessage(f model.Finding) string {
 
 // resultLocation builds the physical location. SCA findings have no source
 // file, so we fall back to the manifest the scanner reported (Meta["target"]);
-// with no location at all we omit locations entirely (valid SARIF, and
-// consumers show it as a run-level result).
+// CLOUD findings (schema 2.1.0) have no file either — their resource UID/ARN
+// is the natural location, so it fills the artifact URI. With no location at
+// all we omit locations entirely (valid SARIF, and consumers show it as a
+// run-level result).
 func resultLocation(f model.Finding) (sarifLocation, bool) {
 	uri := sanitizeURI(f.Location.File)
 	startLine, endLine := f.Location.StartLine, f.Location.EndLine
+	if uri == "" && f.Location.Resource != "" {
+		// The ARN/UID is a stable resource identifier; SARIF's artifactLocation
+		// URI is an opaque string to consumers, and a cloud finding has no line.
+		uri = sanitizeURI(f.Location.Resource)
+		startLine, endLine = 0, 0
+	}
 	if uri == "" && f.Meta != nil {
 		uri = sanitizeURI(f.Meta["target"])
 		startLine, endLine = 0, 0

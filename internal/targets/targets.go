@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/leaky-hub/appsec/internal/cloudscan"
 	"github.com/leaky-hub/appsec/internal/scanner"
 	"github.com/leaky-hub/appsec/internal/snippet"
 )
@@ -44,9 +45,14 @@ var branchRe = regexp.MustCompile(`^[a-zA-Z0-9._/-]{1,100}$`)
 // Target types. An empty Type means TypeDir so pre-existing registry files
 // parse unchanged (additive schema).
 const (
-	TypeDir = "dir"
-	TypeGit = "git"
+	TypeDir   = "dir"
+	TypeGit   = "git"
+	TypeCloud = "cloud" // schema 2.1.0: a cloud account referenced by profile name
 )
+
+// regionRe bounds a cloud region filter entry — the same closed grammar the
+// cloudscan validator enforces, checked here at the admin boundary too.
+var regionRe = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
 
 // Config is the console-editable scan-configuration subset stored on a
 // registry entry (docs/console-ops.md S3/§12.3). It is a CLOSED set by
@@ -62,12 +68,20 @@ type Config struct {
 
 // Target is one registered scan target.
 type Target struct {
-	ID   string `json:"id"`             // opaque, server-assigned (t-<hex>)
-	Name string `json:"name"`           // human label shown in the console
-	Type string `json:"type,omitempty"` // TypeDir (default when empty) or TypeGit
-	Path string `json:"path,omitempty"` // dir targets: absolute directory, validated at registration
-	URL  string `json:"url,omitempty"`  // git targets: validated https clone URL (S1)
+	ID     string `json:"id"`               // opaque, server-assigned (t-<hex>)
+	Name   string `json:"name"`             // human label shown in the console
+	Type   string `json:"type,omitempty"`   // TypeDir (default when empty) or TypeGit
+	Path   string `json:"path,omitempty"`   // dir targets: absolute directory, validated at registration
+	URL    string `json:"url,omitempty"`    // git targets: validated https clone URL (S1)
 	Branch string `json:"branch,omitempty"` // git targets: optional branch to track
+
+	// Cloud targets (schema 2.1.0). CREDENTIALS ARE NEVER STORED: ProfileName
+	// is a NAME validated against the closed list discovered from the local
+	// cloud config (never free-form), passed to prowler as an identifier. No
+	// key material ever reaches this struct, targets.json, or a log.
+	Provider    string   `json:"provider,omitempty"`    // "aws" (cloud targets)
+	ProfileName string   `json:"profileName,omitempty"` // a name from the local cloud config's closed list
+	Regions     []string `json:"regions,omitempty"`     // optional region filter
 
 	Scanners  []string  `json:"scanners,omitempty"` // allowed subset; empty = all
 	Profile   string    `json:"profile,omitempty"`  // default profile; empty = standard
@@ -191,6 +205,15 @@ func (r *Registry) Root(t Target) string {
 		return r.Workspace(t)
 	}
 	return t.Path
+}
+
+// CloudRunStore resolves the run-history directory for a cloud target: there
+// is no filesystem target to own the history, so cloud runs live under the
+// served repo's .appsec/cloud/<targetID>/runs (locked decision 9). The ID is
+// always server-generated hex, never request input, so the path is safe to
+// join. The returned dir is the runstore.Store.Dir a caller uses.
+func (r *Registry) CloudRunStore(t Target) string {
+	return filepath.Join(filepath.Dir(r.path), "cloud", t.ID, "runs")
 }
 
 // ResolveScope confines a per-launch scan scope (docs/console-ops.md S2) and
@@ -321,6 +344,60 @@ func (r *Registry) AddGit(name, rawURL, branch string, scannerNames []string, pr
 		}
 	}
 	t := Target{ID: newID(), Name: name, Type: TypeGit, URL: cleanURL, Branch: branch, Scanners: scannerNames, Profile: profile, CreatedAt: time.Now().UTC()}
+	r.targets = append(r.targets, t)
+	if err := r.save(); err != nil {
+		r.loaded = false
+		return Target{}, err
+	}
+	return t, nil
+}
+
+// AddCloud validates and registers a cloud posture target (schema 2.1.0).
+// The credential surface is a NAME only: profileName must be present in the
+// closed list discovered from the local cloud config (cloudscan validates
+// it), regions must match the closed region grammar. No key material is
+// accepted, stored, or logged — the console form offers the discovered names
+// as opaque choices and this is the one place a chosen name is bound to a
+// target. Scans resolve the name against prowler at run time.
+func (r *Registry) AddCloud(name, provider, profileName string, regions, scannerNames []string, profile string) (Target, error) {
+	if !nameRe.MatchString(name) {
+		return Target{}, fmt.Errorf("invalid target name (letters, digits, space, . _ / -; max 80)")
+	}
+	// Provider + profile-name closed-list validation lives in cloudscan (the
+	// one owner of the credential-reference contract). C1/C2: a name outside
+	// the discovered closed list never registers.
+	if err := cloudscan.Validate(cloudscan.Options{Provider: provider, Profile: profileName, Regions: regions}); err != nil {
+		return Target{}, err
+	}
+	for _, rg := range regions {
+		if !regionRe.MatchString(rg) {
+			return Target{}, fmt.Errorf("invalid region %q", rg)
+		}
+	}
+	if err := validateScanners(scannerNames); err != nil {
+		return Target{}, err
+	}
+	if profile != "" {
+		if err := scanner.ValidateProfile(profile); err != nil {
+			return Target{}, fmt.Errorf("invalid profile: %w", err)
+		}
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err := r.refresh(); err != nil {
+		return Target{}, err
+	}
+	for _, t := range r.targets {
+		if t.Name == name {
+			return Target{}, fmt.Errorf("target name %q already exists", name)
+		}
+		if t.Kind() == TypeCloud && t.Provider == provider && t.ProfileName == profileName {
+			return Target{}, fmt.Errorf("cloud profile already registered as %q (%s)", t.Name, t.ID)
+		}
+	}
+	t := Target{ID: newID(), Name: name, Type: TypeCloud, Provider: provider, ProfileName: profileName,
+		Regions: regions, Scanners: scannerNames, Profile: profile, CreatedAt: time.Now().UTC()}
 	r.targets = append(r.targets, t)
 	if err := r.save(); err != nil {
 		r.loaded = false

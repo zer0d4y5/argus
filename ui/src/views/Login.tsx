@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { opsApi, UserInfo, ApiError } from "../api";
+import { Wordmark } from "../components";
 
 export function Login({ onLogin }: { onLogin: (user: UserInfo, csrfToken: string) => void }) {
   const [username, setUsername] = useState("");
@@ -29,10 +30,11 @@ export function Login({ onLogin }: { onLogin: (user: UserInfo, csrfToken: string
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-            🛡️ appsec <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 dark:bg-gray-800 dark:text-gray-400">console</span>
+          <h1 className="flex items-center justify-center text-xl tracking-tight text-gray-900 dark:text-white">
+            <Wordmark size={24} />
+            <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 dark:bg-gray-800 dark:text-gray-400">console</span>
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Sign in to continue</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">AppSec + cloud posture, one wall</p>
         </div>
 
         {error && (

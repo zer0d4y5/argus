@@ -18,13 +18,20 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
   const [newUser, setNewUser] = useState({ username: "", password: "", role: "viewer" });
   
   // New Target Add Form State
-  const [newTargetType, setNewTargetType] = useState<"dir" | "git">("dir");
+  const [newTargetType, setNewTargetType] = useState<"dir" | "git" | "cloud">("dir");
   const [newTargetName, setNewTargetName] = useState("");
   const [newTargetPath, setNewTargetPath] = useState("");
   const [newTargetUrl, setNewTargetUrl] = useState("");
   const [newTargetBranch, setNewTargetBranch] = useState("");
   const [newTargetProfile, setNewTargetProfile] = useState("");
   const [newTargetScanners, setNewTargetScanners] = useState<Set<string>>(new Set());
+  // Cloud target form: a provider and a profile NAME chosen from the
+  // server-discovered closed list (never a free-form key).
+  const [cloudProvider, setCloudProvider] = useState("aws");
+  const [cloudProfileName, setCloudProfileName] = useState("");
+  const [cloudRegions, setCloudRegions] = useState("");
+  const [cloudProfileChoices, setCloudProfileChoices] = useState<string[]>([]);
+  const [cloudProfileError, setCloudProfileError] = useState<string | null>(null);
 
   // Configure Drawer State
   const [configuringTargetId, setConfiguringTargetId] = useState<string | null>(null);
@@ -162,12 +169,12 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
               <tr key={t.id} className="border-t border-gray-100 dark:border-gray-800">
                 <td className="py-2 pr-3 font-medium">{t.name}</td>
                 <td className="py-2 pr-3 text-xs">
-                  <span className={`rounded px-1.5 py-0.5 ${t.type === 'git' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
-                    {t.type || "dir"}
+                  <span className={`rounded px-1.5 py-0.5 ${t.type === 'git' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : t.type === 'cloud' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+                    {t.type === 'cloud' ? `cloud · ${t.provider}` : (t.type || "dir")}
                   </span>
                 </td>
                 <td className="py-2 pr-3 font-mono text-xs text-gray-600 dark:text-gray-400">
-                  {t.type === 'git' ? t.url : t.path}
+                  {t.type === 'git' ? t.url : t.type === 'cloud' ? `profile: ${t.profileName}${t.regions && t.regions.length ? ` · ${t.regions.join(",")}` : ""}` : t.path}
                   {t.type === 'git' && t.branch && <span className="text-blue-600 dark:text-blue-400 ml-1">@{t.branch}</span>}
                 </td>
                 <td className="py-2 pr-3 text-xs">
@@ -210,6 +217,12 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
             >
               Git Repo
             </button>
+            <button
+              onClick={() => { setNewTargetType("cloud"); loadCloudProfiles(); }}
+              className={`rounded px-2 py-1 text-xs ${newTargetType === 'cloud' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
+            >
+              Cloud
+            </button>
           </div>
 
           <input
@@ -220,7 +233,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
             className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
           />
 
-          {newTargetType === "dir" ? (
+          {newTargetType === "dir" && (
             <input
               type="text"
               placeholder="/abs/path/to/repo"
@@ -228,7 +241,8 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
               onChange={(e) => setNewTargetPath(e.target.value)}
               className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 font-mono text-sm dark:border-gray-700 dark:bg-gray-800"
             />
-          ) : (
+          )}
+          {newTargetType === "git" && (
             <div className="grid gap-2 md:grid-cols-2">
               <input
                 type="text"
@@ -246,43 +260,83 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
               />
             </div>
           )}
+          {newTargetType === "cloud" && (
+            <div className="space-y-2">
+              <div className="grid gap-2 md:grid-cols-2">
+                <select
+                  value={cloudProvider}
+                  onChange={(e) => setCloudProvider(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+                >
+                  <option value="aws">aws</option>
+                </select>
+                <select
+                  value={cloudProfileName}
+                  onChange={(e) => setCloudProfileName(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+                >
+                  <option value="">— select a local profile —</option>
+                  {cloudProfileChoices.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <input
+                type="text"
+                placeholder="Regions (optional, comma-separated, e.g. us-east-1,us-west-2)"
+                value={cloudRegions}
+                onChange={(e) => setCloudRegions(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 font-mono text-sm dark:border-gray-700 dark:bg-gray-800"
+              />
+              {cloudProfileError && <p className="text-xs text-red-600 dark:text-red-400">{cloudProfileError}</p>}
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                The profile is a NAME from this host's cloud config (e.g. <code>~/.aws</code>) —
+                never a key. The platform runs prowler with whatever that profile can do;
+                point it at a read-only security-audit principal.
+              </p>
+            </div>
+          )}
 
-          <select
-            value={newTargetProfile}
-            onChange={(e) => setNewTargetProfile(e.target.value)}
-            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
-          >
-            <option value="">standard (default)</option>
-            {PROFILES.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+          {newTargetType !== "cloud" && (
+            <>
+              <select
+                value={newTargetProfile}
+                onChange={(e) => setNewTargetProfile(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+              >
+                <option value="">standard (default)</option>
+                {PROFILES.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
 
-          <div className="flex flex-wrap gap-4">
-            {KNOWN_SCANNERS.map((s) => (
-              <label key={s} className="flex items-center gap-1 text-sm">
-                <input
-                  type="checkbox"
-                  checked={newTargetScanners.has(s)}
-                  onChange={() =>
-                    setNewTargetScanners((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(s)) next.delete(s);
-                      else next.add(s);
-                      return next;
-                    })
-                  }
-                  className="rounded border-gray-300 dark:border-gray-700"
-                />
-                <span>{s}</span>
-              </label>
-            ))}
-            <span className="text-xs text-gray-500 dark:text-gray-400">none checked = all allowed</span>
-          </div>
+              <div className="flex flex-wrap gap-4">
+                {KNOWN_SCANNERS.map((s) => (
+                  <label key={s} className="flex items-center gap-1 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={newTargetScanners.has(s)}
+                      onChange={() =>
+                        setNewTargetScanners((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(s)) next.delete(s);
+                          else next.add(s);
+                          return next;
+                        })
+                      }
+                      className="rounded border-gray-300 dark:border-gray-700"
+                    />
+                    <span>{s}</span>
+                  </label>
+                ))}
+                <span className="text-xs text-gray-500 dark:text-gray-400">none checked = all allowed</span>
+              </div>
+            </>
+          )}
 
           <button
             onClick={handleAddTarget}
-            disabled={!newTargetName || (newTargetType === "dir" ? !newTargetPath : !newTargetUrl)}
+            disabled={!newTargetName || (newTargetType === "dir" ? !newTargetPath : newTargetType === "git" ? !newTargetUrl : !cloudProfileName)}
             className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             Register target
@@ -291,6 +345,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
 
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Paths are validated server-side: absolute, existing directory, never /. Git URLs must be accessible.
+          Cloud profiles are validated against this host's local config — a raw key is never accepted.
         </p>
 
         {/* Configure Drawer */}
@@ -495,13 +550,31 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     }
   }
 
+  // loadCloudProfiles fetches the server-discovered closed list of profile
+  // names for the chosen provider. Names only — no key material crosses.
+  async function loadCloudProfiles() {
+    setCloudProfileError(null);
+    try {
+      const resp = await opsApi.cloudProfiles();
+      const aws = resp.providers.find((p) => p.provider === cloudProvider);
+      const names = aws?.profiles ?? [];
+      setCloudProfileChoices(names);
+      if (names.length === 0) {
+        setCloudProfileError("No local cloud profiles found on the console host.");
+      }
+    } catch (err) {
+      setCloudProfileError(err instanceof ApiError ? err.message : String(err));
+    }
+  }
+
   async function handleAddTarget() {
-    if (!newTargetName || (newTargetType === "dir" ? !newTargetPath : !newTargetUrl)) return;
+    if (!newTargetName) return;
     setTargetError(null);
     try {
       const selected = Array.from(newTargetScanners);
-      
+
       if (newTargetType === "git") {
+        if (!newTargetUrl) return;
         await opsApi.createTarget({
           name: newTargetName,
           url: newTargetUrl,
@@ -509,7 +582,17 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
           scanners: selected.length > 0 ? selected : undefined,
           profile: newTargetProfile || undefined,
         });
+      } else if (newTargetType === "cloud") {
+        if (!cloudProfileName) return;
+        const regions = cloudRegions.split(",").map((r) => r.trim()).filter(Boolean);
+        await opsApi.createTarget({
+          name: newTargetName,
+          provider: cloudProvider,
+          profileName: cloudProfileName,
+          regions: regions.length > 0 ? regions : undefined,
+        });
       } else {
+        if (!newTargetPath) return;
         await opsApi.createTarget({
           name: newTargetName,
           path: newTargetPath,
@@ -524,6 +607,8 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       setNewTargetBranch("");
       setNewTargetProfile("");
       setNewTargetScanners(new Set());
+      setCloudProfileName("");
+      setCloudRegions("");
       await reload();
     } catch (err) {
       setTargetError(err instanceof ApiError ? err.message : String(err));

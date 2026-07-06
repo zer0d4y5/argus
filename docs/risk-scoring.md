@@ -110,6 +110,7 @@ signals that actually drive risk *for that category*. Design rules, in order:
 | SAST | test-path deprioritization | reachability/taint — that is Phase 7/8 (IAST), not faked here |
 | SCA | none — **trivy's `fs` JSON emits no KEV / EPSS / exploit-maturity fields** (verified against trivy 0.6x output: `CVSS`, `Severity`, `FixedVersion`, dates, references — nothing exploit-related), so SCA stays on the stage-1 baseline rather than inventing a signal | exploit-maturity boost — add when a KEV/EPSS source is wired in as its own reviewed input |
 | DAST | none (no DAST adapter yet) | — |
+| CLOUD | exposure (prowler check categories: internet-exposed), identity blast radius (reviewed admin-policy check table + privilege-escalation category), data protection (encryption category), detection readiness (logging category) — all from prowler check metadata only | resource criticality (needs a data-classification input we don't have); reachability graphs (Attack-path products fake this from topology; we don't); KEV/EPSS-style exploited-in-wild boosts (no source wired) |
 
 ### Secret-shaped findings
 
@@ -250,6 +251,47 @@ signal from CVSS vector strings would double-count severity. When a
 KEV-catalog or EPSS feed is wired in as an explicit input, a bounded positive
 delta slots in here as a reviewed table like the others.
 
+### CLOUD (cloud-posture session, schema 2.1.0)
+
+Cloud posture findings arrive from prowler already graded (Critical → Low),
+so stage 2's job is narrow: order findings *within* a severity grade by the
+exposure context prowler's own metadata attests to, exactly like
+`iac.public_exposure` orders IaC. Signals read **only** the prowler check
+identity (`ruleId`), the check's category tags (`meta.categories`, written
+by the adapter from prowler's own check metadata), and nothing else — never
+resource contents, never account topology, never model output. All deltas
+are positive (posture failures are never *discounted* by heuristics — there
+is no cloud analogue of a test directory) and modest (prowler's grading
+carries the base signal; these nudge, they don't dominate). Unknown =
+neutral: a record with no category tags gets no delta. The ±3.0 cap is
+unchanged.
+
+| Code | Delta | Fires when |
+|---|---|---|
+| `cloud.public_exposure` | **+0.75** | check categories contain `internet-exposed` — an internet-facing misconfiguration outranks internal hygiene of equal grade (same weight and rationale as `iac.public_exposure`) |
+| `cloud.iam_wildcard` | **+0.75** | `ruleId` ∈ the reviewed admin-policy table (below), or categories contain `privilege-escalation` — `*:*` grants and escalation paths are account-wide blast radius |
+| `cloud.unencrypted_at_rest` | **+0.25** | categories contain `encryption` — data-at-rest gaps order above same-grade operational hygiene |
+| `cloud.logging_disabled` | **+0.25** | categories contain `logging` — missing audit/access logging degrades detection and forensics; kept positive-and-small deliberately (a logging gap is not itself an exposure, but it makes every other finding harder to catch) |
+
+**Admin-policy checks** (prowler 5.31 check IDs, verified against the
+installed registry; extending is a normal reviewed change):
+`iam_aws_attached_policy_no_administrative_privileges`,
+`iam_customer_attached_policy_no_administrative_privileges`,
+`iam_customer_unattached_policy_no_administrative_privileges`,
+`iam_inline_policy_no_administrative_privileges`,
+`iam_inline_policy_allows_privilege_escalation`,
+`iam_policy_allows_privilege_escalation`,
+`iam_group_administrator_access_policy`,
+`iam_role_administratoraccess_policy`,
+`iam_user_administrator_access_policy`.
+
+Signals stack (a public, unencrypted bucket fires two rows) and the summed
+delta obeys the global cap. Severity banding then applies unchanged —
+**CLOUD findings get no special-cased severity anywhere**: prowler's grade
+is `toolSeverity` (stage-1 input), stage 2 adds the rows above, and the
+band table converts the deterministic score exactly as it does for every
+other category.
+
 ## Stage 3 — bounded LLM adjustment
 
 AI triage yields `verdict ∈ {true-positive, false-positive, uncertain}` and
@@ -377,6 +419,10 @@ resolution → `9.0 + 0.25 = 9.25`.
 | 11 | trivy-config `AWS-0107` world-open ingress (high, resolution) | 7.25 | +0.75 (public exposure) | — | **8.0** |
 | 12 | semgrep `shell=True` on a constant (medium) | 5.0 | 0 | FP @ 1.0 | **1.0** |
 | 13 | gitleaks secret, no path/entropy metadata at all | 8.0 | 0 (unknown = neutral) | — | **8.0** |
+| 14 | prowler `iam_aws_attached_policy_no_administrative_privileges` (critical, remediation) | 9.25 | +0.75 (iam wildcard) | — | **10.0** |
+| 15 | prowler `ec2_instance_public_ip` (high, remediation, `internet-exposed`) | 7.25 | +0.75 (public exposure) | — | **8.0** |
+| 16 | prowler `s3_bucket_kms_encryption` (medium, remediation, `encryption`) | 5.25 | +0.25 (unencrypted at rest) | — | **5.5** |
+| 17 | prowler logging check (low, remediation, `logging`) | 3.25 | +0.25 (logging disabled) | — | **3.5** |
 
 Banding note: severity comes from the **Stage 2** column's result (the
 deterministic score), not the Final column. So #8 is `high` (det 7.5) even

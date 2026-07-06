@@ -21,6 +21,14 @@ import (
 //   - Code findings (SAST/SECRET/IAC): same file, overlapping line range,
 //     and either the same rule ID or a shared CWE. Same-category only —
 //     a secret and a SAST hit on one line are different issues.
+//   - SAST noise collapse: the SAME tool flagging the same weakness (shared
+//     CWE) at an overlapping range via DIFFERENT rule IDs is one finding —
+//     the dominant duplicate shape of wide semgrep profiles, where three
+//     packs each carry a variant of the same rule. Collapse, not
+//     suppression: the survivor unions the evidence and records every
+//     absorbed rule ID in Meta["alsoRuleIds"]. SAST only — a second
+//     gitleaks rule is a different credential claim, and distinct IaC/CLOUD
+//     checks on one resource are distinct controls even when CWEs collide.
 //
 // Merging never discards data: severities take the maximum, CWE sets union,
 // and every contributing tool is recorded in Tools.
@@ -37,6 +45,10 @@ func Correlate(findings []model.Finding) []model.Finding {
 		if f.Location.File != "" {
 			if idx, ok := findOverlap(out, f); ok {
 				out[idx] = merge(out[idx], f)
+				continue
+			}
+			if idx, ok := findSameToolDup(out, f); ok {
+				out[idx] = collapse(out[idx], f)
 				continue
 			}
 		}
@@ -85,6 +97,83 @@ func findOverlap(existing []model.Finding, f model.Finding) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// findSameToolDup looks for an existing SAST finding from the same tool in
+// the same file with an overlapping range, a shared CWE, and a DIFFERENT rule
+// ID — the same-tool duplicate shape wide profiles produce. Every condition
+// is required; when any is absent the findings are (or could be) different
+// issues and stay separate.
+func findSameToolDup(existing []model.Finding, f model.Finding) (int, bool) {
+	if f.Category != model.CategorySAST || len(f.CWEs) == 0 {
+		return 0, false
+	}
+	for i, e := range existing {
+		if e.Category != model.CategorySAST ||
+			e.Tool != f.Tool ||
+			e.Location.File != f.Location.File ||
+			e.RuleID == f.RuleID {
+			continue
+		}
+		if !rangesOverlap(e.Location, f.Location) {
+			continue
+		}
+		if sharesCWE(e.CWEs, f.CWEs) {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// collapse folds a same-tool duplicate into one finding. The survivor is the
+// finding with the most specific title (longest sanitized title; rule ID as
+// the deterministic tie-break) and keeps its identity — rule ID, fingerprint,
+// title — so run deltas stay continuous for the surviving finding. The other
+// finding's rule ID is recorded in Meta["alsoRuleIds"] (sorted,
+// comma-joined): absorbed, never hidden. Severity/CWEs/tools union exactly
+// like a cross-tool merge.
+func collapse(a, b model.Finding) model.Finding {
+	survivor, absorbed := a, b
+	if len([]rune(b.Title)) > len([]rune(a.Title)) ||
+		(len([]rune(b.Title)) == len([]rune(a.Title)) && b.RuleID < a.RuleID) {
+		survivor, absorbed = b, a
+	}
+	merged := merge(survivor, absorbed)
+	merged.Meta = withAlsoRuleIDs(merged.Meta, survivor.RuleID, absorbed.RuleID, absorbed.Meta["alsoRuleIds"])
+	return merged
+}
+
+// withAlsoRuleIDs returns a copy of meta with the absorbed rule IDs folded
+// into "alsoRuleIds" (sorted, comma-joined, deduplicated, survivor's own rule
+// ID excluded). Copy-on-write: adapter Meta maps are shared with RawFinding.
+func withAlsoRuleIDs(meta map[string]string, survivorRuleID string, absorbed ...string) map[string]string {
+	set := map[string]bool{}
+	add := func(csv string) {
+		for _, id := range strings.Split(csv, ",") {
+			if id = strings.TrimSpace(id); id != "" && id != survivorRuleID {
+				set[id] = true
+			}
+		}
+	}
+	add(meta["alsoRuleIds"])
+	for _, id := range absorbed {
+		add(id)
+	}
+	if len(set) == 0 {
+		return meta
+	}
+	ids := make([]string, 0, len(set))
+	for id := range set {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	out := make(map[string]string, len(meta)+1)
+	for k, v := range meta {
+		out[k] = v
+	}
+	out["alsoRuleIds"] = strings.Join(ids, ",")
+	return out
 }
 
 func rangesOverlap(a, b model.Location) bool {

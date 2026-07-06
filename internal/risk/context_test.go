@@ -386,3 +386,63 @@ func TestScrubInvariant(t *testing.T) {
 		}
 	}
 }
+
+// TestCloudSignals covers the CLOUD stage-2 table: stacking, the reviewed
+// admin-policy set, unknown-is-neutral, and positive-only deltas.
+func TestCloudSignals(t *testing.T) {
+	mk := func(rule, cats string) model.Finding {
+		f := model.Finding{Category: model.CategoryCloud, RuleID: rule}
+		if cats != "" {
+			f.Meta = map[string]string{"categories": cats}
+		}
+		return f
+	}
+
+	t.Run("stacking public+encryption", func(t *testing.T) {
+		sig := contextSignals(mk("s3_bucket_public_and_plain", "encryption,internet-exposed"), runContext{})
+		if len(sig) != 2 {
+			t.Fatalf("got %d signals, want 2: %+v", len(sig), sig)
+		}
+	})
+	t.Run("admin policy by rule ID, no categories", func(t *testing.T) {
+		sig := contextSignals(mk("iam_user_administrator_access_policy", ""), runContext{})
+		if len(sig) != 1 || sig[0].Code != "cloud.iam_wildcard" {
+			t.Fatalf("got %+v, want cloud.iam_wildcard", sig)
+		}
+	})
+	t.Run("privilege-escalation category", func(t *testing.T) {
+		sig := contextSignals(mk("some_future_check", "privilege-escalation"), runContext{})
+		if len(sig) != 1 || sig[0].Code != "cloud.iam_wildcard" {
+			t.Fatalf("got %+v, want cloud.iam_wildcard", sig)
+		}
+	})
+	t.Run("unknown is neutral", func(t *testing.T) {
+		if sig := contextSignals(mk("s3_bucket_lifecycle_enabled", ""), runContext{}); len(sig) != 0 {
+			t.Fatalf("no metadata must mean no delta, got %+v", sig)
+		}
+		if sig := contextSignals(mk("x", "resilience,gen-ai"), runContext{}); len(sig) != 0 {
+			t.Fatalf("unlisted categories must be neutral, got %+v", sig)
+		}
+	})
+	t.Run("positive only", func(t *testing.T) {
+		for _, cats := range []string{"internet-exposed", "privilege-escalation", "encryption", "logging",
+			"internet-exposed,privilege-escalation,encryption,logging"} {
+			for _, s := range contextSignals(mk("iam_policy_allows_privilege_escalation", cats), runContext{}) {
+				if s.Delta <= 0 {
+					t.Errorf("cloud signal %s has non-positive delta %v — the table is positive-only by design", s.Code, s.Delta)
+				}
+			}
+		}
+	})
+	t.Run("banding flows through unchanged", func(t *testing.T) {
+		crit := model.SeverityCritical
+		fs := []model.Finding{{
+			Category: model.CategoryCloud, RuleID: "iam_group_administrator_access_policy",
+			Severity: crit, ToolSeverity: &crit, Remediation: "detach",
+		}}
+		ApplyAndBand(fs)
+		if fs[0].Severity != model.SeverityCritical {
+			t.Errorf("banded severity = %v, want critical (det 10.0)", fs[0].Severity)
+		}
+	})
+}

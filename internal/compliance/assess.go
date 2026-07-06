@@ -65,7 +65,7 @@ type FrameworkReport struct {
 	UnmappedRefs       []FindingRef `json:"unmappedRefs,omitempty"` // every unmapped in-scope finding, listed
 }
 
-// Report is the full gap assessment document (`appsec comply` JSON output).
+// Report is the full gap assessment document (`bulwark comply` JSON output).
 type Report struct {
 	Tool          string            `json:"tool"`
 	SchemaVersion string            `json:"schemaVersion"`

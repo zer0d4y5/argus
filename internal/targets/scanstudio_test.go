@@ -20,21 +20,21 @@ func TestValidateGitURLPolicy(t *testing.T) {
 		{"https://gitlab.example.internal/team/repo", true},
 		{"HTTPS://github.com/org/repo.git", true}, // scheme case-insensitive
 
-		{"http://github.com/org/repo.git", false},           // cleartext
-		{"ssh://git@github.com/org/repo.git", false},        // ssh transport
-		{"git://github.com/org/repo.git", false},            // git transport
-		{"file:///etc", false},                              // local file
-		{"ext::sh -c whoami", false},                        // ext transport
-		{"git@github.com:org/repo.git", false},              // scp-style
-		{"https://user:token@github.com/org/repo.git", false}, // creds in URL
-		{"https://token@github.com/org/repo.git", false},    // userinfo
-		{"https:///no-host", false},                         // no host
-		{"https://", false},                                 // empty host
-		{"", false},                                         // empty
-		{"https://github.com/org/repo.git?x=1", false},      // query
-		{"https://github.com/org/repo.git#frag", false},     // fragment
+		{"http://github.com/org/repo.git", false},                        // cleartext
+		{"ssh://git@github.com/org/repo.git", false},                     // ssh transport
+		{"git://github.com/org/repo.git", false},                         // git transport
+		{"file:///etc", false},                                           // local file
+		{"ext::sh -c whoami", false},                                     // ext transport
+		{"git@github.com:org/repo.git", false},                           // scp-style
+		{"https://user:token@github.com/org/repo.git", false},            // creds in URL
+		{"https://token@github.com/org/repo.git", false},                 // userinfo
+		{"https:///no-host", false},                                      // no host
+		{"https://", false},                                              // empty host
+		{"", false},                                                      // empty
+		{"https://github.com/org/repo.git?x=1", false},                   // query
+		{"https://github.com/org/repo.git#frag", false},                  // fragment
 		{"https://github.com/org/repo.git --upload-pack=/bin/sh", false}, // arg injection
-		{"https://github.com/org/\trepo", false},            // control chars
+		{"https://github.com/org/\trepo", false},                         // control chars
 	}
 	for _, c := range cases {
 		_, err := ValidateGitURL(c.url)
@@ -98,17 +98,17 @@ func TestResolveScopeConfinement(t *testing.T) {
 	}
 
 	bad := []string{
-		"../",                     // traversal
-		"..",                      //
-		"src/../../etc",           // traversal after clean
-		"/etc",                    // absolute
+		"../",                      // traversal
+		"..",                       //
+		"src/../../etc",            // traversal after clean
+		"/etc",                     // absolute
 		filepath.Join(root, "src"), // absolute into root (still absolute ⇒ rejected)
-		".git/config",             // VCS bookkeeping
-		"src/.git",                //
-		".appsec/runs",            // platform bookkeeping
-		"does/not/exist",          // nonexistent
-		"link",                    // symlink escaping the root
-		"link/sub",                //
+		".git/config",              // VCS bookkeeping
+		"src/.git",                 //
+		".appsec/runs",             // platform bookkeeping
+		"does/not/exist",           // nonexistent
+		"link",                     // symlink escaping the root
+		"link/sub",                 //
 	}
 	for _, scope := range bad {
 		if _, err := ResolveScope(root, scope); err == nil {
@@ -157,13 +157,13 @@ func TestValidateConfigBounds(t *testing.T) {
 		}
 	}
 	bad := []*Config{
-		{TimeoutSec: 5},                                      // below floor
-		{TimeoutSec: 4000},                                   // above ceiling
-		{TimeoutSec: -1},                                     //
-		{IgnorePaths: []string{""}},                          // empty entry
-		{IgnorePaths: []string{strings.Repeat("x", 201)}},    // too long
-		{IgnoreRules: []string{"a\x00b"}},                    // control chars
-		{IgnorePaths: make50Plus()},                          // too many
+		{TimeoutSec: 5},             // below floor
+		{TimeoutSec: 4000},          // above ceiling
+		{TimeoutSec: -1},            //
+		{IgnorePaths: []string{""}}, // empty entry
+		{IgnorePaths: []string{strings.Repeat("x", 201)}}, // too long
+		{IgnoreRules: []string{"a\x00b"}},                 // control chars
+		{IgnorePaths: make50Plus()},                       // too many
 	}
 	for i, c := range bad {
 		if err := ValidateConfig(c); err == nil {

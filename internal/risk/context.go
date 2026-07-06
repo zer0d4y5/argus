@@ -102,6 +102,22 @@ var publicExposureRules = map[string]bool{
 // `Possible exposure of secret env "AWS_SECRET_ACCESS_KEY" in ENV`.
 var quotedEnvName = regexp.MustCompile(`"([A-Za-z0-9_]+)"`)
 
+// cloudAdminPolicyChecks: prowler check IDs for wildcard/admin policy
+// grants and privilege-escalation paths — account-wide blast radius (the
+// cloud.iam_wildcard signal). Verified against the prowler 5.31 registry;
+// the canonical list lives in docs/risk-scoring.md (CLOUD table).
+var cloudAdminPolicyChecks = map[string]bool{
+	"iam_aws_attached_policy_no_administrative_privileges":        true,
+	"iam_customer_attached_policy_no_administrative_privileges":   true,
+	"iam_customer_unattached_policy_no_administrative_privileges": true,
+	"iam_inline_policy_no_administrative_privileges":              true,
+	"iam_inline_policy_allows_privilege_escalation":               true,
+	"iam_policy_allows_privilege_escalation":                      true,
+	"iam_group_administrator_access_policy":                       true,
+	"iam_role_administratoraccess_policy":                         true,
+	"iam_user_administrator_access_policy":                        true,
+}
+
 // runContext is the cross-finding evidence Apply precomputes for one run:
 // which files carry a DS-0031 exposure pattern and which carry a detected
 // secret. Co-location of the two on one file is the genuine "secret baked
@@ -138,6 +154,8 @@ func contextSignals(f model.Finding, rc runContext) []model.RiskSignal {
 		return iacSignals(f)
 	case f.Category == model.CategorySAST:
 		return sastSignals(f)
+	case f.Category == model.CategoryCloud:
+		return cloudSignals(f)
 	}
 	return nil
 }
@@ -247,6 +265,54 @@ func sastSignals(f model.Finding) []model.RiskSignal {
 		}}
 	}
 	return nil
+}
+
+// cloudSignals is the CLOUD stage-2 table (docs/risk-scoring.md, "CLOUD").
+// Inputs are the prowler check identity (RuleID) and the check's own
+// category tags as written by the cloudscan adapter (Meta["categories"]) —
+// never resource contents, never topology, never model output. All deltas
+// positive and modest: prowler's grade carries the base signal; these order
+// exposure within a grade. Unknown = neutral.
+func cloudSignals(f model.Finding) []model.RiskSignal {
+	cats := cloudCategorySet(f.Meta["categories"])
+	var sig []model.RiskSignal
+	if cats["internet-exposed"] {
+		sig = append(sig, model.RiskSignal{
+			Code: "cloud.public_exposure", Delta: 0.75,
+			Note: "prowler categorizes this check internet-exposed — internet-facing misconfiguration",
+		})
+	}
+	if cloudAdminPolicyChecks[f.RuleID] || cats["privilege-escalation"] {
+		sig = append(sig, model.RiskSignal{
+			Code: "cloud.iam_wildcard", Delta: 0.75,
+			Note: "admin-grade policy or privilege-escalation path — account-wide blast radius",
+		})
+	}
+	if cats["encryption"] {
+		sig = append(sig, model.RiskSignal{
+			Code: "cloud.unencrypted_at_rest", Delta: 0.25,
+			Note: "data-at-rest encryption gap",
+		})
+	}
+	if cats["logging"] {
+		sig = append(sig, model.RiskSignal{
+			Code: "cloud.logging_disabled", Delta: 0.25,
+			Note: "audit/access logging gap — degrades detection and forensics",
+		})
+	}
+	return sig
+}
+
+// cloudCategorySet splits the adapter's comma-joined prowler check
+// categories into a set. Empty input yields an empty set (no signal).
+func cloudCategorySet(csv string) map[string]bool {
+	set := map[string]bool{}
+	for _, c := range strings.Split(csv, ",") {
+		if c = strings.TrimSpace(c); c != "" {
+			set[c] = true
+		}
+	}
+	return set
 }
 
 func verifiedState(f model.Finding) string {

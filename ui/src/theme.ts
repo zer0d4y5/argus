@@ -34,6 +34,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
   SCA: "Dependencies (SCA)",
   IAC: "Infrastructure (IaC)",
   DAST: "Dynamic (DAST)",
+  CLOUD: "Cloud posture",
 };
 
 export const CATEGORY_CHIP: Record<string, string> = {
@@ -42,6 +43,7 @@ export const CATEGORY_CHIP: Record<string, string> = {
   SCA: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
   IAC: "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
   DAST: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  CLOUD: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
 };
 
 export const CATEGORY_COLOR: Record<string, string> = {
@@ -50,6 +52,7 @@ export const CATEGORY_COLOR: Record<string, string> = {
   SCA: "#0891b2",
   IAC: "#0d9488",
   DAST: "#9333ea",
+  CLOUD: "#0284c7",
 };
 
 export const VERDICT_LABEL: Record<string, string> = {

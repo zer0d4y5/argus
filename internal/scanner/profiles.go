@@ -53,7 +53,9 @@ var semgrepProfiles = map[string][]string{
 
 // standardPacks: cross-cutting security audit + OWASP, then one vetted security
 // pack per language we cover. Adding a language means adding its pack here AND
-// a labeled fixture under testdata/polyglot/.
+// a labeled fixture under testdata/polyglot/ — and the pack must EARN its slot
+// by catching a plant the existing packs miss (TestProfileRecall), or it is
+// not added (same bar as maxOnlyPacks).
 var standardPacks = []string{
 	"p/security-audit",
 	"p/owasp-top-ten",
@@ -66,6 +68,14 @@ var standardPacks = []string{
 	"p/ruby",
 	"p/php",
 	"p/kotlin",
+	// Cloud-posture session languages. Only packs that caught a plant the
+	// existing standard packs miss are here:
+	"p/rust",  // rust: untrusted-input (CWE-807), unsafe-usage (CWE-242)
+	"p/scala", // scala: tainted-sql-string (CWE-89); p/security-audit catches none
+	// C landed too but via p/security-audit's own C rules (insecure-use-gets-fn,
+	// CWE-676) — p/c added nothing over it on the plants, so it is NOT listed
+	// (see docs/coverage.md). Swift and Elixir did NOT land: p/swift and
+	// p/elixir caught nothing plantable — documented, not added.
 }
 
 // maxOnlyPacks: long-tail recall added on top of standard. Every pack here

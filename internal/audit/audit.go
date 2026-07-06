@@ -33,6 +33,7 @@ const (
 	EventScanLaunch   = "scan.launch"
 	EventScanFinish   = "scan.finish"
 	EventScanExplain  = "scan.explain"
+	EventRunDelete    = "run.delete"
 )
 
 // Entry is one audit line.

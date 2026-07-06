@@ -58,6 +58,49 @@ func TestWorkedExamples(t *testing.T) {
 			},
 			want: 5.3,
 		},
+		{
+			// Worked example #14: 9.25 baseline + 0.75 iam wildcard = 10.0.
+			name: "prowler admin policy critical",
+			f: model.Finding{
+				Severity: model.SeverityCritical, Category: model.CategoryCloud,
+				RuleID:      "iam_aws_attached_policy_no_administrative_privileges",
+				Remediation: "detach the policy",
+			},
+			want: 10.0,
+		},
+		{
+			// Worked example #15: 7.25 + 0.75 public exposure = 8.0.
+			name: "prowler public EC2 instance high",
+			f: model.Finding{
+				Severity: model.SeverityHigh, Category: model.CategoryCloud,
+				RuleID:      "ec2_instance_public_ip",
+				Remediation: "remove the public IP",
+				Meta:        map[string]string{"categories": "internet-exposed"},
+			},
+			want: 8.0,
+		},
+		{
+			// Worked example #16: 5.25 + 0.25 unencrypted at rest = 5.5.
+			name: "prowler unencrypted bucket medium",
+			f: model.Finding{
+				Severity: model.SeverityMedium, Category: model.CategoryCloud,
+				RuleID:      "s3_bucket_kms_encryption",
+				Remediation: "enable KMS encryption",
+				Meta:        map[string]string{"categories": "encryption"},
+			},
+			want: 5.5,
+		},
+		{
+			// Worked example #17: 3.25 + 0.25 logging disabled = 3.5.
+			name: "prowler logging gap low",
+			f: model.Finding{
+				Severity: model.SeverityLow, Category: model.CategoryCloud,
+				RuleID:      "s3_bucket_server_access_logging_enabled",
+				Remediation: "enable access logging",
+				Meta:        map[string]string{"categories": "logging"},
+			},
+			want: 3.5,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

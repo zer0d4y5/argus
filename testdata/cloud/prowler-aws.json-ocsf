@@ -1,0 +1,4060 @@
+[
+ {
+  "message": "EC2 Instance i-0dfc325c3aec7f3ea at IP 192.0.2.1 is internet-facing with Instance Profile arn:aws:iam::123456789012:instance-profile/acme-backend-ec2-profile.",
+  "metadata": {
+   "event_code": "ec2_instance_internet_facing_with_instance_profile",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "EC2 Instance i-0dfc325c3aec7f3ea at IP 192.0.2.1 is internet-facing with Instance Profile arn:aws:iam::123456789012:instance-profile/acme-backend-ec2-profile.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "internet-exposed",
+    "identity-access"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html",
+    "https://aws.amazon.com/blogs/aws/aws-web-application-firewall-waf-for-application-load-balancers/",
+    "https://support.icompaas.com/support/solutions/articles/62000127121-ensure-instance-profile-is-attached-for-internet-facing-ec2-instances"
+   ],
+   "notes": "",
+   "compliance": {
+    "KISA-ISMS-P-2023": [
+     "2.5.6",
+     "2.6.1",
+     "2.6.2",
+     "2.10.2"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.5.6",
+     "2.6.1",
+     "2.6.2",
+     "2.10.2"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC06-BP01"
+    ],
+    "ENS-RD2022": [
+     "mp.com.4.aws.vpc.2"
+    ],
+    "ISO27001-2022": [
+     "A.8.20",
+     "A.8.21",
+     "A.8.22"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**EC2 instances** with a public IP address and an attached **instance profile** (IAM role) are identified.\n\nInstances lacking public exposure or without an instance profile are excluded.",
+   "title": "EC2 instance is not internet-facing with an instance profile attached",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices/Network Reachability",
+    "TTPs/Initial Access",
+    "TTPs/Credential Access"
+   ],
+   "uid": "prowler-aws-ec2_instance_internet_facing_with_instance_profile-123456789012-us-east-1-i-0dfc325c3aec7f3ea"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "id": "i-0dfc325c3aec7f3ea",
+      "arn": "arn:aws:ec2:us-east-1:123456789012:instance/i-0dfc325c3aec7f3ea",
+      "state": "running",
+      "region": "us-east-1",
+      "type": "t3.small",
+      "image_id": "ami-0083bc5e47f4f673c",
+      "launch_time": "2026-06-28 22:42:45+00:00",
+      "private_dns": "ip-172-31-4-189.ec2.internal",
+      "private_ip": "192.0.2.1",
+      "public_dns": "ec2-3-235-28-214.compute-1.amazonaws.com",
+      "public_ip": "192.0.2.1",
+      "user_data": "Q29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT01MTg5MDY1Mzc3MjIyODk4NDA3PT0iCk1JTUUtVmVyc2lvbjogMS4wCgotLT09PT09PT09PT09PT09PTUxODkwNjUzNzcyMjI4OTg0MDc9PQpDb250ZW50LVR5cGU6IHRleHQvY2xvdWQtY29uZmlnOyBjaGFyc2V0PSJ1cy1hc2NpaSIKTUlNRS1WZXJzaW9uOiAxLjAKQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdApDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0iY2xvdWQtY29uZmlnLnR4dCIKCiNjbG91ZC1jb25maWcKcmVwb191cGdyYWRlOiBub25lCnJlcG9fcmVsZWFzZXZlcjogMi4wCmNsb3VkX2ZpbmFsX21vZHVsZXM6CiAtIFtzY3JpcHRzLXVzZXIsIGFsd2F5c10KCi0tPT09PT09PT09PT09PT09NTE4OTA2NTM3NzIyMjg5ODQwNz09CkNvbnRlbnQtVHlwZTogdGV4dC94LXNoZWxsc2NyaXB0OyBjaGFyc2V0PSJ1cy1hc2NpaSIKTUlNRS1WZXJzaW9uOiAxLjAKQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdApDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0idXNlci1kYXRhLnR4dCIKCiMhL2Jpbi9iYXNoCmV4ZWMgPiA+KHRlZSAtYSAvdmFyL2xvZy9lYi1jZm4taW5pdC5sb2d8bG9nZ2VyIC10IFtlYi1jZm4taW5pdF0gLXMgMj4vZGV2L2NvbnNvbGUpIDI+JjEKZWNobyBbYGRhdGUgLXUgKyIlWS0lbS0lZFQlSDolTTolU1oiYF0gU3RhcnRlZCBFQiBVc2VyIERhdGEKc2V0IC14CgoKZnVuY3Rpb24gc2xlZXBfZGVsYXkgCnsKICBpZiAoKCAkU0xFRVBfVElNRSA8ICRTTEVFUF9USU1FX01BWCApKTsgdGhlbiAKICAgIGVjaG8gU2xlZXBpbmcgJFNMRUVQX1RJTUUKICAgIHNsZWVwICRTTEVFUF9USU1FICAKICAgIFNMRUVQX1RJTUU9JCgoJFNMRUVQX1RJTUUgKiAyKSkgCiAgZWxzZSAKICAgIGVjaG8gU2xlZXBpbmcgJFNMRUVQX1RJTUVfTUFYICAKICAgIHNsZWVwICRTTEVFUF9USU1FX01BWCAgCiAgZmkKfQoKIyBFeGVjdXRpbmcgYm9vdHN0cmFwIHNjcmlwdApTTEVFUF9USU1FPTIKU0xFRVBfVElNRV9NQVg9MzYwMAp3aGlsZSB0cnVlOyBkbyAKICBjdXJsIGh0dHBzOi8vZWxhc3RpY2JlYW5zdGFsay1wbGF0Zm9ybS1hc3NldHMtdXMtZWFzdC0xLnMzLmFtYXpvbmF3cy5jb20vc3RhbGtzL2ViX2RvY2tlcl9hbWF6b25fbGludXhfMl8xLjAuMjQ2MS4wXzIwMjYwNjEwMTU1NDE3L2xpYi9Vc2VyRGF0YVNjcmlwdC5zaCA+IC90bXAvZWJib290c3RyYXAuc2ggCiAgUkVTVUxUPSQ/CiAgaWYgW1sgIiRSRVNVTFQiIC1uZSAwIF1dOyB0aGVuIAogICAgc2xlZXBfZGVsYXkgCiAgZWxzZQogICAgL2Jpbi9iYXNoIC90bXAvZWJib290c3RyYXAuc2ggICAgICdodHRwczovL2Nsb3VkZm9ybWF0aW9uLXdhaXRjb25kaXRpb24tdXMtZWFzdC0xLnMzLmFtYXpvbmF3cy5jb20vYXJuJTNBYXdzJTNBY2xvdWRmb3JtYXRpb24lM0F1cy1lYXN0LTElM0EzMTk2MDQ4MDQ0ODYlM0FzdGFjay9hd3NlYi1lLXF1bWN2bm1iaWUtc3RhY2svOTBlZjhjOTAtNzM0Mi0xMWYxLWJiNTgtMGUzOWY2MzdjM2ZmLzkwZjBlYzIwLTczNDItMTFmMS1iYjU4LTBlMzlmNjM3YzNmZi9BV1NFQkluc3RhbmNlTGF1bmNoV2FpdEhhbmRsZT9YLUFtei1TZWN1cml0eS1Ub2tlbj1JUW9KYjNKcFoybHVYMlZqRU5mJTJGJTJGJTJGJTJGJTJGJTJGJTJGJTJGJTJGJTJGd0VhQ1hWekxXVmhjM1F0TVNKSU1FWUNJUUQ2JTJCaTZ4c294JTJGOHJMNzJzR0g4VWlyR2MwSkdYZ3QycWRSVE9pQ3BTSDNuQUloQVBhaUNQdFl3aWNBMVhFMHBXQ1loVmlzaiUyRjRoM3F3VkxnOXN2WTJCZFU3Ykt2TUNDS0QlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkZ3RVFBQm9NT1RnM09ERXdOemc0TnpjMUlnejhiSW5PT3pFSGVKeG9ZVTRxeHdMYkpRZm9UbHhRNkpveEx2UGJ6OVZTOXVXOEQybzFyNjg0R09paFM3aDRka056REslMkZ6MGdCSWRCSldNV0o3WUElMkJ6TTlPUDV6WlRNeFRWS0RuMHVYWXliMUg1UlRXQjg5Qm56S3A5c0ZNV25TOUhHRiUyRmJoQzlIcmVXQTNRSlJpRkJjUDBIaFNORkJZYU1iTmhUS1I0cVd3OTNZeFliVmlYbHd2NTNWY0xNOEVzVkpMc2FaUGhaRzZDbmc1UDRpUGhPM3RNc01CdlFsM3QlMkZrOFF4dlRMdWc4VUJvNWk0SzZ2U2JzcGJWZE5GeTRMVWNxNk0zZnEwQnhFeHVBNWlETSUyRjElMkY1WFFIVnZJUFI2ODNLZDdyNERaMW1aQkZaRXlQUW5TeE1QQWVpemg5bVdvUnF2c3ZhNGk1Z2lUZURGTmtlMGQ1UVpHRGwlMkJzSkJLUnpDZk1IWWNXSUZkeDl2SUpHcG9wWDg1SkIzREhaY1RNOXhySHVGREVDREVKT1hEZEJibTJ4M3FZUW5SSjFJT2g1T1YxVHhnY2NYWTNOS29ONjJiN0hqWXdhZlhWRzhyWkZGZzNncUhJd3U4YUcwZ1k2dkFGZHh0JTJGRkZzUSUyQkdiTkZSUiUyQm55b0tIS2g1WlpiMFd1Z3ljTHJPSkRIdXZ5enhzNTVjcjY5TTI0UDlEME8lMkI3a3hNR2ZWWHJHNWJTTEF0JTJCNEl6VjdqJTJCeFJnRUpUZWJOaW9sSkZzUG52R3kzOURSV01ueDklMkZXV3BnOFhkTW02SEZmSUlHWFllcSUyRnE3aWFtU2JHR2Vaa3pQQlZOME1CUXpxS2NTeDNJWm5PaU1GM3pwQSUyQmVWV3hRbDNHV2EwdnVESmJUR3RseHlzRmxSekxmRmdRR1QwOHRxZ3ZuSGRtWmZaUUtaTFNjcDdBWnMwSVF0ZGl0dml2SVN1bEdNTmclM0QlM0QmWC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotRGF0ZT0yMDI2MDYyOFQyMjQyMDNaJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZYLUFtei1FeHBpcmVzPTQzMTk5JlgtQW16LUNyZWRlbnRpYWw9QVNJQTZMN1E0T1dUNzRUT1dFRFUlMkYyMDI2MDYyOCUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LVNpZ25hdHVyZT1mOGJiNWQwYjQ2YWQ2NzUyYzYyZDhlZDM0N2UzMTM1Y2ZkNzAzNTgxOTA0MDkxM2VmZmU4N2ZmZmIyMjg4ZGRkJyAgICAnYXJuOmF3czpjbG91ZGZvcm1hdGlvbjp1cy1lYXN0LTE6MzE5NjA0ODA0NDg2OnN0YWNrL2F3c2ViLWUtcXVtY3ZubWJpZS1zdGFjay85MGVmOGM5MC03MzQyLTExZjEtYmI1OC0wZTM5ZjYzN2MzZmYnICAgICc5ZDIwOTVjZS01N2NiLTQ0ZDctOGE0NC1lNzZmOTRlOTczMTknICAgICdodHRwczovL2VsYXN0aWNiZWFuc3RhbGstaGVhbHRoLnVzLWVhc3QtMS5hbWF6b25hd3MuY29tJyAgICAnJyAgICAnaHR0cHM6Ly9lbGFzdGljYmVhbnN0YWxrLXBsYXRmb3JtLWFzc2V0cy11cy1lYXN0LTEuczMuYW1hem9uYXdzLmNvbS9zdGFsa3MvZWJfZG9ja2VyX2FtYXpvbl9saW51eF8yXzEuMC4yNDYxLjBfMjAyNjA2MTAxNTU0MTcnICAgICd1cy1lYXN0LTEnCiAgICBSRVNVTFQ9JD8KICAgIGlmIFtbICIkUkVTVUxUIiAtbmUgMCBdXTsgdGhlbiAKICAgICAgc2xlZXBfZGVsYXkgCiAgICBlbHNlIAogICAgICBleGl0IDAgIAogICAgZmkgCiAgZmkgCmRvbmUKCi0tPT09PT09PT09PT09PT09NTE4OTA2NTM3NzIyMjg5ODQwNz09LS0g",
+      "http_tokens": "optional",
+      "http_endpoint": "enabled",
+      "monitoring_state": "disabled",
+      "security_groups": [
+       "sg-0583a98f7061e88e2"
+      ],
+      "subnet_id": "subnet-0e656aec2e49bdd5a",
+      "instance_profile": {
+       "Arn": "arn:aws:iam::123456789012:instance-profile/acme-backend-ec2-profile",
+       "Id": "AIPAUU2POJODFY3ZK6LEX"
+      },
+      "network_interfaces": [
+       "eni-05118a75d373e30a8"
+      ],
+      "virtualization_type": "hvm",
+      "tags": [
+       {
+        "Key": "aws:ec2launchtemplate:id",
+        "Value": "lt-0484c47a993e1dab3"
+       },
+       {
+        "Key": "aws:cloudformation:stack-name",
+        "Value": "awseb-e-qumcvnmbie-stack"
+       },
+       {
+        "Key": "elasticbeanstalk:environment-id",
+        "Value": "e-qumcvnmbie"
+       },
+       {
+        "Key": "aws:cloudformation:stack-id",
+        "Value": "arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-e-qumcvnmbie-stack/90ef8c90-7342-11f1-bb58-0e39f637c3ff"
+       },
+       {
+        "Key": "aws:autoscaling:groupName",
+        "Value": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J"
+       },
+       {
+        "Key": "aws:ec2launchtemplate:version",
+        "Value": "1"
+       },
+       {
+        "Key": "elasticbeanstalk:environment-name",
+        "Value": "acme-backend-prod"
+       },
+       {
+        "Key": "Name",
+        "Value": "acme-backend-prod"
+       },
+       {
+        "Key": "aws:cloudformation:logical-id",
+        "Value": "AWSEBAutoScalingGroup"
+       }
+      ]
+     }
+    },
+    "group": {
+     "name": "ec2"
+    },
+    "labels": [
+     "aws:ec2launchtemplate:id:lt-0484c47a993e1dab3",
+     "aws:cloudformation:stack-name:awseb-e-qumcvnmbie-stack",
+     "elasticbeanstalk:environment-id:e-qumcvnmbie",
+     "aws:cloudformation:stack-id:arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-e-qumcvnmbie-stack/90ef8c90-7342-11f1-bb58-0e39f637c3ff",
+     "aws:autoscaling:groupName:awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+     "aws:ec2launchtemplate:version:1",
+     "elasticbeanstalk:environment-name:acme-backend-prod",
+     "Name:acme-backend-prod",
+     "aws:cloudformation:logical-id:AWSEBAutoScalingGroup"
+    ],
+    "name": "i-0dfc325c3aec7f3ea",
+    "type": "AwsEc2Instance",
+    "uid": "arn:aws:ec2:us-east-1:123456789012:instance/i-0dfc325c3aec7f3ea"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Avoid direct Internet exposure. Place workloads behind an **Application Load Balancer** and protect HTTP apps with **WAF**. Remove public IPs or restrict ingress to trusted sources. Apply **least privilege** to instance profiles and enforce **IMDSv2**. Use **bastion hosts** or **Session Manager** for admin access.",
+   "references": [
+    "https://hub.prowler.com/check/ec2_instance_internet_facing_with_instance_profile"
+   ]
+  },
+  "risk_details": "Publicly reachable instances with **IAM role credentials** expand the blast radius. Remote exploits or misconfigurations can steal credentials via the **instance metadata service**, enabling unauthorized API calls, data exfiltration, and lateral movement, impacting confidentiality, integrity, and availability.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "EC2 Instance i-0be4519b66cfd4beb at IP 192.0.2.1 is internet-facing with Instance Profile arn:aws:iam::123456789012:instance-profile/acme-backend-ec2-profile.",
+  "metadata": {
+   "event_code": "ec2_instance_internet_facing_with_instance_profile",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "EC2 Instance i-0be4519b66cfd4beb at IP 192.0.2.1 is internet-facing with Instance Profile arn:aws:iam::123456789012:instance-profile/acme-backend-ec2-profile.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "internet-exposed",
+    "identity-access"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html",
+    "https://aws.amazon.com/blogs/aws/aws-web-application-firewall-waf-for-application-load-balancers/",
+    "https://support.icompaas.com/support/solutions/articles/62000127121-ensure-instance-profile-is-attached-for-internet-facing-ec2-instances"
+   ],
+   "notes": "",
+   "compliance": {
+    "KISA-ISMS-P-2023": [
+     "2.5.6",
+     "2.6.1",
+     "2.6.2",
+     "2.10.2"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.5.6",
+     "2.6.1",
+     "2.6.2",
+     "2.10.2"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC06-BP01"
+    ],
+    "ENS-RD2022": [
+     "mp.com.4.aws.vpc.2"
+    ],
+    "ISO27001-2022": [
+     "A.8.20",
+     "A.8.21",
+     "A.8.22"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**EC2 instances** with a public IP address and an attached **instance profile** (IAM role) are identified.\n\nInstances lacking public exposure or without an instance profile are excluded.",
+   "title": "EC2 instance is not internet-facing with an instance profile attached",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices/Network Reachability",
+    "TTPs/Initial Access",
+    "TTPs/Credential Access"
+   ],
+   "uid": "prowler-aws-ec2_instance_internet_facing_with_instance_profile-123456789012-us-east-1-i-0be4519b66cfd4beb"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "id": "i-0be4519b66cfd4beb",
+      "arn": "arn:aws:ec2:us-east-1:123456789012:instance/i-0be4519b66cfd4beb",
+      "state": "running",
+      "region": "us-east-1",
+      "type": "t3.small",
+      "image_id": "ami-0787263f73f2dcb8b",
+      "launch_time": "2026-06-30 05:34:52+00:00",
+      "private_dns": "ip-172-31-86-240.ec2.internal",
+      "private_ip": "192.0.2.1",
+      "public_dns": "ec2-35-171-158-128.compute-1.amazonaws.com",
+      "public_ip": "192.0.2.1",
+      "user_data": "Q29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT01MTg5MDY1Mzc3MjIyODk4NDA3PT0iCk1JTUUtVmVyc2lvbjogMS4wCgotLT09PT09PT09PT09PT09PTUxODkwNjUzNzcyMjI4OTg0MDc9PQpDb250ZW50LVR5cGU6IHRleHQvY2xvdWQtY29uZmlnOyBjaGFyc2V0PSJ1cy1hc2NpaSIKTUlNRS1WZXJzaW9uOiAxLjAKQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdApDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0iY2xvdWQtY29uZmlnLnR4dCIKCiNjbG91ZC1jb25maWcKcmVwb191cGdyYWRlOiBub25lCnJlcG9fcmVsZWFzZXZlcjogMjAyMy4xMgpjbG91ZF9maW5hbF9tb2R1bGVzOgogLSBbc2NyaXB0cy11c2VyLCBhbHdheXNdCgotLT09PT09PT09PT09PT09PTUxODkwNjUzNzcyMjI4OTg0MDc9PQpDb250ZW50LVR5cGU6IHRleHQveC1zaGVsbHNjcmlwdDsgY2hhcnNldD0idXMtYXNjaWkiCk1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHJhbnNmZXItRW5jb2Rpbmc6IDdiaXQKQ29udGVudC1EaXNwb3NpdGlvbjogYXR0YWNobWVudDsgZmlsZW5hbWU9InVzZXItZGF0YS50eHQiCgojIS9iaW4vYmFzaApleGVjID4gPih0ZWUgLWEgL3Zhci9sb2cvZWItY2ZuLWluaXQubG9nfGxvZ2dlciAtdCBbZWItY2ZuLWluaXRdIC1zIDI+L2Rldi9jb25zb2xlKSAyPiYxCmVjaG8gW2BkYXRlIC11ICsiJVktJW0tJWRUJUg6JU06JVNaImBdIFN0YXJ0ZWQgRUIgVXNlciBEYXRhCnNldCAteAoKCmZ1bmN0aW9uIHNsZWVwX2RlbGF5IAp7CiAgaWYgKCggJFNMRUVQX1RJTUUgPCAkU0xFRVBfVElNRV9NQVggKSk7IHRoZW4gCiAgICBlY2hvIFNsZWVwaW5nICRTTEVFUF9USU1FCiAgICBzbGVlcCAkU0xFRVBfVElNRSAgCiAgICBTTEVFUF9USU1FPSQoKCRTTEVFUF9USU1FICogMikpIAogIGVsc2UgCiAgICBlY2hvIFNsZWVwaW5nICRTTEVFUF9USU1FX01BWCAgCiAgICBzbGVlcCAkU0xFRVBfVElNRV9NQVggIAogIGZpCn0KCiMgRXhlY3V0aW5nIGJvb3RzdHJhcCBzY3JpcHQKU0xFRVBfVElNRT0yClNMRUVQX1RJTUVfTUFYPTM2MDAKd2hpbGUgdHJ1ZTsgZG8gCiAgY3VybCBodHRwczovL2VsYXN0aWNiZWFuc3RhbGstcGxhdGZvcm0tYXNzZXRzLXVzLWVhc3QtMS5zMy5hbWF6b25hd3MuY29tL3N0YWxrcy9lYl9kb2NrZXJfYW1hem9uX2xpbnV4XzIwMjNfMS4wLjI5MzkuMF8yMDI2MDYyNTA2NDgyMS9saWIvVXNlckRhdGFTY3JpcHQuc2ggPiAvdG1wL2ViYm9vdHN0cmFwLnNoIAogIFJFU1VMVD0kPwogIGlmIFtbICIkUkVTVUxUIiAtbmUgMCBdXTsgdGhlbiAKICAgIHNsZWVwX2RlbGF5IAogIGVsc2UKICAgIC9iaW4vYmFzaCAvdG1wL2ViYm9vdHN0cmFwLnNoICAgICAnaHR0cHM6Ly9jbG91ZGZvcm1hdGlvbi13YWl0Y29uZGl0aW9uLXVzLWVhc3QtMS5zMy5hbWF6b25hd3MuY29tL2FybiUzQWF3cyUzQWNsb3VkZm9ybWF0aW9uJTNBdXMtZWFzdC0xJTNBMzE5NjA0ODA0NDg2JTNBc3RhY2svYXdzZWItZS12eTlzYngydXpoLXN0YWNrLzUzZDkyMDYwLTc0NDUtMTFmMS1iOGUzLTBlMDdhMmQ3OWYwMS81M2RhYTcwMC03NDQ1LTExZjEtYjhlMy0wZTA3YTJkNzlmMDEvQVdTRUJJbnN0YW5jZUxhdW5jaFdhaXRIYW5kbGU/WC1BbXotU2VjdXJpdHktVG9rZW49SVFvSmIzSnBaMmx1WDJWakVQYiUyRiUyRiUyRiUyRiUyRiUyRiUyRiUyRiUyRiUyRndFYUNYVnpMV1ZoYzNRdE1TSkdNRVFDSUExUkJvbmNyTTVEYUhVUE42RU9Bbmg2S3ZjOSUyRnBaWSUyRlU5WEFZYyUyQmhJT21BaUFiSTF2T2t5cDlTa1BBN2V1ZnNucFJUZ2l4QmNQUkozMUU4bEJmczh3emJDcnpBZ2klMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkY4QkVBQWFERGs0TnpneE1EYzRPRGMzTlNJTUhzZjRVY0t0cVQ0T0lGc1RLc2NDRllRJTJCU0tvVCUyRnFHaSUyQiUyQlR5ZHMzSm9XdlZnNXdIcmN3SFU3c3hJdnh0ZVlwVzc2anY0WFdtTENTOHgydmVJdnhDbyUyQmRwRSUyQjRSdDlSQnZNJTJGelpIT2VTcUMzdk1vbXZFTERHVnc1QiUyQnZNaVRNdHAlMkZDMU9uRkxtR01ReiUyRmJ2UjMzb0xWS2lWa1BvUXh1aUxUUk5sY2RieDQ2VXExTjlud2Q1TVlIVmQlMkJISFo3em00NWdRbklDY1Y3aXhyWU4zSDhLTXV0YXYxTEklMkJlWktrc29wVUtkNDBoTHhlT2VpNEdjcm5SRUpxNGZkTFpTMmdOSTM1azk1V0xVa24zTEprUUpqZkYwVnpuTm4lMkZMWmh1ZnlHZnF0U0J5MnQ1RFdwYnhFblhnVURDJTJCS0IlMkIlMkJlQW5Dd2slMkI0dWpjZGE5NCUyQjB5Vld1ODMxSnpVem0lMkI0bjF1QzU2OW10akxxNGMwVlNraFJoTjZ1OXB6Um80bGFkUjVmWlZ0WHp4bUNrTzhrbEp0cHVjekdtSTRmOVBuNDdBNFRoWGZDRFNPWEdHZFNUSm5iUGxkbVYlMkJFVjExWHZKbXBuTzZremlYa0JNTnlxamRJR09yNEJSdE00Tnd3SWVXQ2tyYVlKakdOaTN6UGJIY1MyRFRoTVMyQUQlMkJRaGNwcCUyQjA1cHR5eW1RQ2xqS2R1SSUyQmFETVpBbzdJc3NieE1za1F3U0F1QlclMkY4R1c4RGpkZDd6UEVUdHJseG8wa25ZbjNaUjBDRVpXWHMyN0VldHBDQ3lad084bWE2QiUyRjBkeWlmJTJGamtRSzVEU3loRmwyT3d1M2g3RW95TGV0M3ZERUM5MkZHNXpkSmNKNHU1WEZEZ01MODQ0ckhMSXdSaEMxJTJGNW5oTk5Ha0l1dWlqMzF4YWduN2RLSWE4Slh4U0RBM1pGbXglMkZ6aGpHaHdWMFd2dlhyYk5YUUElM0QlM0QmWC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotRGF0ZT0yMDI2MDYzMFQwNTM0MjBaJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZYLUFtei1FeHBpcmVzPTQzMTk5JlgtQW16LUNyZWRlbnRpYWw9QVNJQTZMN1E0T1dUNlNOSVhRUEElMkYyMDI2MDYzMCUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LVNpZ25hdHVyZT1lNzNlYzkxODc5MGRhNmU5ZjM1NjlkMmEyNjBhM2JhZTEwOGM2YzQ3ZDVmNGFjYzQwZTg5YWQ3Yzc2YjI5ZThiJyAgICAnYXJuOmF3czpjbG91ZGZvcm1hdGlvbjp1cy1lYXN0LTE6MzE5NjA0ODA0NDg2OnN0YWNrL2F3c2ViLWUtdnk5c2J4MnV6aC1zdGFjay81M2Q5MjA2MC03NDQ1LTExZjEtYjhlMy0wZTA3YTJkNzlmMDEnICAgICdlZDUxMTc2NS00ZTAxLTRiOWMtOTIzNS02NDkyNGE2ZmQ5YTUnICAgICdodHRwczovL2VsYXN0aWNiZWFuc3RhbGstaGVhbHRoLnVzLWVhc3QtMS5hbWF6b25hd3MuY29tJyAgICAnJyAgICAnaHR0cHM6Ly9lbGFzdGljYmVhbnN0YWxrLXBsYXRmb3JtLWFzc2V0cy11cy1lYXN0LTEuczMuYW1hem9uYXdzLmNvbS9zdGFsa3MvZWJfZG9ja2VyX2FtYXpvbl9saW51eF8yMDIzXzEuMC4yOTM5LjBfMjAyNjA2MjUwNjQ4MjEnICAgICd1cy1lYXN0LTEnCiAgICBSRVNVTFQ9JD8KICAgIGlmIFtbICIkUkVTVUxUIiAtbmUgMCBdXTsgdGhlbiAKICAgICAgc2xlZXBfZGVsYXkgCiAgICBlbHNlIAogICAgICBleGl0IDAgIAogICAgZmkgCiAgZmkgCmRvbmUKCi0tPT09PT09PT09PT09PT09NTE4OTA2NTM3NzIyMjg5ODQwNz09LS0g",
+      "http_tokens": "required",
+      "http_endpoint": "enabled",
+      "monitoring_state": "disabled",
+      "security_groups": [
+       "sg-06f74f956a2439de5"
+      ],
+      "subnet_id": "subnet-09e33ac45c106f974",
+      "instance_profile": {
+       "Arn": "arn:aws:iam::123456789012:instance-profile/acme-backend-ec2-profile",
+       "Id": "AIPAUU2POJODFY3ZK6LEX"
+      },
+      "network_interfaces": [
+       "eni-036c0b019aeb9866a"
+      ],
+      "virtualization_type": "hvm",
+      "tags": [
+       {
+        "Key": "aws:cloudformation:logical-id",
+        "Value": "AWSEBAutoScalingGroup"
+       },
+       {
+        "Key": "aws:ec2launchtemplate:version",
+        "Value": "1"
+       },
+       {
+        "Key": "Name",
+        "Value": "acme-backend-al2023"
+       },
+       {
+        "Key": "aws:cloudformation:stack-id",
+        "Value": "arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-e-vy9sbx2uzh-stack/53d92060-7445-11f1-b8e3-0e07a2d79f01"
+       },
+       {
+        "Key": "elasticbeanstalk:environment-id",
+        "Value": "e-vy9sbx2uzh"
+       },
+       {
+        "Key": "aws:cloudformation:stack-name",
+        "Value": "awseb-e-vy9sbx2uzh-stack"
+       },
+       {
+        "Key": "aws:ec2launchtemplate:id",
+        "Value": "lt-0f07bd313ec70c0cc"
+       },
+       {
+        "Key": "aws:autoscaling:groupName",
+        "Value": "awseb-e-vy9sbx2uzh-stack-AWSEBAutoScalingGroup-7UYeJ8hBhb7p"
+       },
+       {
+        "Key": "elasticbeanstalk:environment-name",
+        "Value": "acme-backend-al2023"
+       }
+      ]
+     }
+    },
+    "group": {
+     "name": "ec2"
+    },
+    "labels": [
+     "aws:cloudformation:logical-id:AWSEBAutoScalingGroup",
+     "aws:ec2launchtemplate:version:1",
+     "Name:acme-backend-al2023",
+     "aws:cloudformation:stack-id:arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-e-vy9sbx2uzh-stack/53d92060-7445-11f1-b8e3-0e07a2d79f01",
+     "elasticbeanstalk:environment-id:e-vy9sbx2uzh",
+     "aws:cloudformation:stack-name:awseb-e-vy9sbx2uzh-stack",
+     "aws:ec2launchtemplate:id:lt-0f07bd313ec70c0cc",
+     "aws:autoscaling:groupName:awseb-e-vy9sbx2uzh-stack-AWSEBAutoScalingGroup-7UYeJ8hBhb7p",
+     "elasticbeanstalk:environment-name:acme-backend-al2023"
+    ],
+    "name": "i-0be4519b66cfd4beb",
+    "type": "AwsEc2Instance",
+    "uid": "arn:aws:ec2:us-east-1:123456789012:instance/i-0be4519b66cfd4beb"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Avoid direct Internet exposure. Place workloads behind an **Application Load Balancer** and protect HTTP apps with **WAF**. Remove public IPs or restrict ingress to trusted sources. Apply **least privilege** to instance profiles and enforce **IMDSv2**. Use **bastion hosts** or **Session Manager** for admin access.",
+   "references": [
+    "https://hub.prowler.com/check/ec2_instance_internet_facing_with_instance_profile"
+   ]
+  },
+  "risk_details": "Publicly reachable instances with **IAM role credentials** expand the blast radius. Remote exploits or misconfigurations can steal credentials via the **instance metadata service**, enabling unauthorized API calls, data exfiltration, and lateral movement, impacting confidentiality, integrity, and availability.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Network ACL acl-0996682cffdf81383 has every port open to the Internet.",
+  "metadata": {
+   "event_code": "ec2_networkacl_allow_ingress_any_port",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "Network ACL acl-0996682cffdf81383 has every port open to the Internet.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "internet-exposed"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html",
+    "https://support.icompaas.com/support/solutions/articles/62000233809-ensure-no-network-acls-allow-ingress-from-0-0-0-0-0-to-any-port"
+   ],
+   "notes": "",
+   "compliance": {
+    "CISA": [
+     "your-data-2"
+    ],
+    "SOC2": [
+     "cc_6_6"
+    ],
+    "CIS-1.4": [
+     "5.1"
+    ],
+    "CIS-1.5": [
+     "5.1"
+    ],
+    "MITRE-ATTACK": [
+     "T1199",
+     "T1048",
+     "T1499",
+     "T1498",
+     "T1046"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.6.1",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "PI-01.01AC"
+    ],
+    "HIPAA": [
+     "164_308_a_1_ii_b",
+     "164_312_e_1"
+    ],
+    "CIS-2.0": [
+     "5.1"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.6.1",
+     "2.10.2"
+    ],
+    "GxP-21-CFR-Part-11": [
+     "11.10-d",
+     "11.10-g",
+     "11.10-k"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC05-BP03"
+    ],
+    "CIS-5.0": [
+     "5.2"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_1_1",
+     "3_1_2",
+     "3_1_3",
+     "3_1_14",
+     "3_1_20",
+     "3_4_1",
+     "3_4_7",
+     "3_13_1",
+     "3_13_2",
+     "3_13_5",
+     "3_13_6"
+    ],
+    "NIST-800-53-Revision-4": [
+     "ac_4",
+     "cm_2",
+     "sc_7_3",
+     "sc_7"
+    ],
+    "NIST-800-53-Revision-5": [
+     "ac_4_21",
+     "ac_17_b",
+     "ac_17_1",
+     "ac_17_4_a",
+     "ac_17_9",
+     "ac_17_10",
+     "cm_2_a",
+     "cm_2_2",
+     "cm_6_a",
+     "cm_7_b",
+     "cm_8_6",
+     "cm_9_b",
+     "sc_7_5",
+     "sc_7_7",
+     "sc_7_11",
+     "sc_7_12",
+     "sc_7_16",
+     "sc_7_21",
+     "sc_7_24_b",
+     "sc_7_25",
+     "sc_7_26",
+     "sc_7_27",
+     "sc_7_28",
+     "sc_7_a",
+     "sc_7_c"
+    ],
+    "CIS-3.0": [
+     "5.1"
+    ],
+    "CIS-6.0": [
+     "6.2"
+    ],
+    "NIST-CSF-1.1": [
+     "ae_1",
+     "ac_3",
+     "ac_5",
+     "pt_4"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN05.AR05"
+    ],
+    "SecNumCloud-3.2": [
+     "13.2"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_1_3",
+     "annex_i_5_1"
+    ],
+    "FFIEC": [
+     "d3-pc-am-b-10",
+     "d3-pc-im-b-1",
+     "d3-pc-im-b-2",
+     "d3-pc-im-b-6",
+     "d4-c-co-b-2"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "2.1.3"
+    ],
+    "ISO27001-2022": [
+     "A.8.20",
+     "A.8.21",
+     "A.8.22"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "ac-4",
+     "ac-17-1",
+     "ac-21-b",
+     "cm-2",
+     "sc-4",
+     "sc-7-3",
+     "sc-7"
+    ],
+    "FedRAMP-Low-Revision-4": [
+     "ac-17",
+     "cm-2",
+     "sc-7"
+    ],
+    "CIS-4.0.1": [
+     "5.2"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-cna"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**VPC network ACLs** with **inbound entries** that permit traffic from `0.0.0.0/0` to any port (any protocol) are identified at the subnet boundary.",
+   "title": "Network ACL does not allow ingress from 0.0.0.0/0 to any port",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices/Network Reachability",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark",
+    "TTPs/Initial Access/Unauthorized Access",
+    "Effects/Data Exposure"
+   ],
+   "uid": "prowler-aws-ec2_networkacl_allow_ingress_any_port-123456789012-us-east-1-acl-0996682cffdf81383"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "id": "acl-0996682cffdf81383",
+      "arn": "arn:aws:ec2:us-east-1:123456789012:network-acl/acl-0996682cffdf81383",
+      "name": "",
+      "region": "us-east-1",
+      "entries": [
+       {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": true,
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": 100
+       },
+       {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": true,
+        "Protocol": "-1",
+        "RuleAction": "deny",
+        "RuleNumber": 32767
+       },
+       {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": false,
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": 100
+       },
+       {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": false,
+        "Protocol": "-1",
+        "RuleAction": "deny",
+        "RuleNumber": 32767
+       }
+      ],
+      "default": true,
+      "in_use": true,
+      "tags": []
+     }
+    },
+    "group": {
+     "name": "ec2"
+    },
+    "labels": [],
+    "name": "acl-0996682cffdf81383",
+    "type": "AwsEc2NetworkAcl",
+    "uid": "arn:aws:ec2:us-east-1:123456789012:network-acl/acl-0996682cffdf81383"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Adopt a **deny-by-default** NACL posture: block `0.0.0.0/0` and allow only required ports from trusted CIDRs. Apply **least privilege** using security groups for fine-grained access, with NACLs as coarse stateless filters. Review and prune rules regularly, and employ **defense in depth** with monitoring and alerting.",
+   "references": [
+    "https://hub.prowler.com/check/ec2_networkacl_allow_ingress_any_port"
+   ]
+  },
+  "risk_details": "Allowing Internet-wide ingress at the subnet layer enables broad port scanning and unsolicited connections. Attackers can probe and exploit exposed services, risking data disclosure and tampering (confidentiality, integrity) and causing outages via floods or brute-force (availability). Any security group lapse then lacks a compensating control.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Inline policy deploy attached to role acme-gha-deploy allows privilege escalation using the following actions: 'cloudformation:UpdateStack', 'lambda:UpdateFunctionCode'.",
+  "metadata": {
+   "event_code": "iam_inline_policy_allows_privilege_escalation",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "Inline policy deploy attached to role acme-gha-deploy allows privilege escalation using the following actions: 'cloudformation:UpdateStack', 'lambda:UpdateFunctionCode'.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "identity-access",
+    "privilege-escalation"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege",
+    "https://bishopfox.com/blog/privilege-escalation-in-aws",
+    "https://github.com/RhinoSecurityLabs/Security-Research/blob/master/tools/aws-pentest-tools/aws_escalate.py",
+    "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+    "https://labs.reversec.com/posts/2025/08/another-ecs-privilege-escalation-path"
+   ],
+   "notes": "",
+   "compliance": {
+    "SOC2": [
+     "cc_3_3"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "SP-01.04B",
+     "AM-09.04AC"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "NIST-CSF-2.0": [
+     "rr_1",
+     "rr_2",
+     "po_1",
+     "ra_1",
+     "ac_1",
+     "ac_4",
+     "ac_6",
+     "ac_7",
+     "ip_1"
+    ],
+    "ASD-Essential-Eight-Nov 2023": [
+     "E8-4.4"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN05.AR02",
+     "CCC.IAM.CN02.AR01",
+     "CCC.IAM.CN02.AR02"
+    ],
+    "SecNumCloud-3.2": [
+     "9.3"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "1.3.3"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-IAM-02"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**IAM inline policies** are evaluated for permission combinations that enable **privilege escalation**, such as `sts:AssumeRole`, `iam:PassRole`, attaching/editing policies, or broad wildcards. The result highlights inline policies that allow a principal to obtain higher effective access.",
+   "title": "IAM inline policy does not allow privilege escalation",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "TTPs/Privilege Escalation"
+   ],
+   "uid": "prowler-aws-iam_inline_policy_allows_privilege_escalation-123456789012-us-east-1-acme-gha-deploy/deploy"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "name": "deploy",
+      "arn": "arn:aws:iam::123456789012:role/acme-gha-deploy",
+      "entity": "acme-gha-deploy",
+      "version_id": "v1",
+      "type": "Inline",
+      "attached": true,
+      "document": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Sid": "EcrAuth",
+         "Effect": "Allow",
+         "Action": "ecr:GetAuthorizationToken",
+         "Resource": "*"
+        },
+        {
+         "Sid": "EcrPush",
+         "Effect": "Allow",
+         "Action": [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer"
+         ],
+         "Resource": "arn:aws:ecr:us-east-1:123456789012:repository/acme-backend"
+        },
+        {
+         "Sid": "Beanstalk",
+         "Effect": "Allow",
+         "Action": [
+          "elasticbeanstalk:CreateApplicationVersion",
+          "elasticbeanstalk:UpdateEnvironment",
+          "elasticbeanstalk:DescribeEnvironments",
+          "elasticbeanstalk:DescribeApplicationVersions",
+          "elasticbeanstalk:DescribeEvents",
+          "elasticbeanstalk:DescribeConfigurationSettings",
+          "elasticbeanstalk:DescribeEnvironmentResources"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Sid": "EbDeployStack",
+         "Effect": "Allow",
+         "Action": [
+          "cloudformation:GetTemplate",
+          "cloudformation:DescribeStacks",
+          "cloudformation:DescribeStackResource",
+          "cloudformation:DescribeStackResources",
+          "cloudformation:ListStackResources",
+          "cloudformation:GetTemplateSummary",
+          "cloudformation:UpdateStack",
+          "cloudformation:CancelUpdateStack",
+          "cloudformation:ValidateTemplate"
+         ],
+         "Resource": "arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-*/*"
+        },
+        {
+         "Sid": "EbDeployRead",
+         "Effect": "Allow",
+         "Action": [
+          "ec2:Describe*",
+          "autoscaling:Describe*",
+          "elasticloadbalancing:Describe*",
+          "cloudwatch:DescribeAlarms",
+          "sns:ListSubscriptionsByTopic",
+          "sns:GetTopicAttributes"
+         ],
+         "Resource": "*"
+        },
+        {
+         "Sid": "EbPassRole",
+         "Effect": "Allow",
+         "Action": "iam:PassRole",
+         "Resource": [
+          "arn:aws:iam::123456789012:role/acme-backend-ec2-role",
+          "arn:aws:iam::123456789012:role/acme-backend-eb-service-role"
+         ]
+        },
+        {
+         "Sid": "EbBundleBucketFull",
+         "Effect": "Allow",
+         "Action": "s3:*",
+         "Resource": [
+          "arn:aws:s3:::elasticbeanstalk-us-east-1-123456789012",
+          "arn:aws:s3:::elasticbeanstalk-us-east-1-123456789012/*"
+         ]
+        },
+        {
+         "Sid": "S3SiteDeploy",
+         "Effect": "Allow",
+         "Action": [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+         ],
+         "Resource": [
+          "arn:aws:s3:::acme-frontend-prod",
+          "arn:aws:s3:::acme-frontend-prod/*",
+          "arn:aws:s3:::acme-admin-prod",
+          "arn:aws:s3:::acme-admin-prod/*"
+         ]
+        },
+        {
+         "Sid": "CloudFront",
+         "Effect": "Allow",
+         "Action": "cloudfront:CreateInvalidation",
+         "Resource": [
+          "arn:aws:cloudfront::123456789012:distribution/E1CMXRUFUXH7C7",
+          "arn:aws:cloudfront::123456789012:distribution/E2EKQ9M8AUDD48"
+         ]
+        },
+        {
+         "Sid": "Lambda",
+         "Effect": "Allow",
+         "Action": [
+          "lambda:UpdateFunctionCode"
+         ],
+         "Resource": "arn:aws:lambda:us-east-1:123456789012:function:acme-inbound-mail"
+        }
+       ]
+      },
+      "tags": []
+     }
+    },
+    "group": {
+     "name": "iam"
+    },
+    "labels": [],
+    "name": "acme-gha-deploy/deploy",
+    "type": "AwsIamPolicy",
+    "uid": "arn:aws:iam::123456789012:role/acme-gha-deploy"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Apply **least privilege** and remove escalation paths:\n- Avoid wildcards and sensitive actions like `sts:AssumeRole`, `iam:PassRole`, or policy modification without tight scope\n- Restrict by resource and `Condition`\n- Prefer managed, versioned policies; use permissions boundaries/SCPs\n- Require reviews and MFA for admins",
+   "references": [
+    "https://hub.prowler.com/check/iam_inline_policy_allows_privilege_escalation"
+   ]
+  },
+  "risk_details": "Excessive inline policy permissions let identities escalate to admin, compromising CIA:\n- Confidentiality: read secrets and data\n- Integrity: alter policies, code, and configs\n- Availability: delete or stop resources, disable logging\nAttackers can persist by creating keys/users or assuming powerful roles.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "AWS policy AdministratorAccess is attached and allows '*:*' administrative privileges.",
+  "metadata": {
+   "event_code": "iam_aws_attached_policy_no_administrative_privileges",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 5,
+  "severity": "Critical",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "AWS policy AdministratorAccess is attached and allows '*:*' administrative privileges.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "identity-access"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AdministratorAccess.html",
+    "https://support.icompaas.com/support/solutions/articles/62000233815-ensure-iam-roles-do-not-have-administratoraccess-policy-attached",
+    "http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+   ],
+   "notes": "CAF Security Epic: IAM",
+   "compliance": {
+    "CISA": [
+     "your-systems-3",
+     "your-surroundings-3"
+    ],
+    "SOC2": [
+     "cc_1_3",
+     "cc_6_3"
+    ],
+    "CIS-1.4": [
+     "1.16"
+    ],
+    "CIS-1.5": [
+     "1.16"
+    ],
+    "MITRE-ATTACK": [
+     "T1078",
+     "T1648",
+     "T1098",
+     "T1578",
+     "T1550",
+     "T1040",
+     "T1580",
+     "T1538",
+     "T1619",
+     "T1201"
+    ],
+    "GDPR": [
+     "article_25"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "IAM.1"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "OIS-04.03B",
+     "OIS-04.01AC",
+     "SP-01.04B",
+     "HR-01.01B",
+     "IAM-01.01B",
+     "IAM-01.04B"
+    ],
+    "HIPAA": [
+     "164_308_a_1_ii_b",
+     "164_308_a_3_i",
+     "164_308_a_3_ii_b",
+     "164_308_a_4_i",
+     "164_308_a_4_ii_b",
+     "164_308_a_4_ii_c",
+     "164_312_a_1"
+    ],
+    "CIS-2.0": [
+     "1.16"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "GxP-21-CFR-Part-11": [
+     "11.10-d",
+     "11.10-g"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC03-BP02"
+    ],
+    "NIST-CSF-2.0": [
+     "rr_1",
+     "rr_2",
+     "po_1",
+     "ac_1"
+    ],
+    "CIS-5.0": [
+     "1.15"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_1_1",
+     "3_1_2",
+     "3_1_4",
+     "3_1_5",
+     "3_1_6",
+     "3_1_7",
+     "3_4_6",
+     "3_13_3"
+    ],
+    "ASD-Essential-Eight-Nov 2023": [
+     "E8-4.4"
+    ],
+    "NIST-800-53-Revision-4": [
+     "ac_2",
+     "ac_3",
+     "ac_5",
+     "ac_6",
+     "sc_2"
+    ],
+    "NIST-800-53-Revision-5": [
+     "ac_2_1",
+     "ac_2_6",
+     "ac_2_i_2",
+     "ac_3",
+     "ac_3_3",
+     "ac_3_3_a",
+     "ac_3_3_b_1",
+     "ac_3_3_b_2",
+     "ac_3_3_b_3",
+     "ac_3_3_b_4",
+     "ac_3_3_b_5",
+     "ac_3_3_c",
+     "ac_3_4",
+     "ac_3_4_a",
+     "ac_3_4_b",
+     "ac_3_4_c",
+     "ac_3_4_d",
+     "ac_3_4_e",
+     "ac_3_7",
+     "ac_3_8",
+     "ac_3_12_a",
+     "ac_3_13",
+     "ac_3_15_a",
+     "ac_3_15_b",
+     "ac_4_28",
+     "ac_5_b",
+     "ac_6",
+     "ac_6_2",
+     "ac_6_3",
+     "ac_6_10",
+     "ac_24",
+     "cm_5_1_a",
+     "cm_6_a",
+     "cm_9_b",
+     "mp_2",
+     "sc_23_3",
+     "sc_25"
+    ],
+    "CIS-3.0": [
+     "1.16"
+    ],
+    "ENS-RD2022": [
+     "op.acc.4.aws.iam.1",
+     "op.acc.4.aws.iam.2",
+     "op.acc.4.aws.iam.9",
+     "op.exp.8.r4.aws.ct.8"
+    ],
+    "CIS-6.0": [
+     "2.15"
+    ],
+    "NIST-CSF-1.1": [
+     "ac_1",
+     "ac_4",
+     "pt_3"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN05.AR02",
+     "CCC.IAM.CN01.AR01",
+     "CCC.IAM.CN01.AR02",
+     "CCC.IAM.CN02.AR01",
+     "CCC.IAM.CN02.AR02",
+     "CCC.IAM.CN04.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "9.1"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_7_1"
+    ],
+    "FFIEC": [
+     "d3-pc-am-b-1",
+     "d3-pc-am-b-16",
+     "d3-pc-am-b-2",
+     "d3-pc-am-b-3",
+     "d3-pc-am-b-6",
+     "d3-pc-im-b-7"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "1.3.1"
+    ],
+    "ISO27001-2022": [
+     "A.5.18",
+     "A.8.2"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-IAM-02"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "ac-2-1",
+     "ac-2-f",
+     "ac-2-j",
+     "ac-3",
+     "ac-5-c",
+     "ac-6-10",
+     "ac-6",
+     "sc-2"
+    ],
+    "FedRAMP-Low-Revision-4": [
+     "ac-2",
+     "ac-3"
+    ],
+    "CIS-4.0.1": [
+     "1.16"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-iam"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**IAM AWS-managed policies** attached to identities are inspected for statements that allow `Action:'*'` on `Resource:'*'`-i.e., full administrative `*:*` permissions",
+   "title": "Attached AWS-managed IAM policy does not allow '*:*' administrative privileges",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark",
+    "TTPs/Privilege Escalation"
+   ],
+   "uid": "prowler-aws-iam_aws_attached_policy_no_administrative_privileges-123456789012-us-east-1-AdministratorAccess"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "name": "AdministratorAccess",
+      "arn": "arn:aws:iam::aws:policy/AdministratorAccess",
+      "entity": "ANPAIWMBCKSKIEE64ZLYK",
+      "version_id": "v1",
+      "type": "AWS",
+      "attached": true,
+      "document": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": "*",
+         "Resource": "*"
+        }
+       ]
+      },
+      "tags": []
+     }
+    },
+    "group": {
+     "name": "iam"
+    },
+    "labels": [],
+    "name": "AdministratorAccess",
+    "type": "AwsIamPolicy",
+    "uid": "arn:aws:iam::aws:policy/AdministratorAccess"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Apply **least privilege**: avoid attaching AWS-managed policies that grant `*:*`.\n- Use **customer-managed, scoped policies** per role\n- Enforce **separation of duties** and **permissions boundaries**\n- Prefer **temporary, time-bound elevation** for emergencies with MFA\n- Regularly review access and use conditions to constrain context",
+   "references": [
+    "https://hub.prowler.com/check/iam_aws_attached_policy_no_administrative_privileges"
+   ]
+  },
+  "risk_details": "**Unrestricted `*:*` access** enables any action on any resource, risking:\n- Data exfiltration (**confidentiality**)\n- Unauthorized changes and policy tampering (**integrity**)\n- Service deletion or shutdown (**availability**)\nAttackers can disable logging, create backdoor principals, and expand lateral movement.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Multiregion trail acme-trail has encryption disabled.",
+  "metadata": {
+   "event_code": "cloudtrail_kms_encryption_enabled",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 3,
+  "severity": "Medium",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "Multiregion trail acme-trail has encryption disabled.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "encryption"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/encrypting-cloudtrail-log-files-with-aws-kms.html",
+    "https://trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/CloudTrail/cloudtrail-logs-encrypted.html",
+    "https://www.stream.security/rules/ensure-cloudtrail-logs-are-encrypted-at-rest",
+    "https://www.clouddefense.ai/compliance-rules/cis-v130/logging/cis-v130-3-7"
+   ],
+   "notes": "",
+   "compliance": {
+    "CISA": [
+     "your-systems-3",
+     "your-data-1"
+    ],
+    "CIS-1.4": [
+     "3.7"
+    ],
+    "CIS-1.5": [
+     "3.7"
+    ],
+    "GDPR": [
+     "article_25",
+     "article_30",
+     "article_32"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "CloudTrail.2"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.7.2",
+     "2.10.1",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "OIS-08.02B",
+     "OPS-11.02AC",
+     "OPS-13.03B",
+     "OPS-26.01AS",
+     "OPS-31.01B",
+     "IAM-07.03B",
+     "IAM-08.06B",
+     "CRY-01.02AC",
+     "CRY-05.02B",
+     "CRY-05.01AC",
+     "CRY-10.01AC",
+     "CRY-11.01B",
+     "SIM-03.06B",
+     "SIM-03.07B",
+     "COM-04.01AC",
+     "PSS-04.04B",
+     "PSS-12.02B",
+     "PSS-12.03AC"
+    ],
+    "HIPAA": [
+     "164_308_a_1_ii_b",
+     "164_308_a_1_ii_d",
+     "164_308_a_4_ii_a",
+     "164_312_a_2_iv",
+     "164_312_c_1",
+     "164_312_c_2",
+     "164_312_e_2_ii"
+    ],
+    "CIS-2.0": [
+     "3.7"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.7.2",
+     "2.10.1",
+     "2.10.2"
+    ],
+    "GxP-21-CFR-Part-11": [
+     "11.10-c",
+     "11.30"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC08-BP02"
+    ],
+    "GxP-EU-Annex-11": [
+     "7.1-data-storage-damage-protection"
+    ],
+    "NIST-CSF-2.0": [
+     "ds_1",
+     "ds_5",
+     "pt_1",
+     "pt_4"
+    ],
+    "CIS-5.0": [
+     "3.5"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_3_8",
+     "3_13_11",
+     "3_13_16"
+    ],
+    "PCI-4.0": [
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "A1.2.1.11"
+    ],
+    "NIST-800-53-Revision-4": [
+     "au_9",
+     "sc_28"
+    ],
+    "NIST-800-53-Revision-5": [
+     "au_9_3",
+     "cm_6_a",
+     "cm_9_b",
+     "cp_9_d",
+     "sc_8_3",
+     "sc_8_4",
+     "sc_13_a",
+     "sc_28_1",
+     "si_19_4"
+    ],
+    "CIS-3.0": [
+     "3.5"
+    ],
+    "ENS-RD2022": [
+     "op.exp.8.r4.aws.ct.4",
+     "op.exp.8.r4.aws.ct.7"
+    ],
+    "CIS-6.0": [
+     "4.5"
+    ],
+    "AWS-Foundational-Technical-Review": [
+     "SDAT-002"
+    ],
+    "NIST-CSF-1.1": [
+     "ds_1"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN09.AR01",
+     "CCC.Core.CN09.AR02",
+     "CCC.Core.CN02.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "12.7"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_1_3"
+    ],
+    "PCI-3.2.1": [
+     "3.4",
+     "3.4.1",
+     "3.4.1.a",
+     "3.4.1.c",
+     "3.4.a",
+     "3.4.b",
+     "3.4.d",
+     "8.2",
+     "8.2.1",
+     "8.2.1.a"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "4.2.3"
+    ],
+    "ISO27001-2022": [
+     "A.8.11",
+     "A.8.15",
+     "A.8.16",
+     "A.8.24"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-INFRA-05",
+     "AISF-DETECT-01"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "au-9",
+     "sc-28"
+    ],
+    "FedRAMP-Low-Revision-4": [
+     "au-9"
+    ],
+    "CIS-4.0.1": [
+     "3.5"
+    ],
+    "NIS2": [
+     "9.2.a"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-mla",
+     "ksi-svc"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**AWS CloudTrail trails** are evaluated for use of **SSE-KMS** with a customer-managed KMS key to encrypt delivered log files at rest in S3. Trails without a configured KMS key are identified. *Applies to single-Region and multi-Region trails.*",
+   "title": "CloudTrail trail logs are encrypted at rest with a KMS key",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark"
+   ],
+   "uid": "prowler-aws-cloudtrail_kms_encryption_enabled-123456789012-us-east-1-acme-trail"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "name": "acme-trail",
+      "is_multiregion": true,
+      "home_region": "us-east-1",
+      "arn": "arn:aws:cloudtrail:us-east-1:123456789012:trail/acme-trail",
+      "region": "us-east-1",
+      "is_logging": true,
+      "log_file_validation_enabled": false,
+      "latest_cloudwatch_delivery_time": null,
+      "s3_bucket": "acme-cloudtrail-123456789012",
+      "kms_key": null,
+      "log_group_arn": null,
+      "data_events": [
+       {
+        "is_advanced": false,
+        "event_selector": {
+         "ReadWriteType": "All",
+         "IncludeManagementEvents": true,
+         "DataResources": [],
+         "ExcludeManagementEventSources": []
+        }
+       }
+      ],
+      "tags": [],
+      "has_insight_selectors": null
+     }
+    },
+    "group": {
+     "name": "cloudtrail"
+    },
+    "labels": [],
+    "name": "acme-trail",
+    "type": "AwsCloudTrailTrail",
+    "uid": "arn:aws:cloudtrail:us-east-1:123456789012:trail/acme-trail"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Enable **SSE-KMS** on every trail using a **customer-managed KMS key**. Apply **least privilege** so only authorized roles can `Decrypt`, and enforce **separation of duties** between key admins and log readers. Rotate keys and monitor key usage to provide **defense in depth** for CloudTrail data.",
+   "references": [
+    "https://hub.prowler.com/check/cloudtrail_kms_encryption_enabled"
+   ]
+  },
+  "risk_details": "Absent a **customer-managed KMS key**, log protection relies only on storage permissions. Bucket misconfigurations or stolen credentials can expose audit data, aiding evasion and lateral movement. Missing key-level controls, rotation, and usage audit weaken **confidentiality** and **forensic integrity**.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "EBS Snapshot vol-07db68811a679634b is unencrypted.",
+  "metadata": {
+   "event_code": "ec2_ebs_volume_encryption",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "EBS Snapshot vol-07db68811a679634b is unencrypted.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "encryption"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
+    "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EBS/ebs-encrypted.html"
+   ],
+   "notes": "",
+   "compliance": {
+    "CISA": [
+     "your-systems-3",
+     "your-data-1",
+     "your-data-2"
+    ],
+    "SOC2": [
+     "pi_1_5"
+    ],
+    "CIS-1.4": [
+     "2.2.1"
+    ],
+    "CIS-1.5": [
+     "2.2.1"
+    ],
+    "MITRE-ATTACK": [
+     "T1119"
+    ],
+    "GDPR": [
+     "article_32"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "EC2.3"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.7.1",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "OPS-31.01B",
+     "IAM-07.03B",
+     "CRY-01.02AC",
+     "CRY-03.01B",
+     "CRY-05.01AC",
+     "PSS-12.02B"
+    ],
+    "HIPAA": [
+     "164_308_a_1_ii_b",
+     "164_308_a_4_ii_a",
+     "164_312_a_2_iv",
+     "164_312_c_1",
+     "164_312_c_2",
+     "164_312_e_2_ii"
+    ],
+    "CIS-2.0": [
+     "2.2.1"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.7.1",
+     "2.10.2"
+    ],
+    "GxP-21-CFR-Part-11": [
+     "11.10-g",
+     "11.30"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC08-BP02"
+    ],
+    "GxP-EU-Annex-11": [
+     "7.1-data-storage-damage-protection"
+    ],
+    "CIS-5.0": [
+     "5.1.1"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_5_10",
+     "3_13_11",
+     "3_13_16"
+    ],
+    "PCI-4.0": [
+     "192.0.2.1",
+     "192.0.2.1"
+    ],
+    "NIST-800-53-Revision-4": [
+     "sc_28"
+    ],
+    "NIST-800-53-Revision-5": [
+     "au_9_3",
+     "cm_6_a",
+     "cm_9_b",
+     "cp_9_d",
+     "sc_8_3",
+     "sc_8_4",
+     "sc_13_a",
+     "sc_28_1",
+     "si_19_4"
+    ],
+    "CIS-3.0": [
+     "2.2.1"
+    ],
+    "ENS-RD2022": [
+     "mp.si.2.aws.kms.1"
+    ],
+    "CIS-6.0": [
+     "6.1.1"
+    ],
+    "NIST-CSF-1.1": [
+     "ds_1"
+    ],
+    "AWS-Audit-Manager-Control-Tower-Guardrails": [
+     "1.0.3"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN02.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "10.1"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_1_3"
+    ],
+    "FFIEC": [
+     "d3-pc-am-b-12"
+    ],
+    "PCI-3.2.1": [
+     "3.4",
+     "3.4.1",
+     "3.4.1.a",
+     "3.4.1.c",
+     "3.4.a",
+     "3.4.b",
+     "8.2",
+     "8.2.1",
+     "8.2.1.a"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "4.2.1"
+    ],
+    "ISO27001-2022": [
+     "A.8.11",
+     "A.8.24"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-INFRA-05"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "sc-28"
+    ],
+    "CIS-4.0.1": [
+     "5.1.1"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**EBS volumes** are assessed for **encryption at rest** using **AWS KMS**.\n\nThe finding identifies volumes whose `encrypted` state is disabled, meaning data is stored unencrypted on block storage.",
+   "title": "EBS volume is encrypted",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark",
+    "Effects/Data Exposure"
+   ],
+   "uid": "prowler-aws-ec2_ebs_volume_encryption-123456789012-us-east-1-vol-07db68811a679634b"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "id": "vol-07db68811a679634b",
+      "arn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-07db68811a679634b",
+      "region": "us-east-1",
+      "encrypted": false,
+      "tags": null
+     }
+    },
+    "group": {
+     "name": "ec2"
+    },
+    "labels": [],
+    "name": "vol-07db68811a679634b",
+    "type": "AwsEc2Volume",
+    "uid": "arn:aws:ec2:us-east-1:123456789012:volume/vol-07db68811a679634b"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Encrypt all EBS volumes and enable `encryption by default` for new volumes and snapshot copies.\n\nApply **least privilege** to KMS keys, restrict snapshot sharing, and enforce **defense in depth** with policies and templates that prevent creation of unencrypted storage.",
+   "references": [
+    "https://hub.prowler.com/check/ec2_ebs_volume_encryption"
+   ]
+  },
+  "risk_details": "Unencrypted volumes or snapshots can be copied, shared, or recovered and reveal raw data, undermining **confidentiality**.\n\nAdversaries with host or account access can read disks offline, harvest secrets, or alter system images, affecting **integrity** and enabling **lateral movement**.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Multiregion trail acme-trail has not been logging in the last 24h or is not configured to deliver logs.",
+  "metadata": {
+   "event_code": "cloudtrail_cloudwatch_logging_enabled",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 2,
+  "severity": "Low",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "Multiregion trail acme-trail has not been logging in the last 24h or is not configured to deliver logs.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "logging",
+    "forensics-ready"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html"
+   ],
+   "notes": "",
+   "compliance": {
+    "SOC2": [
+     "cc_7_2",
+     "cc_7_3",
+     "cc_a_1_1",
+     "pi_1_3"
+    ],
+    "CIS-1.4": [
+     "3.4"
+    ],
+    "CIS-1.5": [
+     "3.4"
+    ],
+    "GDPR": [
+     "article_25",
+     "article_30"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "CloudTrail.5"
+    ],
+    "ISO27001-2013": [
+     "A.12.4.Q"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.9.4",
+     "2.10.1",
+     "2.10.2",
+     "2.11.3"
+    ],
+    "C5-2025": [
+     "OIS-04.01AC",
+     "OIS-05.02B",
+     "AM-01.01AC",
+     "OPS-11.02AC",
+     "OPS-13.01B",
+     "OPS-13.02B",
+     "OPS-15.01B",
+     "OPS-15.02B",
+     "OPS-15.03B",
+     "OPS-15.01AC",
+     "OPS-26.05B",
+     "OPS-26.01AS",
+     "IAM-07.04B",
+     "SSO-05.01AC",
+     "SIM-02.01B",
+     "SIM-03.07B",
+     "COM-04.01AC",
+     "PSS-04.01B",
+     "PSS-04.05B",
+     "PSS-12.03AC"
+    ],
+    "HIPAA": [
+     "164_308_a_1_ii_d",
+     "164_308_a_6_ii",
+     "164_312_b",
+     "164_312_e_2_i"
+    ],
+    "CIS-2.0": [
+     "3.4"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.9.4",
+     "2.10.1",
+     "2.10.2",
+     "2.11.3"
+    ],
+    "GxP-21-CFR-Part-11": [
+     "11.10-e",
+     "11.10-k",
+     "11.300-d"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC04-BP01"
+    ],
+    "NIST-CSF-2.0": [
+     "ip_8",
+     "ae_1",
+     "ae_3",
+     "cm_1",
+     "cm_3",
+     "cm_7"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_3_1",
+     "3_3_2",
+     "3_3_3",
+     "3_3_5",
+     "3_6_1",
+     "3_6_2",
+     "3_12_4"
+    ],
+    "PCI-4.0": [
+     "192.0.2.1.10",
+     "192.0.2.1.8",
+     "192.0.2.1.8",
+     "192.0.2.1.8",
+     "192.0.2.1.8",
+     "192.0.2.1.8",
+     "192.0.2.1.8",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1.3",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "A1.2.1.10",
+     "A3.3.1.6",
+     "A3.5.1.6"
+    ],
+    "NIST-800-53-Revision-4": [
+     "ac_2_4",
+     "ac_2",
+     "au_2",
+     "au_3",
+     "au_6_1",
+     "au_6_3",
+     "au_7_1",
+     "au_12",
+     "ca_7",
+     "si_4_2",
+     "si_4_4",
+     "si_4_5",
+     "si_4"
+    ],
+    "NIST-800-53-Revision-5": [
+     "ac_2_4",
+     "ac_3_1",
+     "ac_3_10",
+     "ac_4_26",
+     "ac_6_9",
+     "au_2_b",
+     "au_3_a",
+     "au_3_b",
+     "au_3_c",
+     "au_3_d",
+     "au_3_e",
+     "au_3_f",
+     "au_4_1",
+     "au_6_1",
+     "au_6_3",
+     "au_6_4",
+     "au_6_5",
+     "au_6_6",
+     "au_6_9",
+     "au_7_1",
+     "au_8_b",
+     "au_9_7",
+     "au_10",
+     "au_12_a",
+     "au_12_c",
+     "au_12_1",
+     "au_12_2",
+     "au_12_3",
+     "au_12_4",
+     "au_14_a",
+     "au_14_b",
+     "au_14_3",
+     "au_16",
+     "ca_7_b",
+     "cm_5_1_b",
+     "cm_6_a",
+     "cm_9_b",
+     "ia_3_3_b",
+     "ma_4_1_a",
+     "pm_14_a_1",
+     "pm_14_b",
+     "pm_31",
+     "sc_7_9_b",
+     "si_1_1_c",
+     "si_3_8_b",
+     "si_4_2",
+     "si_4_17",
+     "si_4_20",
+     "si_7_8",
+     "si_10_1_c"
+    ],
+    "ENS-RD2022": [
+     "op.exp.8.r1.aws.ct.7",
+     "op.mon.3.aws.cwl.1"
+    ],
+    "NIST-CSF-1.1": [
+     "ae_1",
+     "ae_3",
+     "cm_2",
+     "cm_5",
+     "cp_4",
+     "ra_5",
+     "sc_4",
+     "pt_1"
+    ],
+    "AWS-Well-Architected-Framework-Reliability-Pillar": [
+     "REL06-BP01"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN09.AR02",
+     "CCC.Core.CN04.AR01",
+     "CCC.Core.CN04.AR02",
+     "CCC.Core.CN04.AR03",
+     "CCC.AuditLog.CN02.AR01",
+     "CCC.Logging.CN01.AR02",
+     "CCC.LB.CN04.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "12.6"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_7_4"
+    ],
+    "FFIEC": [
+     "d2-is-is-b-1",
+     "d2-ma-ma-b-1",
+     "d2-ma-ma-b-2",
+     "d3-dc-an-b-3",
+     "d3-dc-an-b-4",
+     "d3-dc-an-b-5",
+     "d3-dc-ev-b-1",
+     "d3-pc-im-b-3",
+     "d3-pc-im-b-7",
+     "d5-dr-de-b-3"
+    ],
+    "PCI-3.2.1": [
+     "3.2",
+     "3.2.3",
+     "3.4",
+     "3.4.d",
+     "10.1",
+     "10.2",
+     "10.2.1",
+     "10.2.2",
+     "10.2.3",
+     "10.2.4",
+     "10.2.6",
+     "10.2.7",
+     "10.3",
+     "10.3.1",
+     "10.3.2",
+     "10.3.3",
+     "10.3.4",
+     "10.3.5",
+     "10.3.6",
+     "10.5",
+     "10.5.3",
+     "10.5.4"
+    ],
+    "ISO27001-2022": [
+     "A.8.15",
+     "A.8.16"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-DETECT-01"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "ac-2-4",
+     "ac-2-g",
+     "au-2-a-d",
+     "au-3",
+     "au-6-1-3",
+     "au-7-1",
+     "au-12-a-c",
+     "si-4-a-b-c"
+    ],
+    "NIS2": [
+     "3.2.3.c",
+     "3.2.3.g",
+     "3.4.2.c"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-mla"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**CloudTrail trails** are configured to send events to **CloudWatch Logs**, and show recent delivery within the last `24h`. Trails without integration or without recent CloudWatch delivery are identified, across single-Region and multi-Region trails.",
+   "title": "CloudTrail trail has delivered logs to CloudWatch Logs in the last 24 hours",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark"
+   ],
+   "uid": "prowler-aws-cloudtrail_cloudwatch_logging_enabled-123456789012-us-east-1-acme-trail"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "name": "acme-trail",
+      "is_multiregion": true,
+      "home_region": "us-east-1",
+      "arn": "arn:aws:cloudtrail:us-east-1:123456789012:trail/acme-trail",
+      "region": "us-east-1",
+      "is_logging": true,
+      "log_file_validation_enabled": false,
+      "latest_cloudwatch_delivery_time": null,
+      "s3_bucket": "acme-cloudtrail-123456789012",
+      "kms_key": null,
+      "log_group_arn": null,
+      "data_events": [
+       {
+        "is_advanced": false,
+        "event_selector": {
+         "ReadWriteType": "All",
+         "IncludeManagementEvents": true,
+         "DataResources": [],
+         "ExcludeManagementEventSources": []
+        }
+       }
+      ],
+      "tags": [],
+      "has_insight_selectors": null
+     }
+    },
+    "group": {
+     "name": "cloudtrail"
+    },
+    "labels": [],
+    "name": "acme-trail",
+    "type": "AwsCloudTrailTrail",
+    "uid": "arn:aws:cloudtrail:us-east-1:123456789012:trail/acme-trail"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Integrate every trail with **CloudWatch Logs** and maintain continuous, near-real-time delivery. Enforce **least privilege** on the delivery role, prefer **multi-Region** coverage, and implement **metric filters and alerts** for sensitive actions. Centralize retention to support **defense in depth**.",
+   "references": [
+    "https://hub.prowler.com/check/cloudtrail_cloudwatch_logging_enabled"
+   ]
+  },
+  "risk_details": "Missing or stale CloudWatch delivery weakens visibility and delays detection, impacting confidentiality and integrity. Adversaries can:\n- Hide **privilege escalation**\n- Perform unauthorized **resource changes**\n- Exfiltrate data via API misuse",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Multiregion trail acme-trail has log file validation disabled.",
+  "metadata": {
+   "event_code": "cloudtrail_log_file_validation_enabled",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 3,
+  "severity": "Medium",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "Multiregion trail acme-trail has log file validation disabled.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "logging",
+    "forensics-ready"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html",
+    "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-enabling.html",
+    "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/CloudTrail/cloudtrail-log-file-integrity-validation.html",
+    "https://deepwiki.com/acantril/learn-cantrill-io-labs/7.1-cloudtrail-log-file-integrity"
+   ],
+   "notes": "",
+   "compliance": {
+    "CISA": [
+     "your-systems-3"
+    ],
+    "SOC2": [
+     "cc_7_3",
+     "pi_1_3"
+    ],
+    "CIS-1.4": [
+     "3.2"
+    ],
+    "CIS-1.5": [
+     "3.2"
+    ],
+    "GDPR": [
+     "article_25",
+     "article_32"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "CloudTrail.4"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.9.4",
+     "2.10.1",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "AM-01.01AC",
+     "OPS-11.02AC",
+     "OPS-13.01AC",
+     "OPS-15.02AC",
+     "OPS-26.05B",
+     "OPS-26.01AS",
+     "DEV-08.02B",
+     "SIM-01.02AC",
+     "SIM-03.07B",
+     "COM-04.01AC",
+     "PSS-12.03AC"
+    ],
+    "HIPAA": [
+     "164_308_a_1_ii_b",
+     "164_308_a_1_ii_d",
+     "164_312_b",
+     "164_312_c_1",
+     "164_312_c_2"
+    ],
+    "CIS-2.0": [
+     "3.2"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.9.4",
+     "2.10.1",
+     "2.10.2"
+    ],
+    "GxP-21-CFR-Part-11": [
+     "11.10-a",
+     "11.30"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC06-BP01",
+     "SEC06-BP06"
+    ],
+    "NIST-CSF-2.0": [
+     "ds_6",
+     "pt_1"
+    ],
+    "CIS-5.0": [
+     "3.2"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_3_8",
+     "3_13_1"
+    ],
+    "PCI-4.0": [
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "A1.2.1.12"
+    ],
+    "NIST-800-53-Revision-4": [
+     "si_7_1",
+     "si_7"
+    ],
+    "NIST-800-53-Revision-5": [
+     "au_9_a",
+     "cm_6_a",
+     "cm_9_b",
+     "pm_11_b",
+     "pm_17_b",
+     "sa_1_1",
+     "sa_10_1",
+     "sc_16_1",
+     "si_1_a_2",
+     "si_4_d",
+     "si_7_1",
+     "si_7_3",
+     "si_7_7",
+     "si_7_a"
+    ],
+    "CIS-3.0": [
+     "3.2"
+    ],
+    "ENS-RD2022": [
+     "op.exp.8.aws.ct.3"
+    ],
+    "CIS-6.0": [
+     "4.2"
+    ],
+    "NIST-CSF-1.1": [
+     "ds_6",
+     "ds_7"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN09.AR01",
+     "CCC.Core.CN09.AR02",
+     "CCC.Core.CN09.AR03",
+     "CCC.Core.CN04.AR01",
+     "CCC.AuditLog.CN01.AR01",
+     "CCC.AuditLog.CN01.AR02"
+    ],
+    "SecNumCloud-3.2": [
+     "10.4",
+     "12.7",
+     "16.6"
+    ],
+    "PCI-3.2.1": [
+     "10.5",
+     "10.5.2",
+     "10.5.5"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "3.1.2"
+    ],
+    "ISO27001-2022": [
+     "A.8.15",
+     "A.8.16"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-DETECT-01"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "au-9",
+     "si-7-1",
+     "si-7"
+    ],
+    "FedRAMP-Low-Revision-4": [
+     "ac-2",
+     "au-2",
+     "au-9"
+    ],
+    "CIS-4.0.1": [
+     "3.2"
+    ],
+    "NIS2": [
+     "3.4.2.d"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-cmt",
+     "ksi-mla"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**AWS CloudTrail trails** are evaluated for **log file integrity validation** being enabled (`LogFileValidationEnabled`).\n\nWhen enabled, CloudTrail generates signed digest files to verify that S3-delivered log files remain unchanged.",
+   "title": "CloudTrail trail has log file validation enabled",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark"
+   ],
+   "uid": "prowler-aws-cloudtrail_log_file_validation_enabled-123456789012-us-east-1-acme-trail"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "name": "acme-trail",
+      "is_multiregion": true,
+      "home_region": "us-east-1",
+      "arn": "arn:aws:cloudtrail:us-east-1:123456789012:trail/acme-trail",
+      "region": "us-east-1",
+      "is_logging": true,
+      "log_file_validation_enabled": false,
+      "latest_cloudwatch_delivery_time": null,
+      "s3_bucket": "acme-cloudtrail-123456789012",
+      "kms_key": null,
+      "log_group_arn": null,
+      "data_events": [
+       {
+        "is_advanced": false,
+        "event_selector": {
+         "ReadWriteType": "All",
+         "IncludeManagementEvents": true,
+         "DataResources": [],
+         "ExcludeManagementEventSources": []
+        }
+       }
+      ],
+      "tags": [],
+      "has_insight_selectors": null
+     }
+    },
+    "group": {
+     "name": "cloudtrail"
+    },
+    "labels": [],
+    "name": "acme-trail",
+    "type": "AwsCloudTrailTrail",
+    "uid": "arn:aws:cloudtrail:us-east-1:123456789012:trail/acme-trail"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Enable **log file integrity validation** on all trails (`LogFileValidationEnabled=true`).\n\nEnforce **least privilege** on the logs bucket, retain and protect digest files (e.g., S3 Object Lock/MFA Delete), and monitor validation results to support **defense in depth**.",
+   "references": [
+    "https://hub.prowler.com/check/cloudtrail_log_file_validation_enabled"
+   ]
+  },
+  "risk_details": "Without validation, adversaries can alter, forge, or delete audit entries without detection, compromising log **integrity** and non-repudiation.\n\nThis impairs investigations, enables alert evasion, and obscures unauthorized changes across regions or accounts.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "IMDSv2 is not enabled by default for EC2 instances.",
+  "metadata": {
+   "event_code": "ec2_instance_account_imdsv2_enabled",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "IMDSv2 is not enabled by default for EC2 instances.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "secrets",
+    "ec2-imdsv1"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-IMDS-new-instances.html#set-imdsv2-account-defaults",
+    "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-IMDS-new-instances.html",
+    "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EC2/require-imds-v2.html"
+   ],
+   "notes": "",
+   "compliance": {
+    "KISA-ISMS-P-2023": [
+     "2.6.2",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "OPS-25.01B"
+    ],
+    "CIS-2.0": [
+     "5.6"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.6.2",
+     "2.10.2"
+    ],
+    "ISO27001-2022": [
+     "A.8.20",
+     "A.8.21",
+     "A.8.22"
+    ],
+    "NIS2": [
+     "6.7.2.i"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**EC2 account IMDS defaults** with `http_tokens`=`required` ensure new instances in the Region use **IMDSv2** by default and disable IMDSv1. *Existing instances keep their current setting.*",
+   "title": "IMDSv2 is required by default for EC2 instances at the account level",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "TTPs/Credential Access"
+   ],
+   "uid": "prowler-aws-ec2_instance_account_imdsv2_enabled-123456789012-us-east-1-123456789012"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "http_tokens": null,
+      "instances": true,
+      "region": "us-east-1"
+     }
+    },
+    "group": {
+     "name": "ec2"
+    },
+    "labels": [],
+    "name": "123456789012",
+    "type": "AwsEc2Instance",
+    "uid": "arn:aws:ec2:us-east-1:123456789012:account"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Enforce **IMDSv2** at the account level in every Region by setting `http_tokens` to `required`. Add guardrails with **SCP/IAM conditions**. Standardize AMIs and launch templates to require tokens, validate workload compatibility, and apply **least privilege** to instance roles for defense in depth. *For containers*, prefer hop limit `2`.",
+   "references": [
+    "https://hub.prowler.com/check/ec2_instance_account_imdsv2_enabled"
+   ]
+  },
+  "risk_details": "Without a default of **IMDSv2**, new instances may enable **IMDSv1**, exposing metadata via simple HTTP. SSRF or proxy misconfigs can steal **temporary IAM credentials**, enabling data exfiltration (confidentiality), unauthorized API changes (integrity), and lateral movement that can disrupt services (availability).",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "IAM Access Analyzer in account 123456789012 is not enabled.",
+  "metadata": {
+   "event_code": "accessanalyzer_enabled",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 2,
+  "severity": "Low",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "IAM Access Analyzer in account 123456789012 is not enabled.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "identity-access",
+    "trust-boundaries"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-manage-external.html",
+    "https://aws.amazon.com/iam/access-analyzer/",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html",
+    "https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_CreateAnalyzer.html",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-create-external.html",
+    "https://docs.aws.amazon.com/access-analyzer/latest/APIReference/Welcome.html",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-create-internal.html"
+   ],
+   "notes": "",
+   "compliance": {
+    "CIS-1.4": [
+     "1.20"
+    ],
+    "CIS-1.5": [
+     "1.20"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "IAM-01.04B",
+     "IAM-06.01AC",
+     "IAM-10.01B",
+     "IAM-10.02B",
+     "INQ-04.01AC",
+     "PSS-08.03B",
+     "PSS-09.01AC"
+    ],
+    "CIS-2.0": [
+     "1.20"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "NIST-CSF-2.0": [
+     "po_3",
+     "po_4",
+     "ov_2",
+     "ov_3",
+     "ac_1",
+     "ac_6"
+    ],
+    "CIS-5.0": [
+     "1.19"
+    ],
+    "ASD-Essential-Eight-Nov 2023": [
+     "E8-4.4"
+    ],
+    "AWS-Account-Security-Onboarding": [
+     "Enabled security services",
+     "Create analyzers in each active regions",
+     "Verify that events are present in SecurityHub aggregated view"
+    ],
+    "CIS-3.0": [
+     "1.20"
+    ],
+    "CIS-6.0": [
+     "2.19"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN05.AR04",
+     "CCC.IAM.CN11.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "9.3"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "1.2.6"
+    ],
+    "ISO27001-2022": [
+     "A.8.3"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-DATA-02"
+    ],
+    "CIS-4.0.1": [
+     "1.20"
+    ],
+    "NIS2": [
+     "3.2.3.e",
+     "11.1.1",
+     "11.2.1",
+     "11.2.2.e"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**IAM Access Analyzer** presence and status are evaluated per account and Region. An analyzer in `ACTIVE` state indicates continuous analysis of supported resources and IAM activity to identify external, internal, and unused access.",
+   "title": "IAM Access Analyzer is enabled",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices"
+   ],
+   "uid": "prowler-aws-accessanalyzer_enabled-123456789012-us-east-1-analyzer/unknown"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "arn": "arn:aws:accessanalyzer:us-east-1:123456789012:analyzer/unknown",
+      "name": "analyzer/unknown",
+      "status": "NOT_AVAILABLE",
+      "findings": [],
+      "tags": [],
+      "type": "",
+      "region": "us-east-1"
+     }
+    },
+    "group": {
+     "name": "accessanalyzer"
+    },
+    "labels": [],
+    "name": "analyzer/unknown",
+    "type": "Other",
+    "uid": "arn:aws:accessanalyzer:us-east-1:123456789012:analyzer/unknown"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Enable **IAM Access Analyzer** across all accounts and active Regions (*or organization-wide*). Operate on least privilege: continuously review findings, remove unintended access, and trim unused permissions. Use archive rules sparingly, integrate reviews into change/CI/CD workflows, and enforce separation of duties on policy changes.",
+   "references": [
+    "https://hub.prowler.com/check/accessanalyzer_enabled"
+   ]
+  },
+  "risk_details": "Without an active analyzer, visibility into unintended public, cross-account, or risky internal access is lost. Adversaries can exploit exposed S3, snapshots, KMS keys, or permissive role trusts for data exfiltration and escalation. Unused permissions persist, enlarging the attack surface. This degrades confidentiality and integrity.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "IAM Access Analyzer in account 123456789012 is not enabled.",
+  "metadata": {
+   "event_code": "accessanalyzer_enabled",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 2,
+  "severity": "Low",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "IAM Access Analyzer in account 123456789012 is not enabled.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "identity-access",
+    "trust-boundaries"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-manage-external.html",
+    "https://aws.amazon.com/iam/access-analyzer/",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-getting-started.html",
+    "https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_CreateAnalyzer.html",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-create-external.html",
+    "https://docs.aws.amazon.com/access-analyzer/latest/APIReference/Welcome.html",
+    "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-create-internal.html"
+   ],
+   "notes": "",
+   "compliance": {
+    "CIS-1.4": [
+     "1.20"
+    ],
+    "CIS-1.5": [
+     "1.20"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "IAM-01.04B",
+     "IAM-06.01AC",
+     "IAM-10.01B",
+     "IAM-10.02B",
+     "INQ-04.01AC",
+     "PSS-08.03B",
+     "PSS-09.01AC"
+    ],
+    "CIS-2.0": [
+     "1.20"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.5.1",
+     "2.5.5",
+     "2.5.6",
+     "2.10.2"
+    ],
+    "NIST-CSF-2.0": [
+     "po_3",
+     "po_4",
+     "ov_2",
+     "ov_3",
+     "ac_1",
+     "ac_6"
+    ],
+    "CIS-5.0": [
+     "1.19"
+    ],
+    "ASD-Essential-Eight-Nov 2023": [
+     "E8-4.4"
+    ],
+    "AWS-Account-Security-Onboarding": [
+     "Enabled security services",
+     "Create analyzers in each active regions",
+     "Verify that events are present in SecurityHub aggregated view"
+    ],
+    "CIS-3.0": [
+     "1.20"
+    ],
+    "CIS-6.0": [
+     "2.19"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN05.AR04",
+     "CCC.IAM.CN11.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "9.3"
+    ],
+    "ProwlerThreatScore-1.0": [
+     "1.2.6"
+    ],
+    "ISO27001-2022": [
+     "A.8.3"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-DATA-02"
+    ],
+    "CIS-4.0.1": [
+     "1.20"
+    ],
+    "NIS2": [
+     "3.2.3.e",
+     "11.1.1",
+     "11.2.1",
+     "11.2.2.e"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**IAM Access Analyzer** presence and status are evaluated per account and Region. An analyzer in `ACTIVE` state indicates continuous analysis of supported resources and IAM activity to identify external, internal, and unused access.",
+   "title": "IAM Access Analyzer is enabled",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices"
+   ],
+   "uid": "prowler-aws-accessanalyzer_enabled-123456789012-us-east-2-analyzer/unknown"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-2",
+    "data": {
+     "details": "",
+     "metadata": {
+      "arn": "arn:aws:accessanalyzer:us-east-2:123456789012:analyzer/unknown",
+      "name": "analyzer/unknown",
+      "status": "NOT_AVAILABLE",
+      "findings": [],
+      "tags": [],
+      "type": "",
+      "region": "us-east-2"
+     }
+    },
+    "group": {
+     "name": "accessanalyzer"
+    },
+    "labels": [],
+    "name": "analyzer/unknown",
+    "type": "Other",
+    "uid": "arn:aws:accessanalyzer:us-east-2:123456789012:analyzer/unknown"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-2"
+  },
+  "remediation": {
+   "desc": "Enable **IAM Access Analyzer** across all accounts and active Regions (*or organization-wide*). Operate on least privilege: continuously review findings, remove unintended access, and trim unused permissions. Use archive rules sparingly, integrate reviews into change/CI/CD workflows, and enforce separation of duties on policy changes.",
+   "references": [
+    "https://hub.prowler.com/check/accessanalyzer_enabled"
+   ]
+  },
+  "risk_details": "Without an active analyzer, visibility into unintended public, cross-account, or risky internal access is lost. Adversaries can exploit exposed S3, snapshots, KMS keys, or permissive role trusts for data exfiltration and escalation. Unused permissions persist, enlarging the attack surface. This degrades confidentiality and integrity.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "SECURITY, BILLING and OPERATIONS contacts not found or they are not different between each other and between ROOT contact.",
+  "metadata": {
+   "event_code": "account_maintain_different_contact_details_to_security_billing_and_operations",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 3,
+  "severity": "Medium",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "SECURITY, BILLING and OPERATIONS contacts not found or they are not different between each other and between ROOT contact.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "resilience"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/account_alternate_contact",
+    "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact-alternate.html",
+    "https://builder.aws.com/content/2qRw97fe8JFwfk2AbpJ3sYNpNvM/aws-bulk-update-alternate-contacts-across-organization",
+    "https://github.com/aws-samples/aws-account-alternate-contact-with-terraform",
+    "https://trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/IAM/account-security-alternate-contacts.html",
+    "https://repost.aws/articles/ARDFbpt-bvQ8iuErnqVVcCXQ/managing-aws-organization-alternate-contacts-via-csv"
+   ],
+   "notes": "",
+   "compliance": {
+    "KISA-ISMS-P-2023": [
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "OIS-04.03B",
+     "IAM-06.06B",
+     "SSO-05.06B",
+     "SIM-01.03B",
+     "INQ-02.01B"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.10.2"
+    ],
+    "ISO27001-2022": [
+     "A.5.6"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-GOV-03"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**AWS account alternate contacts** are defined for **Security**, **Billing**, and **Operations** with `name`, `email`, and `phone`. The finding evaluates that all three exist, are distinct from one another, and differ from the **primary (root) contact**.",
+   "title": "AWS account has distinct Security, Billing, and Operations contact details, different from each other and from the root contact",
+   "types": [
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark"
+   ],
+   "uid": "prowler-aws-account_maintain_different_contact_details_to_security_billing_and_operations-123456789012-us-east-1-123456789012"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {}
+    },
+    "group": {
+     "name": "account"
+    },
+    "labels": [],
+    "name": "123456789012",
+    "type": "Other",
+    "uid": "arn:aws:iam::123456789012:root"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Maintain distinct, monitored **Security**, **Billing**, and **Operations** alternate contacts that differ from the root contact.\n- Use team aliases and 24x7 phones\n- Review and test contact paths regularly\n- Centralize at org level for consistency\n\nApplies **operational resilience** and **separation of duties**.",
+   "references": [
+    "https://hub.prowler.com/check/account_maintain_different_contact_details_to_security_billing_and_operations"
+   ]
+  },
+  "risk_details": "Missing or shared contacts can delay response to abuse alerts, credential compromise, or billing anomalies, reducing **availability** (possible AWS traffic throttling) and raising **confidentiality** and **integrity** risk through extended exposure. If AWS cannot reach you, urgent mitigation may disrupt service.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Autoscaling group awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J has only one or no instance types in Availability Zone(s): us-east-1a.",
+  "metadata": {
+   "event_code": "autoscaling_group_multiple_instance_types",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 3,
+  "severity": "Medium",
+  "status": "New",
+  "status_code": "FAIL",
+  "status_detail": "Autoscaling group awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J has only one or no instance types in Availability Zone(s): us-east-1a.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [
+    "resilience"
+   ],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/AutoScaling/asg-multiple-instance-type-az.html",
+    "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-mixed-instances-groups.html",
+    "https://docs.aws.amazon.com/securityhub/latest/userguide/autoscaling-controls.html#autoscaling-6"
+   ],
+   "notes": "",
+   "compliance": {
+    "KISA-ISMS-P-2023": [
+     "2.9.2"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.9.2"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-cna"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**EC2 Auto Scaling groups** are evaluated for using **multiple instance types** in each **Availability Zone** and spanning more than one AZ.\n\nGroups are identified when every AZ defines at least two instance types; groups with any AZ using a single or no type, or confined to one AZ, are noted.",
+   "title": "Auto Scaling group spans multiple Availability Zones and has multiple instance types per Availability Zone",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Effects/Denial of Service"
+   ],
+   "uid": "prowler-aws-autoscaling_group_multiple_instance_types-123456789012-us-east-1-awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "arn": "arn:aws:autoscaling:us-east-1:123456789012:autoScalingGroup:81012414-ed6a-49b6-b6e3-81aee1f6117c:autoScalingGroupName/awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+      "name": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+      "region": "us-east-1",
+      "availability_zones": [
+       "us-east-1a",
+       "us-east-1b",
+       "us-east-1c"
+      ],
+      "tags": [
+       {
+        "ResourceId": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+        "ResourceType": "auto-scaling-group",
+        "Key": "Name",
+        "Value": "acme-backend-prod",
+        "PropagateAtLaunch": true
+       },
+       {
+        "ResourceId": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+        "ResourceType": "auto-scaling-group",
+        "Key": "aws:cloudformation:logical-id",
+        "Value": "AWSEBAutoScalingGroup",
+        "PropagateAtLaunch": true
+       },
+       {
+        "ResourceId": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+        "ResourceType": "auto-scaling-group",
+        "Key": "aws:cloudformation:stack-id",
+        "Value": "arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-e-qumcvnmbie-stack/90ef8c90-7342-11f1-bb58-0e39f637c3ff",
+        "PropagateAtLaunch": true
+       },
+       {
+        "ResourceId": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+        "ResourceType": "auto-scaling-group",
+        "Key": "aws:cloudformation:stack-name",
+        "Value": "awseb-e-qumcvnmbie-stack",
+        "PropagateAtLaunch": true
+       },
+       {
+        "ResourceId": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+        "ResourceType": "auto-scaling-group",
+        "Key": "elasticbeanstalk:environment-id",
+        "Value": "e-qumcvnmbie",
+        "PropagateAtLaunch": true
+       },
+       {
+        "ResourceId": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+        "ResourceType": "auto-scaling-group",
+        "Key": "elasticbeanstalk:environment-name",
+        "Value": "acme-backend-prod",
+        "PropagateAtLaunch": true
+       }
+      ],
+      "instance_types": [
+       "t3.small"
+      ],
+      "az_instance_types": {
+       "us-east-1a": "{'t3.small'}"
+      },
+      "capacity_rebalance": false,
+      "launch_template": {
+       "LaunchTemplateId": "lt-0484c47a993e1dab3",
+       "LaunchTemplateName": "AWSEBEC2LaunchTemplate_PpQyy9CgMfLi",
+       "Version": "1"
+      },
+      "mixed_instances_policy_launch_template": {},
+      "health_check_type": "EC2",
+      "load_balancers": [],
+      "target_groups": [
+       "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/awseb-AWSEB-O0YINHXXGIRR/3de93458ab515228"
+      ],
+      "launch_configuration_name": ""
+     }
+    },
+    "group": {
+     "name": "autoscaling"
+    },
+    "labels": [
+     "Name:acme-backend-prod",
+     "aws:cloudformation:logical-id:AWSEBAutoScalingGroup",
+     "aws:cloudformation:stack-id:arn:aws:cloudformation:us-east-1:123456789012:stack/awseb-e-qumcvnmbie-stack/90ef8c90-7342-11f1-bb58-0e39f637c3ff",
+     "aws:cloudformation:stack-name:awseb-e-qumcvnmbie-stack",
+     "elasticbeanstalk:environment-id:e-qumcvnmbie",
+     "elasticbeanstalk:environment-name:acme-backend-prod"
+    ],
+    "name": "awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J",
+    "type": "AwsAutoScalingAutoScalingGroup",
+    "uid": "arn:aws:autoscaling:us-east-1:123456789012:autoScalingGroup:81012414-ed6a-49b6-b6e3-81aee1f6117c:autoScalingGroupName/awseb-e-qumcvnmbie-stack-AWSEBAutoScalingGroup-vaDPOK65mC9J"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Adopt a **mixed instances** strategy for resilience:\n- Use diverse instance families and sizes per AZ\n- Distribute capacity across multiple AZs\n- Favor allocation approaches that tolerate spot/on-demand scarcity\nApply **redundancy** and **fault tolerance** principles and validate scaling policies to avoid single points of capacity failure.",
+   "references": [
+    "https://hub.prowler.com/check/autoscaling_group_multiple_instance_types"
+   ]
+  },
+  "risk_details": "Limited to one instance type per AZ or a single AZ, scaling can stall during **capacity shortages**, hindering **failover** and degrading **availability** (timeouts, backlog growth). Costs may spike if only expensive capacity is available. Reduced diversity increases the likelihood of prolonged outages during zonal or market disruptions.",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "ACM Certificate 2dcce65e-29aa-4511-86c3-818afb4bc7b8 for acme.example expires in 189 days.",
+  "metadata": {
+   "event_code": "acm_certificates_expiration_check",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "PASS",
+  "status_detail": "ACM Certificate 2dcce65e-29aa-4511-86c3-818afb4bc7b8 for acme.example expires in 189 days.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ACM/certificate-expires-in-45-days.html",
+    "https://repost.aws/es/knowledge-center/acm-notification-certificate-renewal",
+    "https://docs.aws.amazon.com/config/latest/developerguide/acm-certificate-expiration-check.html",
+    "https://repost.aws/questions/QU3sMaeZPMRo2kLcsfJsfuVA/acm-notifications-for-expiring-certificates"
+   ],
+   "notes": "",
+   "compliance": {
+    "CISA": [
+     "your-data-2"
+    ],
+    "SOC2": [
+     "cc_6_7"
+    ],
+    "MITRE-ATTACK": [
+     "T1040"
+    ],
+    "GDPR": [
+     "article_32"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "ACM.1"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.7.1",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "IAM-09.03B",
+     "IAM-09.02AC"
+    ],
+    "HIPAA": [
+     "164_308_a_4_ii_a",
+     "164_312_e_1"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.7.1",
+     "2.10.2"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC09-BP01"
+    ],
+    "NIST-CSF-2.0": [
+     "ra_1"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_13_1",
+     "3_13_2",
+     "3_13_8",
+     "3_13_11"
+    ],
+    "PCI-4.0": [
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1.1"
+    ],
+    "NIST-800-53-Revision-4": [
+     "ac_4",
+     "ac_17_2",
+     "sc_12"
+    ],
+    "NIST-800-53-Revision-5": [
+     "sc_7_12",
+     "sc_7_16"
+    ],
+    "NIST-CSF-1.1": [
+     "ac_5",
+     "ds_2"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN13.AR01",
+     "CCC.Core.CN13.AR02",
+     "CCC.Core.CN13.AR03",
+     "CCC.LB.CN08.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "10.6"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_1_3"
+    ],
+    "FFIEC": [
+     "d3-pc-im-b-1"
+    ],
+    "PCI-3.2.1": [
+     "2.3",
+     "4.1",
+     "4.1.a",
+     "4.1.d",
+     "4.1.g"
+    ],
+    "ISO27001-2022": [
+     "A.8.5"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "ac-4",
+     "ac-17-2",
+     "sc-12"
+    ],
+    "FedRAMP-Low-Revision-4": [
+     "ac-17",
+     "sc-12"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-svc"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**ACM certificates** are assessed for **time to expiration** against a configurable threshold. Certificates close to end of validity or already expired are surfaced, covering those attached to services and, *if in scope*, unused ones.",
+   "title": "ACM certificate expires in more than the configured threshold of days",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Effects/Denial of Service"
+   ],
+   "uid": "prowler-aws-acm_certificates_expiration_check-123456789012-us-east-1-2dcce65e-29aa-4511-86c3-818afb4bc7b8"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "arn": "arn:aws:acm:us-east-1:123456789012:certificate/2dcce65e-29aa-4511-86c3-818afb4bc7b8",
+      "name": "acme.example",
+      "id": "2dcce65e-29aa-4511-86c3-818afb4bc7b8",
+      "type": "AMAZON_ISSUED",
+      "key_algorithm": "RSA-2048",
+      "tags": [
+       {
+        "Key": "managed-by",
+        "Value": "migration"
+       },
+       {
+        "Key": "project",
+        "Value": "acme"
+       }
+      ],
+      "expiration_days": 189,
+      "in_use": true,
+      "transparency_logging": true,
+      "region": "us-east-1"
+     }
+    },
+    "group": {
+     "name": "acm"
+    },
+    "labels": [
+     "managed-by:migration",
+     "project:acme"
+    ],
+    "name": "2dcce65e-29aa-4511-86c3-818afb4bc7b8",
+    "type": "AwsCertificateManagerCertificate",
+    "uid": "arn:aws:acm:us-east-1:123456789012:certificate/2dcce65e-29aa-4511-86c3-818afb4bc7b8"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Adopt **automated certificate lifecycle management**: prefer **ACM-issued certs with auto-renewal**, or integrate imports with an automated renewal/rotation pipeline. Track expirations with alerts, enforce **least privilege** for cert operations, remove unused certs, and test rollovers to avoid downtime.",
+   "references": [
+    "https://hub.prowler.com/check/acm_certificates_expiration_check"
+   ]
+  },
+  "risk_details": "Expired or near-expiry **TLS certificates** can break handshakes, causing **service outages** and failed API calls (**availability**). Emergency fixes raise misconfiguration risk, enabling disabled verification or weak ciphers, which allows **MITM** and data exposure (**confidentiality**/**integrity**).",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "ACM Certificate 98e09d07-1402-4403-858f-4dffa3a850a4 for admin.acme.example expires in 190 days.",
+  "metadata": {
+   "event_code": "acm_certificates_expiration_check",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 4,
+  "severity": "High",
+  "status": "New",
+  "status_code": "PASS",
+  "status_detail": "ACM Certificate 98e09d07-1402-4403-858f-4dffa3a850a4 for admin.acme.example expires in 190 days.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ACM/certificate-expires-in-45-days.html",
+    "https://repost.aws/es/knowledge-center/acm-notification-certificate-renewal",
+    "https://docs.aws.amazon.com/config/latest/developerguide/acm-certificate-expiration-check.html",
+    "https://repost.aws/questions/QU3sMaeZPMRo2kLcsfJsfuVA/acm-notifications-for-expiring-certificates"
+   ],
+   "notes": "",
+   "compliance": {
+    "CISA": [
+     "your-data-2"
+    ],
+    "SOC2": [
+     "cc_6_7"
+    ],
+    "MITRE-ATTACK": [
+     "T1040"
+    ],
+    "GDPR": [
+     "article_32"
+    ],
+    "AWS-Foundational-Security-Best-Practices": [
+     "ACM.1"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.7.1",
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "IAM-09.03B",
+     "IAM-09.02AC"
+    ],
+    "HIPAA": [
+     "164_308_a_4_ii_a",
+     "164_312_e_1"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.7.1",
+     "2.10.2"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC09-BP01"
+    ],
+    "NIST-CSF-2.0": [
+     "ra_1"
+    ],
+    "NIST-800-171-Revision-2": [
+     "3_13_1",
+     "3_13_2",
+     "3_13_8",
+     "3_13_11"
+    ],
+    "PCI-4.0": [
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1",
+     "192.0.2.1.1"
+    ],
+    "NIST-800-53-Revision-4": [
+     "ac_4",
+     "ac_17_2",
+     "sc_12"
+    ],
+    "NIST-800-53-Revision-5": [
+     "sc_7_12",
+     "sc_7_16"
+    ],
+    "NIST-CSF-1.1": [
+     "ac_5",
+     "ds_2"
+    ],
+    "CCC-v2025.10": [
+     "CCC.Core.CN13.AR01",
+     "CCC.Core.CN13.AR02",
+     "CCC.Core.CN13.AR03",
+     "CCC.LB.CN08.AR01"
+    ],
+    "SecNumCloud-3.2": [
+     "10.6"
+    ],
+    "RBI-Cyber-Security-Framework": [
+     "annex_i_1_3"
+    ],
+    "FFIEC": [
+     "d3-pc-im-b-1"
+    ],
+    "PCI-3.2.1": [
+     "2.3",
+     "4.1",
+     "4.1.a",
+     "4.1.d",
+     "4.1.g"
+    ],
+    "ISO27001-2022": [
+     "A.8.5"
+    ],
+    "FedRamp-Moderate-Revision-4": [
+     "ac-4",
+     "ac-17-2",
+     "sc-12"
+    ],
+    "FedRAMP-Low-Revision-4": [
+     "ac-17",
+     "sc-12"
+    ],
+    "FedRAMP-20x-KSI-Low-25.05C": [
+     "ksi-svc"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**ACM certificates** are assessed for **time to expiration** against a configurable threshold. Certificates close to end of validity or already expired are surfaced, covering those attached to services and, *if in scope*, unused ones.",
+   "title": "ACM certificate expires in more than the configured threshold of days",
+   "types": [
+    "Software and Configuration Checks/AWS Security Best Practices",
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices",
+    "Effects/Denial of Service"
+   ],
+   "uid": "prowler-aws-acm_certificates_expiration_check-123456789012-us-east-1-98e09d07-1402-4403-858f-4dffa3a850a4"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {
+      "arn": "arn:aws:acm:us-east-1:123456789012:certificate/98e09d07-1402-4403-858f-4dffa3a850a4",
+      "name": "admin.acme.example",
+      "id": "98e09d07-1402-4403-858f-4dffa3a850a4",
+      "type": "AMAZON_ISSUED",
+      "key_algorithm": "RSA-2048",
+      "tags": [
+       {
+        "Key": "project",
+        "Value": "acme"
+       }
+      ],
+      "expiration_days": 190,
+      "in_use": true,
+      "transparency_logging": true,
+      "region": "us-east-1"
+     }
+    },
+    "group": {
+     "name": "acm"
+    },
+    "labels": [
+     "project:acme"
+    ],
+    "name": "98e09d07-1402-4403-858f-4dffa3a850a4",
+    "type": "AwsCertificateManagerCertificate",
+    "uid": "arn:aws:acm:us-east-1:123456789012:certificate/98e09d07-1402-4403-858f-4dffa3a850a4"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Adopt **automated certificate lifecycle management**: prefer **ACM-issued certs with auto-renewal**, or integrate imports with an automated renewal/rotation pipeline. Track expirations with alerts, enforce **least privilege** for cert operations, remove unused certs, and test rollovers to avoid downtime.",
+   "references": [
+    "https://hub.prowler.com/check/acm_certificates_expiration_check"
+   ]
+  },
+  "risk_details": "Expired or near-expiry **TLS certificates** can break handshakes, causing **service outages** and failed API calls (**availability**). Emergency fixes raise misconfiguration risk, enabling disabled verification or weak ciphers, which allows **MITM** and data exposure (**confidentiality**/**integrity**).",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ },
+ {
+  "message": "Login to the AWS Console. Choose your account name on the top right of the window -> My Account -> Contact Information.",
+  "metadata": {
+   "event_code": "account_maintain_current_contact_details",
+   "product": {
+    "name": "Prowler",
+    "uid": "prowler",
+    "vendor_name": "Prowler",
+    "version": "5.31.0"
+   },
+   "profiles": [
+    "cloud",
+    "datetime"
+   ],
+   "tenant_uid": "",
+   "version": "1.5.0"
+  },
+  "severity_id": 3,
+  "severity": "Medium",
+  "status": "New",
+  "status_code": "MANUAL",
+  "status_detail": "Login to the AWS Console. Choose your account name on the top right of the window -> My Account -> Contact Information.",
+  "status_id": 1,
+  "unmapped": {
+   "related_url": "",
+   "categories": [],
+   "depends_on": [],
+   "related_to": [],
+   "additional_urls": [
+    "https://repost.aws/knowledge-center/update-phone-number",
+    "https://support.stax.io/docs/accounts/update-aws-account-contact-details",
+    "https://maartenbruntink.nl/blog/2022/09/26/aws-account-hygiene-101-mass-updating-alternate-account-contacts/",
+    "https://docs.aws.amazon.com/security-ir/latest/userguide/update-account-contact-info.html",
+    "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact-primary.html",
+    "https://repost.aws/knowledge-center/add-update-billing-contact",
+    "https://aws.amazon.com/blogs/security/update-the-alternate-security-contact-across-your-aws-accounts-for-timely-security-notifications/",
+    "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts_update_contacts.html",
+    "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-update-contact-alternate.html"
+   ],
+   "notes": "",
+   "compliance": {
+    "CIS-1.4": [
+     "1.1"
+    ],
+    "CIS-1.5": [
+     "1.1"
+    ],
+    "KISA-ISMS-P-2023": [
+     "2.10.2"
+    ],
+    "C5-2025": [
+     "IAM-03.01AS",
+     "IAM-06.06B",
+     "SSO-05.06B",
+     "SIM-01.03B",
+     "INQ-02.01B"
+    ],
+    "CIS-2.0": [
+     "1.1"
+    ],
+    "KISA-ISMS-P-2023-korean": [
+     "2.10.2"
+    ],
+    "AWS-Well-Architected-Framework-Security-Pillar": [
+     "SEC03-BP03",
+     "SEC10-BP01"
+    ],
+    "CIS-5.0": [
+     "1.1"
+    ],
+    "AWS-Account-Security-Onboarding": [
+     "Billing, emergency, security contacts"
+    ],
+    "CIS-3.0": [
+     "1.1"
+    ],
+    "ENS-RD2022": [
+     "op.ext.7.aws.am.1"
+    ],
+    "CIS-6.0": [
+     "2.1"
+    ],
+    "ISO27001-2022": [
+     "A.5.5"
+    ],
+    "AWS-AI-Security-Framework-1.0": [
+     "AISF-GOV-03"
+    ],
+    "CIS-4.0.1": [
+     "1.1"
+    ],
+    "NIS2": [
+     "2.2.3",
+     "3.5.3.a",
+     "5.1.7.b"
+    ]
+   },
+   "scan_id": "00000000-0000-0000-0000-000000000000",
+   "provider_uid": "123456789012",
+   "provider": "aws"
+  },
+  "activity_name": "Create",
+  "activity_id": 1,
+  "finding_info": {
+   "created_time": 1783301528,
+   "created_time_dt": "2026-07-05T21:32:08.523936",
+   "desc": "**AWS account contact information** is current for the **primary contact** and the **alternate contacts** for `security`, `billing`, and `operations`, with accurate email addresses and phone numbers.",
+   "title": "AWS account contact information is current",
+   "types": [
+    "Software and Configuration Checks/Industry and Regulatory Standards/AWS Foundational Security Best Practices"
+   ],
+   "uid": "prowler-aws-account_maintain_current_contact_details-123456789012-us-east-1-123456789012"
+  },
+  "resources": [
+   {
+    "cloud_partition": "aws",
+    "region": "us-east-1",
+    "data": {
+     "details": "",
+     "metadata": {}
+    },
+    "group": {
+     "name": "account"
+    },
+    "labels": [],
+    "name": "123456789012",
+    "type": "Other",
+    "uid": "arn:aws:iam::123456789012:root"
+   }
+  ],
+  "category_name": "Findings",
+  "category_uid": 2,
+  "class_name": "Detection Finding",
+  "class_uid": 2004,
+  "cloud": {
+   "account": {
+    "name": "",
+    "type": "AWS Account",
+    "type_id": 10,
+    "uid": "123456789012",
+    "labels": []
+   },
+   "org": {
+    "name": "",
+    "ou_uid": "",
+    "ou_name": "",
+    "uid": ""
+   },
+   "provider": "aws",
+   "region": "us-east-1"
+  },
+  "remediation": {
+   "desc": "Adopt:\n- **Primary** and **alternate contacts** for `security`, `billing`, `operations`\n- Shared, monitored aliases and SMS-capable phone numbers (non-personal)\n- Centralized management across accounts with periodic reviews\n- **Least privilege** for who can modify contact data\n- Regular reachability tests and documented ownership",
+   "references": [
+    "https://hub.prowler.com/check/account_maintain_current_contact_details"
+   ]
+  },
+  "risk_details": "Outdated or single-person contacts delay **security notifications**, slow **incident response**, and complicate **account recovery**.\n\nAWS may throttle services during abuse mitigation, reducing **availability**. Missed alerts enable ongoing misuse, risking **data exfiltration** and unauthorized changes (**integrity**).",
+  "time": 1783301528,
+  "time_dt": "2026-07-05T21:32:08.523936",
+  "type_uid": 200401,
+  "type_name": "Detection Finding: Create"
+ }
+]

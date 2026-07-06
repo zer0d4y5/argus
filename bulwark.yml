@@ -1,0 +1,20 @@
+# Bulwark configuration for this repository.
+# The fixture under testdata/ is deliberately vulnerable — keep it out of the
+# CI gate (the demo workflow scans it explicitly instead).
+scanners: []            # empty = all available (semgrep, gitleaks, trivy)
+fail_severity: high     # exit non-zero on high or critical findings
+format: markdown
+ignore_paths:
+  - testdata/**
+ignore_rules: []
+timeout: 600
+triage:                 # AI triage (Phase 2); enable ad hoc with `appsec scan --triage`
+  enabled: false
+  provider: ollama      # ollama | anthropic (key via ANTHROPIC_API_KEY env)
+  model: qwen3.6:35b-a3b
+  endpoint: http://localhost:11434
+  timeout: 90           # per-LLM-request seconds
+  concurrency: 4
+  max_findings: 200     # triage the N most severe findings; 0 = all
+  exclude_fp: false     # opt-in: drop LLM-marked false positives from report + gate
+  allow_secret_cloud: false

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/leaky-hub/appsec/internal/audit"
+	"github.com/leaky-hub/appsec/internal/cloudscan"
 	"github.com/leaky-hub/appsec/internal/compliance"
 	"github.com/leaky-hub/appsec/internal/jobs"
 	"github.com/leaky-hub/appsec/internal/scanner"
@@ -220,6 +221,12 @@ func (s *Server) handleTargets(w http.ResponseWriter, r *http.Request) {
 			Branch   string   `json:"branch"`
 			Scanners []string `json:"scanners"`
 			Profile  string   `json:"profile"`
+			// Cloud target fields (schema 2.1.0). ProfileName is a NAME from the
+			// local config's closed list — NEVER a key. Presence of Provider
+			// selects the cloud path.
+			Provider    string   `json:"provider"`
+			ProfileName string   `json:"profileName"`
+			Regions     []string `json:"regions"`
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 8192)
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -232,6 +239,14 @@ func (s *Server) handleTargets(w http.ResponseWriter, r *http.Request) {
 		var t targets.Target
 		var err error
 		switch {
+		case req.Provider != "" && (req.Path != "" || req.URL != ""):
+			writeErr(w, http.StatusBadRequest, "a cloud target (provider) takes neither path nor url")
+			return
+		case req.Provider != "":
+			// AddCloud validates the provider and the profile NAME against the
+			// closed list discovered from the local cloud config (C1/C2). No
+			// key material is accepted here — profileName is an identifier only.
+			t, err = s.targets.AddCloud(req.Name, req.Provider, req.ProfileName, req.Regions, req.Scanners, req.Profile)
 		case req.URL != "" && req.Path != "":
 			writeErr(w, http.StatusBadRequest, "provide either path (directory target) or url (git target), not both")
 			return
@@ -249,12 +264,19 @@ func (s *Server) handleTargets(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		details := map[string]string{"target": t.ID, "name": t.Name, "type": t.Kind()}
-		if t.Kind() == targets.TypeGit {
+		switch t.Kind() {
+		case targets.TypeGit:
 			details["url"] = t.URL
 			if t.Branch != "" {
 				details["branch"] = t.Branch
 			}
-		} else {
+		case targets.TypeCloud:
+			// The profile NAME is registry metadata, not a secret; recording it
+			// in the audit line is the C1/C3 story (a NAME was registered, no
+			// credential). No key material exists to leak.
+			details["provider"] = t.Provider
+			details["profileName"] = t.ProfileName
+		default:
 			details["path"] = t.Path
 		}
 		s.audit(audit.EventTargetCreate, actorFrom(r), details)
@@ -400,6 +422,31 @@ func (s *Server) handleScanLaunch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cloud targets run prowler over an account: the filesystem launch knobs
+	// (scanner subset, semgrep profile, path scope, framework focus) do not
+	// apply, so reject them rather than silently ignore — an accepted-but-inert
+	// option is a lie about what the scan will do. Only the triage toggle
+	// carries over.
+	if t.Kind() == targets.TypeCloud {
+		if len(req.Options.Scanners) > 0 || req.Options.Profile != "" || req.Options.Scope != "" || len(req.Options.Frameworks) > 0 {
+			writeErr(w, http.StatusBadRequest, "cloud targets take no scanner/profile/scope/framework options — only the triage toggle applies")
+			return
+		}
+		actor := actorFrom(r)
+		job, err := s.queue.Enqueue(t.ID, t.Name, actor, jobs.Options{Triage: req.Options.Triage})
+		if err != nil {
+			if errors.Is(err, jobs.ErrQueueFull) {
+				writeErr(w, http.StatusTooManyRequests, "scan queue is full — try again after pending scans finish")
+				return
+			}
+			writeErr(w, http.StatusInternalServerError, "failed to enqueue scan")
+			return
+		}
+		s.audit(audit.EventScanLaunch, actor, launchDetails(job, t))
+		writeJSON(w, http.StatusAccepted, job)
+		return
+	}
+
 	// Closed-enum validation against the registry entry.
 	allowed := t.Scanners
 	if len(allowed) == 0 {
@@ -513,6 +560,41 @@ func (s *Server) handleFrameworks(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// CloudProfilesResponse is GET /api/cloud/profiles: the closed list of cloud
+// profile NAMES discovered from the console host's local config, offered to
+// the cloud-target registration form. Names only — the browser never sees or
+// sends key material, and never sends a free-form name into an env var
+// (C1/C2): registration re-validates the chosen name against this same list.
+type CloudProfilesResponse struct {
+	Providers []CloudProviderProfiles `json:"providers"`
+}
+
+// CloudProviderProfiles is one provider's discovered profile names.
+type CloudProviderProfiles struct {
+	Provider string   `json:"provider"`
+	Profiles []string `json:"profiles"`
+}
+
+func (s *Server) handleCloudProfiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeErr(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	// AWS is the only provider this beat. Discovery reads ONLY section headers
+	// of the local config; credential values are never parsed (profiles.go).
+	awsProfiles, err := cloudscan.ListAWSProfiles()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to discover cloud profiles")
+		return
+	}
+	if awsProfiles == nil {
+		awsProfiles = []string{}
+	}
+	writeJSON(w, http.StatusOK, CloudProfilesResponse{
+		Providers: []CloudProviderProfiles{{Provider: cloudscan.ProviderAWS, Profiles: awsProfiles}},
+	})
 }
 
 func (s *Server) handleScanByID(w http.ResponseWriter, r *http.Request) {

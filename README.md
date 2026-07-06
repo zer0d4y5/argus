@@ -1,33 +1,43 @@
-# appsec
+<h1 align="center">
+  <img src="docs/screenshots/logo.svg" alt="" width="42" height="42" valign="middle" />
+  Bulwark
+</h1>
 
-**One security tool for the whole codebase: broad multi-language detection,
-local-first AI triage, and a console anyone on the team can read.** `appsec`
-runs the best open-source scanners against your repo, merges their output into a
-single deduplicated report, AI-triages and risk-scores every finding on your own
-machine, gates CI on severity, and serves a three-persona web console over your
-run history — all from one Go binary.
+<p align="center"><strong>AppSec + cloud posture, one wall.</strong></p>
 
-**App code AND the infrastructure it runs on, one tool.** SAST across **nine
-languages** (Python, JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin),
-secrets, dependency (SCA) scanning, and **IaC misconfiguration scanning**
-(Terraform, CloudFormation, Kubernetes, Dockerfile, Helm — checkov plus trivy's
-misconfig pass) today; DAST on the [roadmap](docs/roadmap.md).
+<p align="center">
+  <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
+  <img alt="Go" src="https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white" />
+  <img alt="Schema" src="https://img.shields.io/badge/findings--model-2.1.0-6e56cf" />
+  <img alt="Local-first" src="https://img.shields.io/badge/local--first-no%20cloud%20required-16a34a" />
+</p>
+
+**One security tool for the whole surface — code AND the cloud it runs in.**
+Bulwark runs the best open-source scanners against your repositories and your
+cloud accounts, merges everything into one deduplicated, risk-scored,
+compliance-mapped findings model, AI-triages each finding on your own machine,
+gates CI on severity, and serves a three-persona web console over your run
+history — all from one Go binary. A defensive wall built from many stones:
+independent scanners mortared into one structure.
+
+**Everything, one model.** SAST across **eleven languages** (Python,
+JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin, Rust, Scala; C via
+security-audit), secrets, dependencies (SCA), **IaC misconfiguration**
+(Terraform, CloudFormation, Kubernetes, Dockerfile, Helm), and **cloud
+security posture** (prowler — AWS today) all flow through the same banded
+severity, risk signals, and compliance mapping. DAST is on the
+[roadmap](docs/roadmap.md).
 
 **Findings become audit evidence.** Every finding is mapped — deterministically,
 no LLM — to the framework controls it violates (**OWASP ASVS 4.0**,
 **PCI DSS 4.0**, and **CIS** AWS/Docker/Kubernetes benchmarks), and
-`appsec comply` turns any scan into a per-framework gap report a GRC lead can
+`bulwark comply` turns any scan into a per-framework gap report a GRC lead can
 hand to an auditor: controls violated with evidence, controls with no
 violations detected, and an explicit "not assessable by static scanning"
 bucket so the report never overclaims ([docs/compliance.md](docs/compliance.md)).
 
-> **Naming:** `appsec` is the working name. Proposed project name: **Bulwark** —
-> a defensive wall built from many stones: independent scanners mortared into
-> one structure. Rename is a single `go.mod`/import sweep; the CLI keeps a
-> short binary name either way.
-
 ```
-appsec scan ./repo --profile standard --triage --save
+bulwark scan ./repo --profile standard --triage --save
   → runs in parallel:  semgrep (SAST) · gitleaks (secrets) · trivy (SCA) · checkov + trivy-config (IaC)
   → normalizes everything into one findings model
   → dedups/correlates overlapping findings
@@ -37,23 +47,23 @@ appsec scan ./repo --profile standard --triage --save
   → writes SARIF 2.1.0 / Markdown / JSON, saves the run for the console
   → exits non-zero when findings hit your severity gate
 
-appsec comply  → per-framework compliance gap report: violated / clean / not assessable
-appsec serve   → local web console: Overview (GRC) · Findings (AppSec) · Runs (SecOps)
+bulwark comply  → per-framework compliance gap report: violated / clean / not assessable
+bulwark serve   → local web console: Overview (GRC) · Findings (AppSec) · Runs (SecOps)
                  + with users configured: login, scan launching, admin, audit
-appsec user    → console users: add | list | passwd | remove (bootstrap the first admin)
-appsec target  → registered scan targets the console may launch against
+bulwark user    → console users: add | list | passwd | remove (bootstrap the first admin)
+bulwark target  → registered scan targets the console may launch against
 ```
 
 ## The console
 
-`appsec serve` reads the runs you save and renders three persona views. Finding
+`bulwark serve` reads the runs you save and renders three persona views. Finding
 data (titles, paths, LLM rationales) is treated as hostile and rendered inert —
 escaping only, no HTML injection, strict CSP, binds `127.0.0.1`.
 
 Out of the box the console is a read-only viewer with no login. Create users
-(`appsec user add <name> --role admin`) and it becomes an **operational
+(`bulwark user add <name> --role admin`) and it becomes an **operational
 console**: login + roles (viewer/operator/admin), scan launching against
-registered targets (`appsec target add`) through a strictly serial job queue,
+registered targets (`bulwark target add`) through a strictly serial job queue,
 user management, and an append-only audit log. Threat model and design:
 [docs/console-ops.md](docs/console-ops.md).
 
@@ -73,24 +83,60 @@ gate outcomes for operations.
 #   pipx install semgrep     (or: pip install semgrep)
 #   brew install gitleaks trivy   # trivy covers SCA *and* IaC misconfigs
 #   pipx install checkov          # optional: the broad IaC engine
-go build -o appsec ./cmd/appsec        # embeds the console; no Node needed to run
+go build -o bulwark ./cmd/bulwark        # embeds the console; no Node needed to run
 
 # Scan with the default `standard` multi-language profile, triage locally,
 # and save the run for the console:
-./appsec scan . --triage --save
+./bulwark scan . --triage --save
 
 # Open the console over your saved runs:
-./appsec serve                          # http://127.0.0.1:8080
+./bulwark serve                          # http://127.0.0.1:8080
 
 # Other common invocations:
-./appsec scan . --profile fast          # tight, low-noise PR gate (semgrep p/ci)
-./appsec scan . --profile max           # deepest recall; triage handles the FP volume
-./appsec scan . --format sarif -o results.sarif   # GitHub code scanning
-./appsec scan . --fail-severity high    # fail CI on high or critical
-./appsec scan . --triage --exclude-fp   # drop LLM-marked false positives (explicit)
-./appsec comply .                       # compliance gap report (fresh scan, Markdown)
-./appsec comply . --latest -f json      # assess the last saved run instead
+./bulwark scan . --profile fast          # tight, low-noise PR gate (semgrep p/ci)
+./bulwark scan . --profile max           # deepest recall; triage handles the FP volume
+./bulwark scan . --format sarif -o results.sarif   # GitHub code scanning
+./bulwark scan . --fail-severity high    # fail CI on high or critical
+./bulwark scan . --triage --exclude-fp   # drop LLM-marked false positives (explicit)
+./bulwark comply .                       # compliance gap report (fresh scan, Markdown)
+./bulwark comply . --latest -f json      # assess the last saved run instead
 ```
+
+## Cloud security posture (prowler)
+
+Point the platform at an AWS account and get a posture assessment through the
+**same** pipeline as code — unified findings (category `CLOUD`), banded
+severity, deterministic risk signals, and CIS-AWS compliance mapping, skimmable
+in the console.
+
+```bash
+# Prereq: prowler on PATH (`pipx install prowler`) and a read-only profile.
+./bulwark cloud-scan --provider aws --profile security-audit
+./bulwark cloud-scan --provider aws --profile security-audit --regions us-east-1,us-west-2 --save
+```
+
+**Credentials are referenced, never collected.** `--profile` names a profile
+from your local cloud config (`~/.aws`); the platform passes only that NAME to
+prowler as `AWS_PROFILE` and never sees, stores, or logs a key. Least-privilege
+setup — create a read-only security-audit principal and point `--profile` at it:
+
+```bash
+# AWS: attach the two AWS-managed read-only policies to a dedicated principal.
+aws iam create-user --user-name bulwark-audit
+aws iam attach-user-policy --user-name bulwark-audit \
+  --policy-arn arn:aws:iam::aws:policy/SecurityAudit
+aws iam attach-user-policy --user-name bulwark-audit \
+  --policy-arn arn:aws:iam::aws:policy/job-function/ViewOnlyAccess
+# Put its keys in a named profile in ~/.aws/credentials, e.g. [security-audit],
+# then reference that NAME. The platform runs with exactly what that profile
+# can do — least privilege is your control, honesty about it is ours.
+```
+
+Azure (`Reader`) and GCP (`Viewer`) are the same shape and are the documented
+next beat. In the console, an admin registers a cloud target by picking a
+discovered profile name (never a key); cloud runs appear in the aggregated Runs
+tab with a resource-aware finding drawer and an optional on-demand,
+never-persisted **AI posture summary**.
 
 Missing scanners are skipped with a note — the CLI degrades gracefully and
 runs whatever the environment provides. The same applies to triage: no LLM
@@ -117,7 +163,7 @@ category badge in the console.
 
 Every scan maps every finding to the security controls it violates —
 hand-curated, version-pinned data (`internal/compliance/data/`), zero LLM
-involvement, unmapped-is-visible, totals reconcile. `appsec comply` renders the
+involvement, unmapped-is-visible, totals reconcile. `bulwark comply` renders the
 per-framework gap assessment (Markdown or JSON): **violated** controls with
 evidence pointers, **no violations detected** (deliberately not "compliant"),
 and an explicit **not assessable by static scanning** bucket. Adding a
@@ -209,7 +255,7 @@ go build ./... && go test ./...     # `go build` alone works — the UI bundle i
 make ui                              # rebuild the React console into ui/dist (Node 22)
 make coverage                        # regenerate docs/coverage.md from a live scan
 ./demo/demo.sh                       # the full 10-minute investor story, end to end
-./appsec scan testdata/fixture       # deliberately vulnerable sample; expect findings
+./bulwark scan testdata/fixture       # deliberately vulnerable sample; expect findings
 ```
 
 Licensed under Apache-2.0.

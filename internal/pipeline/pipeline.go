@@ -1,5 +1,5 @@
 // Package pipeline is the scan pipeline, extracted from the CLI so the
-// `appsec scan` command and the console's job queue execute the exact same
+// `bulwark scan` command and the console's job queue execute the exact same
 // code path: adapter selection → parallel scanners → normalize →
 // ignore-filter → correlate → triage (enrichment-only) → risk → compliance →
 // optional false-positive exclusion.
@@ -71,6 +71,23 @@ func Run(ctx context.Context, opts Options, progress Progress) (Result, error) {
 
 	rawFindings := RunScanners(ctx, adapters, opts.Target, cfg.TimeoutSec, progress)
 
+	findings := Enrich(ctx, cfg, opts.Target, rawFindings, progress)
+	return Result{Findings: findings}, nil
+}
+
+// Enrich runs the post-scan half of the pipeline on already-collected raw
+// findings: normalize -> ignore-filter -> correlate -> triage seam ->
+// risk+band -> compliance -> optional FP exclusion. It is shared by every
+// scan source (filesystem adapters via Run, cloud posture via RunCloud) so
+// the banding, triage, and compliance contracts are identical regardless of
+// where the findings came from. `target` is the triage root (a path for code
+// scans, "" for cloud — cloud findings have no source file and triage
+// feature-detects that).
+func Enrich(ctx context.Context, cfg config.Config, target string, rawFindings []model.RawFinding, progress Progress) []model.Finding {
+	if progress == nil {
+		progress = func(string) {}
+	}
+
 	// Pipeline: normalize -> ignore-filter -> correlate -> triage seam.
 	findings := model.Normalize(rawFindings)
 	findings, suppressed := model.FilterIgnored(findings, cfg.IgnorePaths, cfg.IgnoreRules)
@@ -82,7 +99,7 @@ func Run(ctx context.Context, opts Options, progress Progress) (Result, error) {
 	// Triage is enrichment, never a dependency: any error passes the findings
 	// through unmodified with a warning. It must not drop, reorder, or
 	// re-rank anything — verdicts and scores are additive fields only.
-	triager := buildTriager(ctx, cfg, opts.Target, progress)
+	triager := buildTriager(ctx, cfg, target, progress)
 	if _, isNoop := triager.(triage.Noop); !isNoop {
 		if cfg.Triage.MaxFindings > 0 && len(findings) > cfg.Triage.MaxFindings {
 			progress(fmt.Sprintf("NOTE: triaging the %d most severe of %d findings (triage.max_findings)\n", cfg.Triage.MaxFindings, len(findings)))
@@ -122,7 +139,7 @@ func Run(ctx context.Context, opts Options, progress Progress) (Result, error) {
 		}
 	}
 
-	return Result{Findings: findings}, nil
+	return findings
 }
 
 // buildTriager constructs the configured LLM triager, or Noop when triage is

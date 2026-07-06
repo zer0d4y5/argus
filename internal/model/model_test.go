@@ -150,6 +150,71 @@ func TestFingerprintStability(t *testing.T) {
 	}
 }
 
+// TestFingerprintFileSlotBackwardCompatible pins schema 2.1.0 property (a):
+// the resource-aware file slot changes NOTHING for findings with a file —
+// or with neither file nor resource. The golden hash below was computed with
+// the pre-2.1.0 algorithm; if this test ever fails, existing run deltas
+// broke.
+func TestFingerprintFileSlotBackwardCompatible(t *testing.T) {
+	f := Finding{
+		Tool: "semgrep", Category: CategorySAST, RuleID: "rule.sqli",
+		Location: Location{File: "app.py", StartLine: 10},
+	}
+	// sha256("v1\x00semgrep\x00SAST\x00rule.sqli\x00app.py\x0010\x00\x00\x00")[:32]
+	const golden = "3d6d9ab11159ce6f4b3b45abc08dec55"
+	if got := Fingerprint(f); got != golden {
+		t.Errorf("pre-cloud fingerprint changed: got %s, want golden %s — existing run deltas are broken", got, golden)
+	}
+	// A resource on a finding that HAS a file must not move the hash: file
+	// wins the slot, so enriching a hybrid finding later stays delta-safe.
+	f.Location.Resource = "arn:aws:s3:::bucket"
+	if Fingerprint(f) != golden {
+		t.Error("resource must not affect the fingerprint when file is set")
+	}
+	// No file, no resource: slot is empty, exactly as v1 always hashed it.
+	empty := Finding{Tool: "trivy", Category: CategorySCA, RuleID: "CVE-1", CVE: "CVE-1", Package: "p@1"}
+	// sha256("v1\x00trivy\x00SCA\x00CVE-1\x00\x000\x00p@1\x00CVE-1\x00")[:32]
+	const goldenEmpty = "d45f877037f5a342b0362f7218210654"
+	if got := Fingerprint(empty); got != goldenEmpty {
+		t.Errorf("file-less, resource-less fingerprint changed: got %s, want %s", got, goldenEmpty)
+	}
+}
+
+// TestFingerprintCloudResourceIdentity pins schema 2.1.0 property (b): a
+// CLOUD finding (no file) takes its place-slot from location.resource, so
+// the same check on the same resource is the same finding across runs, and
+// different resources are different findings.
+func TestFingerprintCloudResourceIdentity(t *testing.T) {
+	cloud := Finding{
+		Tool: "prowler", Category: CategoryCloud, RuleID: "s3_bucket_public_access",
+		Location: Location{Resource: "arn:aws:s3:::data-bucket"},
+	}
+	id1 := Fingerprint(cloud)
+
+	// Presentation fields never move the identity.
+	cloud.Title = "S3 bucket allows public access"
+	cloud.Severity = SeverityCritical
+	if Fingerprint(cloud) != id1 {
+		t.Error("cloud fingerprint must ignore title/severity")
+	}
+
+	// Same check, different resource: a different finding.
+	other := cloud
+	other.Location.Resource = "arn:aws:s3:::logs-bucket"
+	if Fingerprint(other) == id1 {
+		t.Error("different resources must fingerprint differently")
+	}
+
+	// A cloud finding without any resource still fingerprints (degraded but
+	// deterministic — rule ID carries the identity), and differs from the
+	// resource-bearing one.
+	bare := cloud
+	bare.Location.Resource = ""
+	if Fingerprint(bare) == id1 {
+		t.Error("empty resource must not collide with a set resource")
+	}
+}
+
 func TestNormalize(t *testing.T) {
 	raws := []RawFinding{{
 		Tool: "semgrep", Category: CategorySAST, RuleID: "r1",

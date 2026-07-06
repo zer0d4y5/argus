@@ -48,7 +48,7 @@ binary, drops into any CI image and any laptop.
 
 Scan a nine-language vulnerable repo → breadth surfaces 30+ findings → local AI
 triage confirms the real ones and **kills the false positives with a written
-rationale**, on-device → `appsec comply` reframes the same scan as an
+rationale**, on-device → `bulwark comply` reframes the same scan as an
 auditor-shaped gap report (**findings become audit evidence**) → open the
 console → walk leadership through risk posture, compliance posture, and trend,
 hand engineers a filterable explorer, show ops the new-vs-resolved delta
@@ -69,6 +69,6 @@ expand to the platform the CISO signs for.
 Phases 1–5 shipped: the scan pipeline, local AI triage + risk scoring,
 multi-language coverage + the console, IaC misconfiguration scanning, and now
 compliance mapping — **findings become audit evidence**: every finding lands
-on the ASVS / PCI DSS / CIS controls it violates, and `appsec comply` emits
+on the ASVS / PCI DSS / CIS controls it violates, and `bulwark comply` emits
 the per-framework gap report. Roadmap: DAST, threat modeling, IAST, and the
 commercial platform layer.

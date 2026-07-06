@@ -127,6 +127,36 @@ func TestSARIFSCAFallsBackToManifestLocation(t *testing.T) {
 	t.Fatal("SCA finding not found in results")
 }
 
+// TestSARIFCloudFallsBackToResource: a CLOUD finding has no source file; its
+// resource UID/ARN fills the artifactLocation URI, with no invented line
+// region (schema 2.1.0 decision).
+func TestSARIFCloudFallsBackToResource(t *testing.T) {
+	cloud := model.Finding{
+		ID: "c1", Tool: "prowler", Tools: []string{"prowler"},
+		Category: model.CategoryCloud, RuleID: "s3_bucket_public_access",
+		Title: "S3 bucket allows public access", Severity: model.SeverityHigh,
+		Location: model.Location{Resource: "arn:aws:s3:::data-exports"},
+	}
+	doc := writeSARIF(t, []model.Finding{cloud})
+	results := doc["runs"].([]any)[0].(map[string]any)["results"].([]any)
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1", len(results))
+	}
+	res := results[0].(map[string]any)
+	locs, ok := res["locations"].([]any)
+	if !ok || len(locs) == 0 {
+		t.Fatal("cloud finding must carry a location (resource fallback), not a run-level result")
+	}
+	pl := locs[0].(map[string]any)["physicalLocation"].(map[string]any)
+	uri := pl["artifactLocation"].(map[string]any)["uri"].(string)
+	if uri != "arn:aws:s3:::data-exports" {
+		t.Errorf("cloud uri = %q, want the resource ARN", uri)
+	}
+	if _, hasRegion := pl["region"]; hasRegion {
+		t.Error("cloud finding has no line — must not invent a region")
+	}
+}
+
 func TestSARIFSeverityMapping(t *testing.T) {
 	tests := []struct {
 		sev   model.Severity

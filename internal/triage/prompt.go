@@ -72,9 +72,15 @@ func buildUserPrompt(f model.Finding, snippet string, withSnippet bool, nonce st
 	if f.Location.File != "" {
 		writeField(&b, "location", fmt.Sprintf("%s:%d-%d", f.Location.File, f.Location.StartLine, f.Location.EndLine))
 	}
+	// Cloud findings have no file; the resource UID/ARN is their location.
+	if f.Location.Resource != "" {
+		writeField(&b, "resource", sanitizeText(f.Location.Resource, maxTitleRunes))
+	}
 	b.WriteString(end + "\n")
 
 	switch {
+	case f.Category == model.CategoryCloud:
+		b.WriteString("\nSOURCE CONTEXT: none — this is a cloud posture finding about a live resource, not source code. Judge from the metadata (prowler check, resource, category, severity) only.\n")
 	case !withSnippet:
 		b.WriteString("\nSOURCE CONTEXT: withheld — contents of secret-bearing files are never shared. Judge from the metadata (rule, file path, category) only.\n")
 	case snippet == "":

@@ -20,7 +20,7 @@ func write(t *testing.T, root, rel string, data []byte) {
 func TestAccount(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, "src/app.py", []byte("print('hi')\n"))
-	write(t, root, "src/lib.rs", []byte("fn main() {}\n"))           // unsupported source
+	write(t, root, "src/View.swift", []byte("import SwiftUI\n"))     // unsupported source (Swift did not land)
 	write(t, root, "deploy/Dockerfile", []byte("FROM scratch\n"))    // iac
 	write(t, root, "notes.md", []byte("# notes\n"))                  // secrets-only text
 	write(t, root, "blob.bin", []byte{0x7f, 'E', 'L', 'F', 0, 0, 1}) // binary (NUL)
@@ -40,8 +40,8 @@ func TestAccount(t *testing.T) {
 		t.Errorf("buckets = sast %d, iac %d, secretsOnly %d; want 1/1/1",
 			acc.SastCovered, acc.IacConfig, acc.SecretsOnly)
 	}
-	if acc.UnsupportedSource != 1 || len(acc.UnsupportedSample) != 1 || acc.UnsupportedSample[0] != "src/lib.rs" {
-		t.Errorf("unsupported = %d %v, want 1 [src/lib.rs]", acc.UnsupportedSource, acc.UnsupportedSample)
+	if acc.UnsupportedSource != 1 || len(acc.UnsupportedSample) != 1 || acc.UnsupportedSample[0] != "src/View.swift" {
+		t.Errorf("unsupported = %d %v, want 1 [src/View.swift]", acc.UnsupportedSource, acc.UnsupportedSample)
 	}
 	if acc.Binary != 1 || acc.Oversize != 1 {
 		t.Errorf("binary %d / oversize %d, want 1/1", acc.Binary, acc.Oversize)

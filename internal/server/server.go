@@ -1,4 +1,4 @@
-// Package server is the `appsec serve` web console: a local-first HTTP server
+// Package server is the `bulwark serve` web console: a local-first HTTP server
 // that exposes saved scan runs as a JSON API, serves the embedded React UI,
 // and — once users are configured — authenticates sessions and executes
 // scans against registered targets through a strictly serial job queue.
@@ -33,6 +33,7 @@ import (
 	"github.com/leaky-hub/appsec/internal/jobs"
 	"github.com/leaky-hub/appsec/internal/llm"
 	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/appsec/internal/report"
 	"github.com/leaky-hub/appsec/internal/runstore"
 	"github.com/leaky-hub/appsec/internal/server/auth"
 	"github.com/leaky-hub/appsec/internal/targets"
@@ -106,15 +107,17 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/auth/login", s.handleLogin)
 	mux.HandleFunc("/api/auth/logout", s.handleLogout)
 	mux.HandleFunc("/api/auth/me", s.handleMe)
-	mux.HandleFunc("/api/users", s.handleUsers)        // GET list, POST create (admin)
-	mux.HandleFunc("/api/users/", s.handleUserByID)    // PATCH, DELETE (admin)
-	mux.HandleFunc("/api/targets", s.handleTargets)    // GET (viewer), POST (admin)
-	mux.HandleFunc("/api/targets/", s.handleTargetByID) // DELETE (admin)
-	mux.HandleFunc("/api/scans", s.handleScans)        // GET (viewer), POST (operator)
-	mux.HandleFunc("/api/scans/", s.handleScanByID)    // GET /api/scans/{jobId}
-	mux.HandleFunc("/api/frameworks", s.handleFrameworks) // GET (viewer)
-	mux.HandleFunc("/api/explain", s.handleExplain)    // POST (operator)
-	mux.HandleFunc("/api/audit", s.handleAudit)        // GET (admin)
+	mux.HandleFunc("/api/users", s.handleUsers)                          // GET list, POST create (admin)
+	mux.HandleFunc("/api/users/", s.handleUserByID)                      // PATCH, DELETE (admin)
+	mux.HandleFunc("/api/targets", s.handleTargets)                      // GET (viewer), POST (admin)
+	mux.HandleFunc("/api/targets/", s.handleTargetByID)                  // DELETE (admin)
+	mux.HandleFunc("/api/cloud/profiles", s.handleCloudProfiles)         // GET (admin): discovered profile names
+	mux.HandleFunc("/api/scans", s.handleScans)                          // GET (viewer), POST (operator)
+	mux.HandleFunc("/api/scans/", s.handleScanByID)                      // GET /api/scans/{jobId}
+	mux.HandleFunc("/api/frameworks", s.handleFrameworks)                // GET (viewer)
+	mux.HandleFunc("/api/explain", s.handleExplain)                      // POST (operator)
+	mux.HandleFunc("/api/cloud/posture-summary", s.handlePostureSummary) // POST (operator): on-demand, never persisted
+	mux.HandleFunc("/api/audit", s.handleAudit)                          // GET (admin)
 	mux.HandleFunc("/", s.handleStatic)
 	return securityHeaders(s.authGate(mux))
 }
@@ -166,7 +169,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.buildSummary()
+	store, ok := s.runStoreFor(w, r)
+	if !ok {
+		return
+	}
+	resp, err := s.buildSummary(store)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to build summary")
 		return
@@ -187,9 +194,14 @@ func (s *Server) handleRuns(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// handleRunDetail serves /api/runs/{id} (GET detail, DELETE run) and
+// /api/runs/{id}/export (GET, SARIF/JSON download). The run store is resolved
+// from ?target= exactly like the list endpoints; the run ID is validated and
+// path-confined by runstore before any filesystem access.
 func (s *Server) handleRunDetail(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/api/runs/")
-	if id == "" || strings.Contains(id, "/") {
+	rest := strings.TrimPrefix(r.URL.Path, "/api/runs/")
+	id, sub, _ := strings.Cut(rest, "/")
+	if id == "" {
 		writeErr(w, http.StatusBadRequest, "invalid run id")
 		return
 	}
@@ -197,14 +209,68 @@ func (s *Server) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	detail, err := s.buildRunDetail(store, id)
-	if err != nil {
-		// Load validates the id and confines the path; a failure here is a
-		// missing/invalid run, not a server fault.
+
+	switch {
+	case sub == "export" && r.Method == http.MethodGet:
+		s.handleRunExport(w, r, store, id)
+	case sub == "" && r.Method == http.MethodGet:
+		detail, err := s.buildRunDetail(store, id)
+		if err != nil {
+			// Load validates the id and confines the path; a failure here is a
+			// missing/invalid run, not a server fault.
+			writeErr(w, http.StatusNotFound, "run not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, detail)
+	case sub == "" && r.Method == http.MethodDelete:
+		s.handleRunDelete(w, r, store, id)
+	default:
+		writeErr(w, http.StatusNotFound, "not found")
+	}
+}
+
+// handleRunDelete removes a run file (admin, audited). Which target's store
+// is already resolved by the caller from ?target=.
+func (s *Server) handleRunDelete(w http.ResponseWriter, r *http.Request, store runstore.Store, id string) {
+	if err := store.Delete(id); err != nil {
 		writeErr(w, http.StatusNotFound, "run not found")
 		return
 	}
-	writeJSON(w, http.StatusOK, detail)
+	s.audit(audit.EventRunDelete, actorFrom(r), map[string]string{
+		"target": r.URL.Query().Get("target"), "run": id,
+	})
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// handleRunExport streams a run as SARIF or JSON for download. The report is
+// re-rendered from the stored findings through the same writers the CLI uses,
+// so an exported SARIF is byte-for-byte what `bulwark scan -f sarif` produces.
+func (s *Server) handleRunExport(w http.ResponseWriter, r *http.Request, store runstore.Store, id string) {
+	doc, err := store.Load(id)
+	if err != nil {
+		writeErr(w, http.StatusNotFound, "run not found")
+		return
+	}
+	format := r.URL.Query().Get("format")
+	// A safe download filename derived from the validated run id (no path sep).
+	fname := "bulwark-" + strings.ReplaceAll(id, ":", "-")
+	switch format {
+	case "sarif":
+		w.Header().Set("Content-Type", "application/sarif+json; charset=utf-8")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+fname+`.sarif"`)
+		if err := report.WriteSARIF(w, doc.Findings); err != nil {
+			// Header already sent on success path; on failure log-and-stop.
+			return
+		}
+	case "json", "":
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+fname+`.json"`)
+		if err := report.WriteJSON(w, doc.Findings); err != nil {
+			return
+		}
+	default:
+		writeErr(w, http.StatusBadRequest, "format must be sarif or json")
+	}
 }
 
 // runStoreFor resolves which run history a read serves: the served repo's
@@ -225,6 +291,11 @@ func (s *Server) runStoreFor(w http.ResponseWriter, r *http.Request) (runstore.S
 	if err != nil {
 		writeErr(w, http.StatusNotFound, "target not found")
 		return runstore.Store{}, false
+	}
+	// Cloud targets have no filesystem root; their history lives in the
+	// per-target cloud store (locked decision 9).
+	if t.Kind() == targets.TypeCloud {
+		return runstore.Store{Dir: s.targets.CloudRunStore(t)}, true
 	}
 	return runstore.ForRepo(s.targets.Root(t)), true
 }

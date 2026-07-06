@@ -64,6 +64,13 @@ func execScan(ctx context.Context, reg *targets.Registry, git gitws.Syncer, job 
 		return jobs.Result{}, fmt.Errorf("target no longer registered")
 	}
 
+	// Cloud posture targets run a different pipeline (prowler, no filesystem
+	// tree) and save to their own per-target store — split out so the
+	// path/git machinery below never touches a credential reference.
+	if t.Kind() == targets.TypeCloud {
+		return execCloudScan(ctx, reg, t, job, progress)
+	}
+
 	root := reg.Root(t)
 	var out jobs.Result
 	if t.Kind() == targets.TypeGit {
@@ -104,6 +111,58 @@ func execScan(ctx context.Context, reg *targets.Registry, git gitws.Syncer, job 
 	meta, err := runstore.ForRepo(root).SaveWithCoverage(res.Findings, &cov, time.Now())
 	if err != nil {
 		return out, fmt.Errorf("save run: %w", err)
+	}
+	progress(fmt.Sprintf("==> saved run %s\n", meta.ID))
+	out.RunID = meta.ID
+	return out, nil
+}
+
+// execCloudScan runs a registered cloud posture target through prowler and
+// the shared enrichment pipeline, saving to the target's own cloud store
+// (locked decision 9). The credential is the registered profile NAME,
+// re-validated by cloudscan against the local closed list at run time; it
+// never appears in the job, the audit line, or the progress stream. The
+// per-provider timeout (config default 1800s) bounds the whole run.
+func execCloudScan(ctx context.Context, reg *targets.Registry, t targets.Target, job jobs.Job, progress func(line string)) (jobs.Result, error) {
+	var out jobs.Result
+
+	// Cloud runs use the served repo's own appsec.yml for enrichment settings
+	// (triage on/off, cloud timeout); the registry entry's profile override
+	// still applies. Credentials are never in config.
+	cfg := config.Default()
+	if job.Options.Triage != nil {
+		cfg.Triage.Enabled = *job.Options.Triage
+	} else if c := t.Config; c != nil && c.Triage != nil {
+		cfg.Triage.Enabled = *c.Triage
+	}
+	if t.Profile != "" {
+		cfg.Profile = t.Profile
+	}
+	if err := cfg.Validate(); err != nil {
+		return out, err
+	}
+
+	timeout := time.Duration(cfg.Cloud.TimeoutSec) * time.Second
+	cctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	res, err := pipeline.RunCloud(cctx, pipeline.CloudOptions{
+		Provider: t.Provider,
+		Profile:  t.ProfileName,
+		Regions:  t.Regions,
+		Config:   cfg,
+	}, progress)
+	if err != nil {
+		return out, err
+	}
+	progress(fmt.Sprintf("==> posture: %d failed, %d passed, %d manual\n", res.Failed, res.Passed, res.Manual))
+
+	// Cloud findings have no source tree: no snippet capture, no filesystem
+	// coverage accounting. Save to the per-target cloud store.
+	store := runstore.Store{Dir: reg.CloudRunStore(t)}
+	meta, err := store.Save(res.Findings, time.Now())
+	if err != nil {
+		return out, fmt.Errorf("save cloud run: %w", err)
 	}
 	progress(fmt.Sprintf("==> saved run %s\n", meta.ID))
 	out.RunID = meta.ID
@@ -179,16 +238,18 @@ func mergeConfig(t targets.Target, root string, opts jobs.Options) (config.Confi
 	return cfg, cfg.Validate()
 }
 
-// repoConfig loads the scanned tree's own appsec.yml, falling back to
-// defaults when absent.
+// repoConfig loads the scanned tree's own config (bulwark.yml, then the
+// legacy appsec.yml), falling back to defaults when absent.
 func repoConfig(root string) (config.Config, error) {
-	cfgPath := filepath.Join(root, "appsec.yml")
-	if _, err := os.Stat(cfgPath); err == nil {
-		cfg, err := config.Load(cfgPath)
-		if err != nil {
-			return cfg, fmt.Errorf("target config: %w", err)
+	for _, name := range config.DefaultConfigNames {
+		cfgPath := filepath.Join(root, name)
+		if _, err := os.Stat(cfgPath); err == nil {
+			cfg, err := config.Load(cfgPath)
+			if err != nil {
+				return cfg, fmt.Errorf("target config: %w", err)
+			}
+			return cfg, nil
 		}
-		return cfg, nil
 	}
 	return config.Default(), nil
 }

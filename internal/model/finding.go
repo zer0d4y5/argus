@@ -31,7 +31,13 @@ import (
 // tool-normalized, displayed as-is, never re-banded); fingerprints never
 // contained severity or title, so run deltas keep working. Migration note in
 // docs/findings-model.md.
-const SchemaVersion = "2.0.0"
+// 2.1.0: added the CLOUD category and optional Location.Resource (cloud
+// resource UID/ARN — cloud posture findings have no file). Additive. The
+// fingerprint algorithm stays v1: its file slot now takes
+// firstNonEmpty(location.file, location.resource), which is byte-identical
+// for every pre-2.1.0 finding (resource empty) and gives cloud findings a
+// stable cross-run identity. Migration note in docs/findings-model.md.
+const SchemaVersion = "2.1.0"
 
 // Finding categories. String-typed (not iota) because they appear verbatim in
 // JSON/SARIF output and in config files.
@@ -41,6 +47,7 @@ const (
 	CategorySCA    = "SCA"    // vulnerable dependencies
 	CategoryIaC    = "IAC"    // infrastructure-as-code (Phase 3)
 	CategoryDAST   = "DAST"   // dynamic scanning (Phase 5)
+	CategoryCloud  = "CLOUD"  // cloud security posture (schema 2.1.0)
 )
 
 // RawFinding is what an adapter emits: native tool data mapped to common
@@ -55,6 +62,7 @@ type RawFinding struct {
 	RawSeverity string            // tool's native severity string, verbatim
 	Confidence  string            // tool-reported confidence ("" if none)
 	File        string            // path relative to scan root ("" if N/A)
+	Resource    string            // cloud resource UID/ARN ("" if N/A, schema 2.1.0)
 	StartLine   int               // 0 if N/A
 	EndLine     int               // 0 if N/A
 	CWEs        []string          // e.g. ["CWE-89"]
@@ -65,9 +73,14 @@ type RawFinding struct {
 	RawPayload  json.RawMessage   // the original per-result object, verbatim
 }
 
-// Location pins a finding to code, a package manifest, or (later) a URL.
+// Location pins a finding to code, a package manifest, a cloud resource, or
+// (later) a URL.
 type Location struct {
-	File      string `json:"file,omitempty"`
+	File string `json:"file,omitempty"`
+	// Resource is the cloud resource UID/ARN a CLOUD finding is about (schema
+	// 2.1.0). Cloud posture findings have no file; this is their place-slot,
+	// including in the fingerprint (see Fingerprint).
+	Resource  string `json:"resource,omitempty"`
 	StartLine int    `json:"startLine,omitempty"`
 	EndLine   int    `json:"endLine,omitempty"`
 	URL       string `json:"url,omitempty"` // DAST findings (Phase 5)
@@ -159,14 +172,25 @@ type Finding struct {
 // only identity fields — never description text, severity, or raw payloads,
 // which tools reword between versions. The tool name IS included: cross-tool
 // merging is correlation's job (it uses correlation keys, not the ID).
+//
+// The file slot takes firstNonEmpty(location.file, location.resource) —
+// schema 2.1.0's documented overload of that hash position. Every pre-cloud
+// finding has an empty resource, so its hash input is byte-identical to what
+// algorithm v1 always produced (no version bump needed); a CLOUD finding,
+// which has no file, gets its stable place from the resource UID/ARN, so run
+// deltas work for cloud runs unchanged. Both properties are pinned by test.
 func Fingerprint(f Finding) string {
+	place := f.Location.File
+	if place == "" {
+		place = f.Location.Resource
+	}
 	h := sha256.New()
 	for _, part := range []string{
 		"v1", // fingerprint algorithm version, independent of SchemaVersion
 		f.Tool,
 		f.Category,
 		f.RuleID,
-		f.Location.File,
+		place,
 		strconv.Itoa(f.Location.StartLine),
 		f.Package,
 		f.CVE,
@@ -272,6 +296,7 @@ func Normalize(raws []RawFinding) []Finding {
 			Confidence:   r.Confidence,
 			Location: Location{
 				File:      filepathToSlash(r.File),
+				Resource:  strings.TrimSpace(r.Resource),
 				StartLine: maxInt(r.StartLine, 0),
 				EndLine:   maxInt(r.EndLine, 0),
 			},
@@ -332,6 +357,12 @@ func Sort(findings []Finding) {
 		}
 		if a.Location.File != b.Location.File {
 			return a.Location.File < b.Location.File
+		}
+		// Cloud findings have no file; the resource UID keeps two resources
+		// failing the same check deterministically ordered. Empty for every
+		// non-cloud finding, so pre-2.1.0 ordering is untouched.
+		if a.Location.Resource != b.Location.Resource {
+			return a.Location.Resource < b.Location.Resource
 		}
 		if a.Location.StartLine != b.Location.StartLine {
 			return a.Location.StartLine < b.Location.StartLine
