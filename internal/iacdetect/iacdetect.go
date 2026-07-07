@@ -21,6 +21,12 @@ import (
 	"strings"
 )
 
+// Supported formats: Terraform (.tf), CloudFormation/SAM (JSON + YAML),
+// Kubernetes manifests, docker-compose, Bicep (.bicep), ARM templates (JSON),
+// Pulumi (Pulumi.yaml programs plus TS/Python entrypoints beside a
+// Pulumi.yaml), and Helm (values*.yaml image repositories, Chart.yaml
+// dependencies, templated workload manifests).
+
 // Component is one detected architecture node.
 type Component struct {
 	Name   string `json:"name"`
@@ -165,8 +171,99 @@ var imageTech = []struct{ contains, tech string }{
 	{"oauth2-proxy", "auth-service"},
 }
 
+// bicepArmTech maps an Azure resource-provider namespace (Bicep resource
+// types and ARM template "type" values share it) to a tech.
+var bicepArmTech = []struct{ contains, tech string }{
+	{"Microsoft.Sql/", "database"},
+	{"Microsoft.DBforPostgreSQL/", "database"},
+	{"Microsoft.DBforMySQL/", "database"},
+	{"Microsoft.DBforMariaDB/", "database"},
+	{"Microsoft.DocumentDB/", "database"},
+	{"Microsoft.Cache/", "database"},
+	{"Microsoft.Storage/", "object-store"},
+	{"Microsoft.ContainerService/", "api-service"},
+	{"Microsoft.App/", "api-service"},
+	{"Microsoft.ApiManagement/", "api-service"},
+	{"Microsoft.Network/applicationGateways", "api-service"},
+	{"Microsoft.Web/sites", "web-app"},
+	{"Microsoft.Cdn/", "web-app"},
+	{"Microsoft.AzureActiveDirectory", "auth-service"},
+	{"Microsoft.AAD/", "auth-service"},
+}
+
+// pulumiTypeTech maps a Pulumi type token (aws:s3/bucket:Bucket in YAML
+// programs) or a provider.module pair from a TS/Python program (aws.s3) to a
+// tech. Keys are lowercase; matching is on the "provider:module" or
+// "provider.module" prefix normalized to "provider.module".
+var pulumiModuleTech = []struct{ prefix, tech string }{
+	{"aws.s3", "object-store"},
+	{"aws.rds", "database"},
+	{"aws.dynamodb", "database"},
+	{"aws.elasticache", "database"},
+	{"aws.redshift", "database"},
+	{"aws.docdb", "database"},
+	{"aws.neptune", "database"},
+	{"aws.opensearch", "database"},
+	{"aws.lambda", "api-service"},
+	{"aws.apigateway", "api-service"},
+	{"aws.apigatewayv2", "api-service"},
+	{"aws.ecs", "api-service"},
+	{"aws.eks", "api-service"},
+	{"aws.lb", "api-service"},
+	{"aws.alb", "api-service"},
+	{"aws.elb", "api-service"},
+	{"aws.apprunner", "api-service"},
+	{"aws.cognito", "auth-service"},
+	{"aws.cloudfront", "web-app"},
+	{"aws.amplify", "web-app"},
+	{"gcp.sql", "database"},
+	{"gcp.bigquery", "database"},
+	{"gcp.spanner", "database"},
+	{"gcp.bigtable", "database"},
+	{"gcp.firestore", "database"},
+	{"gcp.redis", "database"},
+	{"gcp.storage", "object-store"},
+	{"gcp.cloudrun", "api-service"},
+	{"gcp.cloudrunv2", "api-service"},
+	{"gcp.cloudfunctions", "api-service"},
+	{"gcp.cloudfunctionsv2", "api-service"},
+	{"gcp.container", "api-service"},
+	{"gcp.apigateway", "api-service"},
+	{"gcp.identityplatform", "auth-service"},
+	{"gcp.appengine", "web-app"},
+	{"azure.sql", "database"},
+	{"azure.mssql", "database"},
+	{"azure.postgresql", "database"},
+	{"azure.mysql", "database"},
+	{"azure.cosmosdb", "database"},
+	{"azure.redis", "database"},
+	{"azure.storage", "object-store"},
+	{"azure.containerservice", "api-service"},
+	{"azure.appservice", "web-app"},
+	{"azure.cdn", "web-app"},
+	{"azure-native.sql", "database"},
+	{"azure-native.dbforpostgresql", "database"},
+	{"azure-native.documentdb", "database"},
+	{"azure-native.storage", "object-store"},
+	{"azure-native.containerservice", "api-service"},
+	{"azure-native.web", "web-app"},
+	{"azuread.application", "auth-service"},
+}
+
 var (
 	tfResourceRe = regexp.MustCompile(`(?m)^\s*resource\s+"([a-z0-9_]+)"\s+"([a-zA-Z0-9_-]+)"`)
+	// Bicep: resource <symbolicName> 'Microsoft.X/y@2023-01-01' = { … }
+	bicepResourceRe = regexp.MustCompile(`(?m)^\s*resource\s+([A-Za-z0-9_]+)\s+'([^'@]+)@`)
+	// ARM template: "type": "Microsoft.X/y"
+	armTypeRe = regexp.MustCompile(`"type"\s*:\s*"(Microsoft\.[A-Za-z./]+)"`)
+	// Pulumi YAML program: type: aws:s3/bucket:Bucket (or aws:s3:Bucket)
+	pulumiYAMLTypeRe = regexp.MustCompile(`(?m)^\s*type:\s*["']?([a-z0-9-]+):([A-Za-z0-9/]+):[A-Za-z0-9]+`)
+	// Pulumi TS/Python program: new aws.s3.Bucket("name" / aws.s3.Bucket("name"
+	pulumiCodeRe = regexp.MustCompile(`(?:new\s+)?([a-z0-9_-]+)\.([a-z0-9_]+)\.[A-Za-z0-9]+\(\s*["']([A-Za-z0-9._-]+)["']`)
+	// Helm values: repository: bitnami/postgresql
+	helmRepositoryRe = regexp.MustCompile(`(?m)^\s*repository:\s*["']?([^\s"']+)`)
+	// Helm chart dependencies (and other name lists; unmapped names are inert)
+	helmDependencyRe = regexp.MustCompile(`(?m)^\s*-\s*name:\s*["']?([a-z0-9-]+)`)
 	// Matches YAML (`Type: AWS::X::Y`) and JSON (`"Type": "AWS::X::Y"`) alike:
 	// JSON has a quote before the colon, which the old `Type:` form missed —
 	// CloudFormation JSON was silently undetectable.
@@ -211,7 +308,8 @@ func Scan(dir string) ([]Component, error) {
 		isTF := strings.HasSuffix(lower, ".tf")
 		isYAML := strings.HasSuffix(lower, ".yaml") || strings.HasSuffix(lower, ".yml")
 		isJSON := strings.HasSuffix(lower, ".json")
-		if !isTF && !isYAML && !isJSON {
+		isBicep := strings.HasSuffix(lower, ".bicep")
+		if !isTF && !isYAML && !isJSON && !isBicep {
 			return nil
 		}
 		if candidates++; candidates > maxCandidateFiles {
@@ -221,13 +319,28 @@ func Scan(dir string) ([]Component, error) {
 		switch {
 		case isTF:
 			scanTerraform(body, rel, add)
+		case isBicep:
+			scanBicep(body, rel, add)
 		case isCompose(lower):
 			scanImages(body, rel, add)
+		case lower == "pulumi.yaml" || lower == "pulumi.yml":
+			// A YAML program declares resources inline; a code program keeps
+			// them in TS/Python entrypoints beside this file.
+			scanPulumiYAML(body, rel, add)
+			scanPulumiProgramDir(filepath.Dir(path), filepath.Dir(rel), add)
+		case isYAML && strings.HasPrefix(lower, "values"):
+			// Helm values: image repositories carry the tech.
+			scanHelmValues(body, rel, add)
+		case lower == "chart.yaml":
+			scanHelmChart(body, rel, add)
 		case isYAML && strings.Contains(body, "AWS::"):
 			// CloudFormation / SAM written as YAML (template.yaml et al.)
 			scanCloudFormation(body, rel, add)
 		case isYAML:
 			scanKubernetes(body, rel, add)
+		case strings.Contains(body, "Microsoft."):
+			// ARM template (JSON with Azure resource-provider types)
+			scanARM(body, rel, add)
 		default: // JSON: only CloudFormation is recognized
 			scanCloudFormation(body, rel, add)
 		}
@@ -284,6 +397,110 @@ func scanCloudFormation(body, rel string, add func(name, tech, source string)) {
 	}
 }
 
+func scanBicep(body, rel string, add func(name, tech, source string)) {
+	for _, m := range bicepResourceRe.FindAllStringSubmatch(body, -1) {
+		symbolic, rtype := m[1], m[2]
+		for _, r := range bicepArmTech {
+			if strings.Contains(rtype, r.contains) {
+				add(symbolic, r.tech, rel)
+				break
+			}
+		}
+	}
+}
+
+func scanARM(body, rel string, add func(name, tech, source string)) {
+	for _, m := range armTypeRe.FindAllStringSubmatch(body, -1) {
+		t := m[1]
+		for _, r := range bicepArmTech {
+			if strings.Contains(t, r.contains) {
+				add(shortType(strings.ReplaceAll(t, "/", "::")), r.tech, rel)
+				break
+			}
+		}
+	}
+}
+
+// scanPulumiYAML handles YAML-runtime Pulumi programs, where Pulumi.yaml
+// itself declares resources as type: aws:s3/bucket:Bucket.
+func scanPulumiYAML(body, rel string, add func(name, tech, source string)) {
+	for _, m := range pulumiYAMLTypeRe.FindAllStringSubmatch(body, -1) {
+		provider, module := strings.ToLower(m[1]), strings.ToLower(m[2])
+		// aws:s3/bucket → module token "s3"; aws:s3 → "s3"
+		module = strings.SplitN(module, "/", 2)[0]
+		if tech := techForPulumiModule(provider + "." + module); tech != "" {
+			add(module, tech, rel)
+		}
+	}
+}
+
+// scanPulumiProgramDir scans TS/Python entrypoints in the directory that
+// holds a Pulumi.yaml — only there, so ordinary application code is never
+// pattern-matched. Bounded by the same per-file read cap.
+func scanPulumiProgramDir(absDir, relDir string, add func(name, tech, source string)) {
+	entries, err := os.ReadDir(absDir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		lower := strings.ToLower(e.Name())
+		if e.IsDir() || !(strings.HasSuffix(lower, ".ts") || strings.HasSuffix(lower, ".py")) {
+			continue
+		}
+		rel := filepath.Join(relDir, e.Name())
+		body := readCapped(filepath.Join(absDir, e.Name()))
+		for _, m := range pulumiCodeRe.FindAllStringSubmatch(body, -1) {
+			provider, module, name := strings.ToLower(m[1]), strings.ToLower(m[2]), m[3]
+			provider = strings.ReplaceAll(provider, "_", "-") // azure_native (py) → azure-native
+			if tech := techForPulumiModule(provider + "." + module); tech != "" {
+				add(name, tech, rel)
+			}
+		}
+	}
+}
+
+func techForPulumiModule(key string) string {
+	for _, r := range pulumiModuleTech {
+		if strings.HasPrefix(key, r.prefix) {
+			return r.tech
+		}
+	}
+	return ""
+}
+
+// scanHelmValues reads a chart's values file: explicit image: lines plus the
+// split repository: form (image.repository: bitnami/postgresql).
+func scanHelmValues(body, rel string, add func(name, tech, source string)) {
+	scanImages(body, rel, add)
+	for _, m := range helmRepositoryRe.FindAllStringSubmatch(body, -1) {
+		repo := m[1]
+		if strings.Contains(repo, "{{") {
+			continue
+		}
+		lower := strings.ToLower(repo)
+		for _, r := range imageTech {
+			if strings.Contains(lower, r.contains) {
+				add(imageName(repo), r.tech, rel)
+				break
+			}
+		}
+	}
+}
+
+// scanHelmChart maps Chart.yaml dependency names (postgresql, redis, …)
+// through the image table; unrecognized names are inert.
+func scanHelmChart(body, rel string, add func(name, tech, source string)) {
+	for _, m := range helmDependencyRe.FindAllStringSubmatch(body, -1) {
+		name := strings.ToLower(m[1])
+		for _, r := range imageTech {
+			if strings.Contains(name, r.contains) {
+				add(name, r.tech, rel)
+				break
+			}
+		}
+	}
+}
+
 func scanKubernetes(body, rel string, add func(name, tech, source string)) {
 	// A workload kind plus its container image: the image usually reveals the
 	// tech (postgres → database); otherwise a Deployment/StatefulSet is a service.
@@ -313,6 +530,9 @@ func isCompose(name string) bool {
 func scanImages(body, rel string, add func(name, tech, source string)) bool {
 	matched := false
 	for _, m := range imageRe.FindAllStringSubmatch(body, -1) {
+		if strings.Contains(m[1], "{{") {
+			continue // Helm-templated image value: no literal tech to read
+		}
 		img := strings.ToLower(m[1])
 		for _, r := range imageTech {
 			if strings.Contains(img, r.contains) {

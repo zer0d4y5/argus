@@ -246,3 +246,145 @@ resource "aws_redshift_cluster" "dw" {}
 		}
 	}
 }
+
+func TestScanBicep(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "main.bicep", `
+resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
+  name: 'prod-sql'
+}
+resource blobs 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: 'prodstore'
+}
+resource site 'Microsoft.Web/sites@2023-01-01' = {
+  name: 'frontend'
+}
+resource noise 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'appinsights'
+}
+`)
+	comps := mustScan(t, dir)
+	byName := map[string]string{}
+	for _, c := range comps {
+		byName[c.Name] = c.Tech
+	}
+	if byName["sqlServer"] != "database" || byName["blobs"] != "object-store" || byName["site"] != "web-app" {
+		t.Errorf("bicep mapping wrong: %v", byName)
+	}
+	if _, ok := byName["noise"]; ok {
+		t.Error("unmapped bicep resource surfaced")
+	}
+}
+
+func TestScanARMTemplate(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "azuredeploy.json", `{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "resources": [
+    {"type": "Microsoft.DocumentDB/databaseAccounts", "name": "cosmos"},
+    {"type": "Microsoft.Storage/storageAccounts", "name": "store"}
+  ]
+}`)
+	got := techs(mustScan(t, dir))
+	if !got["database"] || !got["object-store"] {
+		t.Errorf("ARM detect wrong: %v", got)
+	}
+}
+
+func TestScanPulumiYAMLProgram(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "Pulumi.yaml", `
+name: shop
+runtime: yaml
+resources:
+  assets:
+    type: aws:s3/bucket:Bucket
+  db:
+    type: aws:rds/instance:Instance
+`)
+	got := techs(mustScan(t, dir))
+	if !got["object-store"] || !got["database"] {
+		t.Errorf("pulumi yaml detect wrong: %v", got)
+	}
+}
+
+// TestScanPulumiCodeProgram: TS/Python entrypoints are scanned ONLY beside a
+// Pulumi.yaml; identical code elsewhere is ignored.
+func TestScanPulumiCodeProgram(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "infra/Pulumi.yaml", "name: shop\nruntime: nodejs\n")
+	write(t, dir, "infra/index.ts", `
+import * as aws from "@pulumi/aws";
+const assets = new aws.s3.Bucket("shop-assets");
+const db = new aws.rds.Instance("shop-db", { engine: "postgres" });
+const fn = new aws.lambda.Function("api-handler", {});
+`)
+	write(t, dir, "infra/__main__.py", `
+import pulumi_gcp as gcp
+gcp.storage.Bucket("py-assets")
+`)
+	// Same patterns OUTSIDE a Pulumi dir must not match.
+	write(t, dir, "app/notpulumi.ts", `const x = new aws.s3.Bucket("decoy");`)
+
+	comps := mustScan(t, dir)
+	byName := map[string]string{}
+	for _, c := range comps {
+		byName[c.Name] = c.Tech
+	}
+	if byName["shop-assets"] != "object-store" || byName["shop-db"] != "database" || byName["api-handler"] != "api-service" {
+		t.Errorf("pulumi ts detect wrong: %v", byName)
+	}
+	if _, ok := byName["decoy"]; ok {
+		t.Error("pulumi patterns matched outside a Pulumi program dir")
+	}
+}
+
+func TestScanHelmChart(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "chart/Chart.yaml", `
+apiVersion: v2
+name: shop
+maintainers:
+  - name: bob
+dependencies:
+  - name: postgresql
+    repository: https://charts.bitnami.com/bitnami
+  - name: redis
+`)
+	write(t, dir, "chart/values.yaml", `
+image:
+  repository: mycorp/shop-api
+web:
+  image: nginx:1.25
+db:
+  image:
+    repository: bitnami/postgresql
+`)
+	write(t, dir, "chart/templates/deploy.yaml", `
+kind: Deployment
+metadata:
+  name: shop
+spec:
+  template:
+    spec:
+      containers:
+        - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+`)
+	comps := mustScan(t, dir)
+	byTech := techs(comps)
+	if !byTech["database"] || !byTech["web-app"] {
+		t.Errorf("helm detect wrong: %+v", comps)
+	}
+	for _, c := range comps {
+		if strings.Contains(c.Name, "{{") {
+			t.Errorf("templated value leaked into a component name: %q", c.Name)
+		}
+		if c.Name == "bob" {
+			t.Error("maintainer name surfaced as a component")
+		}
+	}
+	// The templated Deployment still lands as a workload api-service.
+	if !byTech["api-service"] {
+		t.Errorf("templated helm workload not detected as api-service: %+v", comps)
+	}
+}
