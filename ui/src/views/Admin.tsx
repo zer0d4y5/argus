@@ -3,6 +3,7 @@ import { opsApi, UserInfo, Target, TargetConfig, AuditEntry, ApiError, KNOWN_SCA
 import { Panel, Loading, ErrorNote, EmptyState } from "../components";
 import { useConfirm } from "../toast";
 import { fmtTime } from "../theme";
+import { SSOConfigPanel } from "./SSOConfigPanel";
 
 export function Admin({ selfUsername }: { selfUsername: string }) {
   const confirm = useConfirm();
@@ -151,7 +152,10 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
         </div>
       </Panel>
 
-      {/* Section 2: Targets */}
+      {/* Section 2: Single sign-on (authentication config) */}
+      <SSOConfigPanel />
+
+      {/* Section 3: Targets */}
       <Panel title="Targets">
         {targetError && <div className="mb-3 text-xs text-red-600 dark:text-red-400">{targetError}</div>}
         <div className="scroll-thin overflow-x-auto">
@@ -465,7 +469,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
         )}
       </Panel>
 
-      {/* Section 3: Audit */}
+      {/* Section 4: Audit */}
       <Panel title="Audit log" right={<span className="text-xs text-gray-500 dark:text-gray-400">{audit.length} entries</span>}>
         {audit.length === 0 ? (
           <EmptyState title="No audit entries" hint="Logins, user/target changes and scan launches land here." />

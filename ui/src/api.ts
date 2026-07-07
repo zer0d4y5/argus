@@ -353,6 +353,27 @@ export const SEVERITIES: Severity[] = ["critical", "high", "medium", "low", "inf
 
 export interface UserInfo { id: string; username: string; role: string; createdAt: string; }
 export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; githubRepo?: string; ssoEnabled?: boolean; }
+
+// SSO (OIDC) admin configuration. The client secret is never here — the UI
+// configures the env-var NAME (clientSecretEnv) and reads back whether that
+// var is currently set on the server (secretPresent).
+export interface OIDCConfigInput {
+  issuer: string;
+  clientId: string;
+  clientSecretEnv?: string;
+  redirectUrl: string;
+  allowedDomains?: string[];
+  defaultRole?: string;
+  groupClaim?: string;
+  roleMap?: Record<string, string>;
+  disable?: boolean;
+}
+export interface OIDCConfigView extends OIDCConfigInput {
+  source: "store" | "config" | "none";
+  enabled: boolean;
+  secretEnvName: string;
+  secretPresent: boolean;
+}
 export interface LoginResponse { user: UserInfo; csrfToken: string; }
 
 export interface Snippet { startLine: number; lines: string[] }
@@ -553,8 +574,15 @@ export const opsApi = {
   launchScan: (targetId: string, options: JobOptions): Promise<Job> => 
     send<Job>("POST", "api/scans", { targetId, options }),
   
-  audit: (n = 200): Promise<AuditResponse> => 
+  audit: (n = 200): Promise<AuditResponse> =>
     send<AuditResponse>(`GET`, `api/audit?n=${n}`),
+
+  getOIDCConfig: (): Promise<OIDCConfigView> =>
+    send<OIDCConfigView>("GET", "api/admin/oidc"),
+  saveOIDCConfig: (req: OIDCConfigInput): Promise<OIDCConfigView> =>
+    send<OIDCConfigView>("PUT", "api/admin/oidc", req),
+  disableOIDCConfig: (): Promise<OIDCConfigView> =>
+    send<OIDCConfigView>("PUT", "api/admin/oidc", { disable: true }),
 
   frameworks: (): Promise<FrameworksResponse> =>
     send<FrameworksResponse>("GET", "api/frameworks"),
