@@ -352,7 +352,7 @@ export const SEVERITIES: Severity[] = ["critical", "high", "medium", "low", "inf
 // --- New TypeScript types (exact JSON contract from the Go server) ---
 
 export interface UserInfo { id: string; username: string; role: string; createdAt: string; }
-export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; githubRepo?: string; }
+export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; githubRepo?: string; ssoEnabled?: boolean; }
 export interface LoginResponse { user: UserInfo; csrfToken: string; }
 
 export interface Snippet { startLine: number; lines: string[] }

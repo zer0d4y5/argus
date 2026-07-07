@@ -97,6 +97,9 @@ function PickTarget({ what, targets, onPick }: { what: string; targets: Target[]
 
 export function App() {
   const [initial] = useState(readUrlState);
+  // Captured before the URL-sync effect below rewrites the query: a failed SSO
+  // round-trip returns as ?sso_error=1, and the login page surfaces it.
+  const [ssoError] = useState(() => new URLSearchParams(window.location.search).has("sso_error"));
   const [tab, setTab] = useState<Tab>(initial.tab);
   const [dark, setDark] = useState(() => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
 
@@ -373,7 +376,7 @@ export function App() {
 
   if (error) return <ErrorNote error={error} />;
   if (me === null) return <ConsoleSkeleton />;
-  if (me.authRequired && !user) return <Login onLogin={handleLogin} />;
+  if (me.authRequired && !user) return <Login onLogin={handleLogin} ssoEnabled={!!me.ssoEnabled} ssoError={ssoError} />;
   if (!summary || !runs) return <ConsoleSkeleton />;
 
   const role = user?.role ?? "";
