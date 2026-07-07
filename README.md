@@ -126,8 +126,14 @@ threats from a version-pinned library per component tech — deterministic, no
 model in the loop. A local LLM can additionally *suggest* components and
 threats from the repo layout, each labeled `assisted` and confirmed by a human
 before it counts. Threats link to real findings, compliance controls, and
-mitigations; a draggable canvas lays out components, trust boundaries, and data
-flows. Export a model's threats to CSV or JSON.
+mitigations. A full-width **canvas editor** lets you map the architecture
+directly: add components, assets, external entities, and trust boundaries —
+each boundary typed by zone (DMZ, VPC, subnet, on-prem, internet, cloud
+account, Kubernetes) — rename or re-type them, resize a boundary to hold what
+it contains, and draw data flows between nodes; positions and geometry persist
+per model. Export a model's threats to CSV or JSON.
+
+<p align="center"><img src="docs/screenshots/threats.png" alt="The Argus threat-model canvas: a DMZ trust boundary holding a web frontend and API, data flows to a database, with STRIDE threat counts on each node" width="900"/></p>
 
 The rule both pillars live by: **a ticket or a threat never moves a severity or
 a gate outcome.** The gate reads file-based dispositions; the database owns work

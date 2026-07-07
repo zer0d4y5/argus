@@ -82,8 +82,10 @@ still catching runtime issues.
   from repo IaC (Terraform, CloudFormation, Kubernetes, Bicep, ARM, Pulumi,
   Helm); a local LLM optionally suggests components and threats a human
   confirms as `assisted`; threats link to real findings, controls, and
-  mitigations; a draggable canvas lays out components, trust boundaries, and
-  data flows. ✅ = a model generated from IaC with enumerated STRIDE, linked to
+  mitigations; a full-width canvas editor maps the architecture — add and
+  arrange components, assets, external entities, and zone-typed trust
+  boundaries (DMZ/VPC/subnet/…), resize boundaries, and draw data flows. ✅ = a
+  model generated from IaC with enumerated STRIDE, linked to
   findings, exported to CSV/JSON. Paired with **ticketing** — a work layer over
   findings with a timeline, severity rollup, aging, and opt-in GitHub Issues
   sync. Both live in `internal/store` (embedded SQLite) and never move the gate.
