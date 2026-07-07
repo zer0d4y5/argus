@@ -11,7 +11,7 @@ layers you switch on, never a different edition.** Three initiatives, in the
 order they should land.
 
 - [1. SSO sign-in (OIDC)](#1-sso-sign-in-oidc)
-- [2. Approved cloud remediation](#2-approved-cloud-remediation)
+- [2. Approved cloud remediation](#2-approved-cloud-remediation-shipped)
 - [3. Brand: one tool, every scale](#3-brand-one-tool-every-scale)
 
 Nothing here is built yet. Each section ends with the **decisions** that are

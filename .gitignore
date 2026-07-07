@@ -15,3 +15,7 @@ ui/vite.config.d.ts
 
 # Run history written by `appsec scan --save`.
 .appsec/
+
+# MkDocs build output
+site/
+_site/

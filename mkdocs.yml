@@ -1,0 +1,82 @@
+site_name: Argus
+site_description: One free, local-first security tool for your code and the cloud it runs in.
+site_url: https://leaky-hub.github.io/argus/
+repo_url: https://github.com/leaky-hub/argus
+repo_name: leaky-hub/argus
+copyright: Apache-2.0. Free and local-first at the core.
+docs_dir: docs
+
+theme:
+  name: material
+  logo: screenshots/logo.svg
+  favicon: screenshots/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Getting started: getting-started.md
+  - Reference:
+      - Architecture: architecture.md
+      - Findings model: findings-model.md
+      - Risk scoring: risk-scoring.md
+      - Compliance: compliance.md
+      - Coverage: coverage.md
+      - Console and pillars: console-ops.md
+  - Project:
+      - Roadmap: roadmap.md
+      - Platform evolution: roadmap-platform.md
+      - One-page pitch: pitch.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/leaky-hub/argus
