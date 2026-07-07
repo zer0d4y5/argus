@@ -172,6 +172,8 @@ func TestAuthzMatrix(t *testing.T) {
 		{"GET", "/api/health", pass, pass, pass, pass},
 		{"GET", "/api/auth/me", pass, pass, pass, pass},
 		{"POST", "/api/auth/logout", 401, pass, pass, pass},
+		{"GET", "/api/auth/oidc/start", pass, pass, pass, pass},    // SSO: own logic (redirects); gate lets it through
+		{"GET", "/api/auth/oidc/callback", pass, pass, pass, pass}, // SSO: own logic (redirects)
 
 		{"GET", "/api/summary", 401, pass, pass, pass},
 		{"GET", "/api/runs", 401, pass, pass, pass},

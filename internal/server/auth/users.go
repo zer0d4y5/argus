@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -29,15 +30,39 @@ var ErrNotFound = errors.New("user not found")
 // usernameRe deliberately admits only shell-, log- and JSON-friendly names.
 var usernameRe = regexp.MustCompile(`^[a-zA-Z0-9._-]{1,64}$`)
 
+// Provider identifies how a user authenticates.
+const (
+	ProviderLocal = "local" // password login (has a Hash)
+	ProviderOIDC  = "oidc"  // single sign-on (no Hash; Subject is the IdP sub)
+)
+
 // User is the stored form of a console user. The Hash field is the argon2id
 // encoded hash; this struct is ONLY for the users file and must never be
 // serialized into an API response (the server builds hash-free DTOs).
+//
+// SSO users carry Provider="oidc", a Subject (the IdP's stable identifier),
+// and an Email, and have no Hash. The session-validity check degrades
+// correctly for them: an empty Hash matches an empty HashAtLogin, so a
+// deprovision (delete) invalidates via not-found and a role change applies
+// live, exactly as for local users.
 type User struct {
 	ID        string    `json:"id"`
 	Username  string    `json:"username"`
-	Hash      string    `json:"hash"`
+	Hash      string    `json:"hash,omitempty"`
 	Role      Role      `json:"role"`
+	Provider  string    `json:"provider,omitempty"` // "" = local (back-compat)
+	Subject   string    `json:"subject,omitempty"`  // OIDC sub, provider-scoped
+	Email     string    `json:"email,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+// AuthProvider returns the user's provider, defaulting an empty (pre-SSO)
+// value to local so older users files read correctly.
+func (u User) AuthProvider() string {
+	if u.Provider == "" {
+		return ProviderLocal
+	}
+	return u.Provider
 }
 
 // usersFile is the on-disk envelope.
@@ -168,6 +193,107 @@ func (s *Store) Add(username, password string, role Role) (User, error) {
 		return User{}, err
 	}
 	return u, nil
+}
+
+// FindOrCreateOIDC resolves an SSO identity to a user, provisioning one on
+// first login (just-in-time). It matches on (provider=oidc, subject) — never
+// on email, which an IdP may recycle — and creates a passwordless user at
+// defaultRole when none exists, deriving a unique username from the email.
+// Returns the user and whether it was newly created. The caller is
+// responsible for the domain allowlist and issuer trust BEFORE calling this;
+// this method assumes an already-verified identity.
+func (s *Store) FindOrCreateOIDC(subject, email string, defaultRole Role) (User, bool, error) {
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		return User{}, false, fmt.Errorf("oidc: empty subject")
+	}
+	if _, err := ParseRole(string(defaultRole)); err != nil {
+		return User{}, false, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.refresh(); err != nil {
+		return User{}, false, err
+	}
+	for i := range s.users {
+		if s.users[i].AuthProvider() == ProviderOIDC && s.users[i].Subject == subject {
+			// Keep the display email fresh, but never touch role (admins own
+			// that) or re-provision.
+			if e := strings.TrimSpace(email); e != "" && s.users[i].Email != e {
+				s.users[i].Email = e
+				if err := s.save(); err != nil {
+					s.loaded = false
+					return User{}, false, err
+				}
+			}
+			return s.users[i], false, nil
+		}
+	}
+	u := User{
+		ID:        newID("u"),
+		Username:  s.uniqueUsernameLocked(usernameFromEmail(email)),
+		Role:      defaultRole,
+		Provider:  ProviderOIDC,
+		Subject:   subject,
+		Email:     strings.TrimSpace(email),
+		CreatedAt: time.Now().UTC(),
+	}
+	s.users = append(s.users, u)
+	if err := s.save(); err != nil {
+		s.loaded = false
+		return User{}, false, err
+	}
+	return u, true, nil
+}
+
+// uniqueUsernameLocked returns base, or base-2, base-3, … so the username
+// stays unique. Caller holds the lock and has refreshed.
+func (s *Store) uniqueUsernameLocked(base string) string {
+	taken := func(name string) bool {
+		for i := range s.users {
+			if s.users[i].Username == name {
+				return true
+			}
+		}
+		return false
+	}
+	if !taken(base) {
+		return base
+	}
+	for n := 2; ; n++ {
+		cand := fmt.Sprintf("%s-%d", base, n)
+		if len(cand) > 64 {
+			cand = fmt.Sprintf("%s-%d", base[:64-len(fmt.Sprintf("-%d", n))], n)
+		}
+		if !taken(cand) {
+			return cand
+		}
+	}
+}
+
+// usernameFromEmail derives a console username from an email address, keeping
+// only the characters the username grammar allows and falling back to a stable
+// generated handle when nothing usable remains.
+func usernameFromEmail(email string) string {
+	local := email
+	if i := strings.IndexByte(email, '@'); i >= 0 {
+		local = email[:i]
+	}
+	var b strings.Builder
+	for _, r := range local {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '.', r == '_', r == '-':
+			b.WriteRune(r)
+		}
+		if b.Len() >= 64 {
+			break
+		}
+	}
+	out := strings.Trim(b.String(), ".-_")
+	if out == "" {
+		return newID("sso")
+	}
+	return out
 }
 
 // Remove deletes a user by ID or username, refusing to remove the last admin.

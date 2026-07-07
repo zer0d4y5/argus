@@ -2,11 +2,15 @@ import { useState } from "react";
 import { opsApi, UserInfo, ApiError } from "../api";
 import { Wordmark } from "../components";
 
-export function Login({ onLogin }: { onLogin: (user: UserInfo, csrfToken: string) => void }) {
+export function Login({ onLogin, ssoEnabled, ssoError }: { onLogin: (user: UserInfo, csrfToken: string) => void; ssoEnabled?: boolean; ssoError?: boolean }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // ssoError is captured by App before its URL-sync strips the query, so it
+  // survives to here; a later password-login error overrides it.
+  const [error, setError] = useState<string | null>(
+    ssoError ? "Single sign-on didn't complete. Try again, or use a password." : null,
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,6 +87,22 @@ export function Login({ onLogin }: { onLogin: (user: UserInfo, csrfToken: string
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        {ssoEnabled && (
+          <div className="mt-4">
+            <div className="mb-3 flex items-center gap-3 text-[11px] uppercase tracking-wide text-gray-400">
+              <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+              or
+              <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+            </div>
+            <a
+              href="api/auth/oidc/start"
+              className="block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900"
+            >
+              Sign in with SSO
+            </a>
+          </div>
+        )}
       </div>
 
       <p className="mt-4 text-[11px] text-gray-400 text-center">Local-first console · sessions expire after 2h idle</p>

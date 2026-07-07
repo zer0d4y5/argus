@@ -22,6 +22,50 @@ type Config struct {
 	Triage       TriageConfig    `yaml:"triage"`           // AI triage configuration
 	Cloud        CloudConfig     `yaml:"cloud"`            // cloud posture scan configuration
 	Ticketing    TicketingConfig `yaml:"ticketing"`        // external issue-tracker sync (off unless configured)
+	Auth         AuthConfig      `yaml:"auth"`             // console authentication (SSO; off unless configured)
+}
+
+// AuthConfig configures console authentication. Absent means password-only
+// (the default). OIDC is opt-in and additive: it never disables local login.
+type AuthConfig struct {
+	OIDC OIDCConfig `yaml:"oidc"`
+}
+
+// OIDCConfig configures single sign-on via OpenID Connect (Google Workspace,
+// Microsoft Entra ID, Okta, Auth0, …). The client secret is REFERENCED by
+// env-var name and read at flow time — never stored in config, sessions, or
+// logs, the same discipline as the GitHub token.
+type OIDCConfig struct {
+	Issuer          string   `yaml:"issuer"`            // provider issuer URL; empty = SSO disabled
+	ClientID        string   `yaml:"client_id"`         // public client id
+	ClientSecretEnv string   `yaml:"client_secret_env"` // env var holding the secret; default ARGUS_OIDC_SECRET
+	RedirectURL     string   `yaml:"redirect_url"`      // absolute callback URL
+	AllowedDomains  []string `yaml:"allowed_domains"`   // JIT guard: only these email domains auto-provision; empty = deny JIT
+	DefaultRole     string   `yaml:"default_role"`      // role for a JIT-created user; default viewer
+	GroupClaim      string   `yaml:"group_claim"`       // optional claim carrying IdP groups
+	RoleMap         map[string]string `yaml:"role_map"` // optional: IdP group -> console role
+}
+
+// OIDCEnabled reports whether SSO is configured (issuer, client id, redirect).
+func (c Config) OIDCEnabled() bool {
+	o := c.Auth.OIDC
+	return o.Issuer != "" && o.ClientID != "" && o.RedirectURL != ""
+}
+
+// OIDCSecretEnv returns the env var name holding the client secret.
+func (c Config) OIDCSecretEnv() string {
+	if v := c.Auth.OIDC.ClientSecretEnv; v != "" {
+		return v
+	}
+	return "ARGUS_OIDC_SECRET"
+}
+
+// OIDCDefaultRole returns the JIT default role, defaulting to viewer.
+func (c Config) OIDCDefaultRole() string {
+	if v := c.Auth.OIDC.DefaultRole; v != "" {
+		return v
+	}
+	return "viewer"
 }
 
 // TicketingConfig gates external issue-tracker sync. Absent (the default)

@@ -32,6 +32,8 @@ var authzTable = []authzRule{
 	{http.MethodGet, "/api/health", "", true},
 	{http.MethodGet, "/api/auth/me", "", true},
 	{http.MethodPost, "/api/auth/login", "", false},
+	{http.MethodGet, "/api/auth/oidc/start", "", false},    // SSO: own logic, refused pre-bootstrap like login
+	{http.MethodGet, "/api/auth/oidc/callback", "", false}, // SSO: own logic (one-time state is its CSRF)
 	{http.MethodPost, "/api/auth/logout", auth.RoleViewer, false},
 
 	{http.MethodGet, "/api/summary", auth.RoleViewer, true},

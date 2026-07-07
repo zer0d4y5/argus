@@ -36,6 +36,8 @@ type MeResponse struct {
 	// GitHubRepo is the configured issue-sync repo ("owner/name"), so the UI
 	// knows to offer the button. The repo NAME only — never token material.
 	GitHubRepo string `json:"githubRepo,omitempty"`
+	// SSOEnabled tells the login page to offer the single sign-on button.
+	SSOEnabled bool `json:"ssoEnabled,omitempty"`
 }
 
 // LoginResponse is POST /api/auth/login on success.
@@ -60,7 +62,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, ok := s.liveSession(r)
 	if !ok {
-		writeJSON(w, http.StatusOK, MeResponse{AuthRequired: true})
+		writeJSON(w, http.StatusOK, MeResponse{AuthRequired: true, SSOEnabled: s.ssoEnabled()})
 		return
 	}
 	u := UserInfo{ID: sess.UserID, Username: sess.Username, Role: string(sess.Role)}

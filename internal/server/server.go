@@ -20,6 +20,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"io/fs"
@@ -27,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/leaky-hub/appsec/internal/audit"
@@ -72,6 +74,23 @@ type Server struct {
 	// githubAPIBase overrides the GitHub API endpoint IN TESTS ONLY; empty
 	// means https://api.github.com.
 	githubAPIBase string
+
+	// OIDC (SSO) is built lazily on first use from the served repo's config so
+	// server start never blocks on, or fails because of, IdP reachability;
+	// password login always survives an SSO misconfiguration. The field is an
+	// interface so tests can inject a fake authenticator; production always
+	// holds an *auth.OIDCProvider.
+	oidcOnce     sync.Once
+	oidcProvider oidcAuthenticator
+	oidcErr      error
+}
+
+// oidcAuthenticator is the slice of the OIDC provider the handlers use, made an
+// interface so a fake can be injected in tests. *auth.OIDCProvider satisfies it.
+type oidcAuthenticator interface {
+	AuthURL() string
+	Exchange(ctx context.Context, state, code string) (auth.OIDCClaims, error)
+	Authorize(auth.OIDCClaims) (auth.Role, error)
 }
 
 // Options configure a Server.
@@ -119,6 +138,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/health", s.handleHealth)
 	mux.HandleFunc("/api/auth/login", s.handleLogin)
 	mux.HandleFunc("/api/auth/logout", s.handleLogout)
+	mux.HandleFunc("/api/auth/oidc/start", s.handleOIDCStart)       // GET: begin SSO (pre-auth)
+	mux.HandleFunc("/api/auth/oidc/callback", s.handleOIDCCallback) // GET: complete SSO (pre-auth)
 	mux.HandleFunc("/api/auth/me", s.handleMe)
 	mux.HandleFunc("/api/users", s.handleUsers)                          // GET list, POST create (admin)
 	mux.HandleFunc("/api/users/names", s.handleUserNames)                // GET usernames only (operator, for assignee pickers)
