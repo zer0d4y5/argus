@@ -141,7 +141,7 @@ var threatsComponentCmd = &cobra.Command{
 			return err
 		}
 		defer done()
-		c, err := ts.AddComponent(args[0], "component", mustString(cmd, "name"), mustString(cmd, "tech"), "", time.Now())
+		c, err := ts.AddComponent(args[0], "component", mustString(cmd, "name"), mustString(cmd, "tech"), "", "manual", time.Now())
 		if err != nil {
 			return err
 		}

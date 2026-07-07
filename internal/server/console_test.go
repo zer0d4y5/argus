@@ -210,7 +210,8 @@ func TestAuthzMatrix(t *testing.T) {
 		{"POST", "/api/threat-models/tm-1/threats", 401, 403, pass, pass},
 		{"POST", "/api/threat-models/tm-1/threat-status", 401, 403, pass, pass},
 		{"POST", "/api/threat-models/tm-1/links", 401, 403, pass, pass},
-		{"POST", "/api/threat-models/tm-1/suggest", 401, 403, pass, pass}, // LLM seam (operator, like explain)
+		{"POST", "/api/threat-models/tm-1/suggest", 401, 403, pass, pass},            // LLM seam (operator, like explain)
+		{"POST", "/api/threat-models/tm-1/suggest-components", 401, 403, pass, pass}, // LLM seam
 		{"DELETE", "/api/threat-models/tm-1", 401, 403, 403, pass},       // delete is admin-only
 
 		{"GET", "/api/targets", 401, pass, pass, pass},
@@ -578,7 +579,11 @@ func TestQueueFullOverAPI(t *testing.T) {
 
 func writeFile(t *testing.T, dir, name, body string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+	p := filepath.Join(dir, name)
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

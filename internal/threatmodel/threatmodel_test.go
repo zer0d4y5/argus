@@ -26,7 +26,7 @@ func TestModelComponentEnumerate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := s.AddComponent(m.ID, "component", "Web frontend", "web-app", "", t0)
+	c, err := s.AddComponent(m.ID, "component", "Web frontend", "web-app", "", "manual", t0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestCrossModelScoping(t *testing.T) {
 	s := newStore(t)
 	mA, _ := s.CreateModel("", "A", "", "a", t0)
 	mB, _ := s.CreateModel("", "B", "", "a", t0)
-	compB, _ := s.AddComponent(mB.ID, "component", "DB", "database", "", t0)
+	compB, _ := s.AddComponent(mB.ID, "component", "DB", "database", "", "manual", t0)
 	th, err := s.AddThreat(mA.ID, "", "tampering", "T", "", "manual", "", "a", t0)
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +147,7 @@ func TestModelCascadeAndValidation(t *testing.T) {
 		t.Error("empty model name must be rejected")
 	}
 	m, _ := s.CreateModel("", "M", "", "a", t0)
-	c, _ := s.AddComponent(m.ID, "component", "DB", "database", "", t0)
+	c, _ := s.AddComponent(m.ID, "component", "DB", "database", "", "manual", t0)
 	s.EnumerateComponent(c.ID, t0)
 	// Deleting the model cascades components and threats.
 	if err := s.DeleteModel(m.ID); err != nil {
@@ -174,7 +174,7 @@ func TestConcurrentEnumerateNoDuplicates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := s.AddComponent(m.ID, "component", "API", "api-service", "", t0)
+	c, err := s.AddComponent(m.ID, "component", "API", "api-service", "", "manual", t0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,5 +203,71 @@ func TestConcurrentEnumerateNoDuplicates(t *testing.T) {
 			t.Fatalf("duplicate threat from racing enumerations: %s / %s", th.Category, th.Title)
 		}
 		seen[key] = true
+	}
+}
+
+// TestComponentSourceProvenance: "detected" belongs to the IaC scan, "assisted"
+// to a confirmed LLM proposal, everything else is a hand-add.
+func TestComponentSourceProvenance(t *testing.T) {
+	s := newStore(t)
+	m, _ := s.CreateModel("", "M", "", "a", t0)
+	for _, tc := range []struct{ give, want string }{
+		{"", "manual"}, {"manual", "manual"}, {"detected", "detected"},
+		{"assisted", "assisted"}, {"llm", "manual"},
+	} {
+		c, err := s.AddComponent(m.ID, "component", "n-"+tc.give, "database", "", tc.give, t0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.Source != tc.want {
+			t.Errorf("source %q stored %q, want %q", tc.give, c.Source, tc.want)
+		}
+	}
+	comps, _ := s.Components(m.ID)
+	if len(comps) != 5 || comps[0].Source == "" {
+		t.Errorf("source not read back: %+v", comps[0])
+	}
+}
+
+// TestDeleteComponentCascadesItsThreats: removing a component removes the
+// threats enumerated over it (and their links via FK), scoped to the model.
+func TestDeleteComponentCascadesItsThreats(t *testing.T) {
+	s := newStore(t)
+	m, _ := s.CreateModel("", "M", "", "a", t0)
+	c, _ := s.AddComponent(m.ID, "component", "DB", "database", "", "manual", t0)
+	n, err := s.EnumerateComponent(c.ID, t0)
+	if err != nil || n == 0 {
+		t.Fatalf("enumerate: %d %v", n, err)
+	}
+	// Cross-model delete is refused.
+	mB, _ := s.CreateModel("", "B", "", "a", t0)
+	if err := s.DeleteComponent(mB.ID, c.ID, t0); err != ErrNotFound {
+		t.Errorf("cross-model component delete = %v, want ErrNotFound", err)
+	}
+	if err := s.DeleteComponent(m.ID, c.ID, t0); err != nil {
+		t.Fatal(err)
+	}
+	if comps, _ := s.Components(m.ID); len(comps) != 0 {
+		t.Error("component not deleted")
+	}
+	if threats, _ := s.Threats(m.ID); len(threats) != 0 {
+		t.Errorf("threats survived their component: %d", len(threats))
+	}
+}
+
+// TestDeleteThreatScoped: single-threat delete is scoped to the model.
+func TestDeleteThreatScoped(t *testing.T) {
+	s := newStore(t)
+	m, _ := s.CreateModel("", "M", "", "a", t0)
+	mB, _ := s.CreateModel("", "B", "", "a", t0)
+	th, _ := s.AddThreat(m.ID, "", "tampering", "T", "", "manual", "", "a", t0)
+	if err := s.DeleteThreat(mB.ID, th.ID, t0); err != ErrNotFound {
+		t.Errorf("cross-model threat delete = %v, want ErrNotFound", err)
+	}
+	if err := s.DeleteThreat(m.ID, th.ID, t0); err != nil {
+		t.Fatal(err)
+	}
+	if threats, _ := s.Threats(m.ID); len(threats) != 0 {
+		t.Error("threat not deleted")
 	}
 }

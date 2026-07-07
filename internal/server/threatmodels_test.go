@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/leaky-hub/appsec/internal/config"
@@ -192,5 +194,143 @@ func TestThreatSuggest(t *testing.T) {
 	json.Unmarshal(det.Body.Bytes(), &d2)
 	if len(d2.Threats) != 1 || d2.Threats[0].Source != "assisted" {
 		t.Errorf("confirmed threat not assisted: %+v", d2.Threats)
+	}
+}
+
+// TestSuggestComponents: the assisted component pass returns validated
+// candidates built from the repo outline, persists nothing, and a confirm
+// stores source=assisted. Off-enum tech from the model is dropped.
+func TestSuggestComponents(t *testing.T) {
+	f := newConsole(t, nil)
+	var gotPrompt string
+	f.srv.llmFactory = func(config.Config) llm.Client {
+		return &llm.Fake{IsLocal: true, Respond: func(req llm.Request) (string, error) {
+			gotPrompt = req.User
+			return `{"components":[
+				{"name":"Payments DB","tech":"database","kind":"component","rationale":"compose file"},
+				{"name":"Nonsense","tech":"quantum","kind":"component","rationale":"dropped"}
+			]}`, nil
+		}}
+	}
+	oper := f.mustLogin("oscar")
+	// Give the served repo something for the outline and the IaC scan.
+	writeFile(t, f.dir, "go.mod", "module demo\n")
+	writeFile(t, f.dir, "main.tf", `resource "aws_s3_bucket" "assets" {}`)
+
+	rec := f.do("POST", "/api/threat-models", `{"name":"Svc"}`, oper)
+	var m struct{ ID string }
+	json.Unmarshal(rec.Body.Bytes(), &m)
+
+	rec = f.do("POST", "/api/threat-models/"+m.ID+"/suggest-components", "{}", oper)
+	if rec.Code != 200 {
+		t.Fatalf("suggest-components: %d %s", rec.Code, rec.Body.String())
+	}
+	var out struct {
+		Suggestions []struct{ Name, Tech, Kind string }
+	}
+	json.Unmarshal(rec.Body.Bytes(), &out)
+	if len(out.Suggestions) != 1 || out.Suggestions[0].Tech != "database" {
+		t.Fatalf("suggestions filtered wrong: %+v", out.Suggestions)
+	}
+	// The prompt carried the outline and the deterministic detection.
+	if !strings.Contains(gotPrompt, "go.mod") {
+		t.Error("repo outline missing from prompt")
+	}
+	if !strings.Contains(gotPrompt, "assets (object-store)") {
+		t.Error("iacdetect result missing from prompt")
+	}
+
+	// Nothing persisted until confirmed.
+	det := f.do("GET", "/api/threat-models/"+m.ID, "", oper)
+	var d struct{ Components []struct{ Source string } }
+	json.Unmarshal(det.Body.Bytes(), &d)
+	if len(d.Components) != 0 {
+		t.Errorf("suggestions were persisted without confirmation: %d", len(d.Components))
+	}
+
+	// Confirming stores source=assisted; a caller cannot claim "detected".
+	if rec := f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"name":"Payments DB","tech":"database","source":"assisted"}`, oper); rec.Code != 201 {
+		t.Fatalf("confirm: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"name":"Fake","tech":"database","source":"detected"}`, oper); rec.Code != 201 {
+		t.Fatalf("add: %d", rec.Code)
+	}
+	det = f.do("GET", "/api/threat-models/"+m.ID, "", oper)
+	json.Unmarshal(det.Body.Bytes(), &d)
+	if len(d.Components) != 2 || d.Components[1].Source != "assisted" || d.Components[0].Source != "manual" {
+		t.Errorf("component sources wrong: %+v", d.Components)
+	}
+}
+
+// TestComponentAndThreatRemove: the Remove flag on the POST subresources
+// deletes a component (with its threats) or a single threat, operator-level.
+func TestComponentAndThreatRemove(t *testing.T) {
+	f := newConsole(t, nil)
+	oper := f.mustLogin("oscar")
+	viewer := f.mustLogin("vera")
+	rec := f.do("POST", "/api/threat-models", `{"name":"Svc"}`, oper)
+	var m struct{ ID string }
+	json.Unmarshal(rec.Body.Bytes(), &m)
+	rec = f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"name":"DB","tech":"database"}`, oper)
+	var c struct{ ID string }
+	json.Unmarshal(rec.Body.Bytes(), &c)
+	f.do("POST", "/api/threat-models/"+m.ID+"/enumerate", `{"componentId":"`+c.ID+`"}`, oper)
+
+	// Viewer cannot remove.
+	if rec := f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"remove":true,"componentId":"`+c.ID+`"}`, viewer); rec.Code != 403 {
+		t.Errorf("viewer remove = %d, want 403", rec.Code)
+	}
+	// Operator removes the component; its threats go with it.
+	if rec := f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"remove":true,"componentId":"`+c.ID+`"}`, oper); rec.Code != 200 {
+		t.Fatalf("remove component: %d %s", rec.Code, rec.Body.String())
+	}
+	det := f.do("GET", "/api/threat-models/"+m.ID, "", oper)
+	var d struct {
+		Components []any
+		Threats    []any
+	}
+	json.Unmarshal(det.Body.Bytes(), &d)
+	if len(d.Components) != 0 || len(d.Threats) != 0 {
+		t.Errorf("after remove: %d components, %d threats; want 0, 0", len(d.Components), len(d.Threats))
+	}
+
+	// Single-threat remove.
+	rec = f.do("POST", "/api/threat-models/"+m.ID+"/threats", `{"category":"tampering","title":"T"}`, oper)
+	var th struct{ ID string }
+	json.Unmarshal(rec.Body.Bytes(), &th)
+	if rec := f.do("POST", "/api/threat-models/"+m.ID+"/threats", `{"remove":true,"threatId":"`+th.ID+`"}`, oper); rec.Code != 200 {
+		t.Fatalf("remove threat: %d %s", rec.Code, rec.Body.String())
+	}
+	det = f.do("GET", "/api/threat-models/"+m.ID, "", oper)
+	json.Unmarshal(det.Body.Bytes(), &d)
+	if len(d.Threats) != 0 {
+		t.Errorf("threat not removed: %d", len(d.Threats))
+	}
+}
+
+// TestRepoOutlineBounded: the outline lists manifests and shallow dirs, skips
+// vendored trees, and never exceeds its cap.
+func TestRepoOutlineBounded(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "go.mod", "module x\n")
+	writeFile(t, dir, "src/api/handler.go", "package api\n")
+	writeFile(t, dir, "node_modules/dep/package.json", "{}")
+	writeFile(t, dir, ".git/config", "")
+	for i := 0; i < 200; i++ {
+		writeFile(t, dir, fmt.Sprintf("zfiller/d%03d/x.txt", i), "")
+	}
+	lines := repoOutline(dir)
+	if len(lines) > outlineMaxEntries {
+		t.Errorf("outline %d lines, cap %d", len(lines), outlineMaxEntries)
+	}
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "file: go.mod") {
+		t.Error("manifest missing from outline")
+	}
+	if !strings.Contains(joined, "dir: src/api/") {
+		t.Error("shallow dir missing from outline")
+	}
+	if strings.Contains(joined, "node_modules") || strings.Contains(joined, ".git") {
+		t.Error("outline walked a skip dir")
 	}
 }

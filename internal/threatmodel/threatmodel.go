@@ -50,6 +50,8 @@ type Model struct {
 }
 
 // Component is one node in the model (component/asset/boundary/external-entity).
+// Source records provenance: manual (hand-added), detected (IaC scan), or
+// assisted (LLM-proposed, human-confirmed).
 type Component struct {
 	ID      string `json:"id"`
 	ModelID string `json:"modelId"`
@@ -57,7 +59,10 @@ type Component struct {
 	Name    string `json:"name"`
 	Tech    string `json:"tech,omitempty"`
 	Notes   string `json:"notes,omitempty"`
+	Source  string `json:"source"`
 }
+
+var componentSources = map[string]bool{"manual": true, "detected": true, "assisted": true}
 
 // Threat is one enumerated or hand-authored STRIDE threat.
 type Threat struct {
@@ -162,7 +167,10 @@ func touchModel(q dbtx, id string, now time.Time) {
 
 // --- Components ---
 
-func (s *Store) AddComponent(modelID, kind, name, tech, notes string, now time.Time) (Component, error) {
+// AddComponent inserts a node. source is manual (hand-added), detected (IaC
+// scan), or assisted (LLM-proposed, human-confirmed); anything else becomes
+// manual so provenance can't be spoofed into a stronger claim.
+func (s *Store) AddComponent(modelID, kind, name, tech, notes, source string, now time.Time) (Component, error) {
 	if _, err := s.GetModel(modelID); err != nil {
 		return Component{}, err
 	}
@@ -175,10 +183,13 @@ func (s *Store) AddComponent(modelID, kind, name, tech, notes string, now time.T
 	if strings.TrimSpace(name) == "" {
 		return Component{}, errors.New("component name is required")
 	}
+	if !componentSources[source] {
+		source = "manual"
+	}
 	c := Component{ID: newID("tc"), ModelID: modelID, Kind: kind, Name: bound(name, nameMax),
-		Tech: strings.ToLower(strings.TrimSpace(tech)), Notes: bound(notes, textMax)}
-	_, err := s.db.Exec(`INSERT INTO threat_components (id, model_id, kind, name, tech, notes) VALUES (?,?,?,?,?,?)`,
-		c.ID, c.ModelID, c.Kind, c.Name, c.Tech, c.Notes)
+		Tech: strings.ToLower(strings.TrimSpace(tech)), Notes: bound(notes, textMax), Source: source}
+	_, err := s.db.Exec(`INSERT INTO threat_components (id, model_id, kind, name, tech, notes, source) VALUES (?,?,?,?,?,?,?)`,
+		c.ID, c.ModelID, c.Kind, c.Name, c.Tech, c.Notes, c.Source)
 	if err != nil {
 		return Component{}, fmt.Errorf("threatmodel: add component: %w", err)
 	}
@@ -187,7 +198,7 @@ func (s *Store) AddComponent(modelID, kind, name, tech, notes string, now time.T
 }
 
 func (s *Store) Components(modelID string) ([]Component, error) {
-	rows, err := s.db.Query(`SELECT id, model_id, kind, name, tech, notes FROM threat_components WHERE model_id=? ORDER BY name`, modelID)
+	rows, err := s.db.Query(`SELECT id, model_id, kind, name, tech, notes, source FROM threat_components WHERE model_id=? ORDER BY name`, modelID)
 	if err != nil {
 		return nil, fmt.Errorf("threatmodel: components: %w", err)
 	}
@@ -195,7 +206,7 @@ func (s *Store) Components(modelID string) ([]Component, error) {
 	out := []Component{}
 	for rows.Next() {
 		var c Component
-		if err := rows.Scan(&c.ID, &c.ModelID, &c.Kind, &c.Name, &c.Tech, &c.Notes); err != nil {
+		if err := rows.Scan(&c.ID, &c.ModelID, &c.Kind, &c.Name, &c.Tech, &c.Notes, &c.Source); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -203,9 +214,27 @@ func (s *Store) Components(modelID string) ([]Component, error) {
 	return out, rows.Err()
 }
 
-func (s *Store) DeleteComponent(id string) error {
-	_, err := s.db.Exec(`DELETE FROM threat_components WHERE id=?`, id)
-	return err
+// DeleteComponent removes a component of modelID and every threat attached to
+// it (threat links cascade with their threats). Scoped like the other
+// mutators; one transaction so a failure can't half-delete.
+func (s *Store) DeleteComponent(modelID, id string, now time.Time) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("threatmodel: delete component: %w", err)
+	}
+	defer tx.Rollback()
+	res, err := tx.Exec(`DELETE FROM threat_components WHERE id=? AND model_id=?`, id, modelID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	if _, err := tx.Exec(`DELETE FROM threats WHERE component_id=? AND model_id=?`, id, modelID); err != nil {
+		return err
+	}
+	touchModel(tx, modelID, now)
+	return tx.Commit()
 }
 
 // --- Threats ---
@@ -342,9 +371,17 @@ func (s *Store) SetThreatStatus(modelID, threatID, status string, now time.Time)
 	return nil
 }
 
-func (s *Store) DeleteThreat(id string) error {
-	_, err := s.db.Exec(`DELETE FROM threats WHERE id=?`, id)
-	return err
+// DeleteThreat removes one threat of modelID; its links cascade.
+func (s *Store) DeleteThreat(modelID, id string, now time.Time) error {
+	res, err := s.db.Exec(`DELETE FROM threats WHERE id=? AND model_id=?`, id, modelID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	touchModel(s.db, modelID, now)
+	return nil
 }
 
 // --- Links ---

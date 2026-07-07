@@ -11,6 +11,7 @@ import (
 	"github.com/leaky-hub/appsec/internal/audit"
 	"github.com/leaky-hub/appsec/internal/config"
 	"github.com/leaky-hub/appsec/internal/iacdetect"
+	"github.com/leaky-hub/appsec/internal/llm"
 	"github.com/leaky-hub/appsec/internal/pipeline"
 	"github.com/leaky-hub/appsec/internal/targets"
 	"github.com/leaky-hub/appsec/internal/threatlib"
@@ -117,16 +118,36 @@ func (s *Server) handleThreatModelByID(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 
 	case sub == "components" && r.Method == http.MethodPost:
-		var req struct{ Kind, Name, Tech, Notes string }
+		var req struct {
+			Kind, Name, Tech, Notes, Source, ComponentID string
+			Remove                                       bool
+		}
 		if err := decodeBody(w, r, &req, 1<<20); err != nil {
 			return
 		}
-		c, err := s.threats.AddComponent(id, req.Kind, req.Name, req.Tech, req.Notes, now)
+		// Remove follows the links endpoint's pattern: an operator-level edit
+		// on the POST subresource. Deleting a component removes its threats.
+		if req.Remove {
+			if err := s.threats.DeleteComponent(id, req.ComponentID, now); err != nil {
+				s.writeThreatErr(w, err)
+				return
+			}
+			s.audit(audit.EventThreatUpdate, actor, map[string]string{"model": id, "action": "remove-component"})
+			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+			return
+		}
+		// API callers add by hand or confirm an LLM proposal; "detected" is
+		// reserved for the server's own IaC scan.
+		source := "manual"
+		if req.Source == "assisted" {
+			source = "assisted"
+		}
+		c, err := s.threats.AddComponent(id, req.Kind, req.Name, req.Tech, req.Notes, source, now)
 		if err != nil {
 			s.writeThreatErr(w, err)
 			return
 		}
-		s.audit(audit.EventThreatUpdate, actor, map[string]string{"model": id, "action": "add-component"})
+		s.audit(audit.EventThreatUpdate, actor, map[string]string{"model": id, "action": "add-component", "source": source})
 		writeJSON(w, http.StatusCreated, c)
 
 	case sub == "enumerate" && r.Method == http.MethodPost:
@@ -143,8 +164,20 @@ func (s *Server) handleThreatModelByID(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]int{"added": n})
 
 	case sub == "threats" && r.Method == http.MethodPost:
-		var req struct{ ComponentID, Category, Title, Description, Mitigation, Source string }
+		var req struct {
+			ComponentID, Category, Title, Description, Mitigation, Source, ThreatID string
+			Remove                                                                  bool
+		}
 		if err := decodeBody(w, r, &req, 1<<20); err != nil {
+			return
+		}
+		if req.Remove {
+			if err := s.threats.DeleteThreat(id, req.ThreatID, now); err != nil {
+				s.writeThreatErr(w, err)
+				return
+			}
+			s.audit(audit.EventThreatUpdate, actor, map[string]string{"model": id, "action": "remove-threat"})
+			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 			return
 		}
 		source := "manual" // hand-authored; confirming an AI suggestion sends source="assisted"
@@ -161,6 +194,9 @@ func (s *Server) handleThreatModelByID(w http.ResponseWriter, r *http.Request) {
 
 	case sub == "suggest" && r.Method == http.MethodPost:
 		s.suggestThreats(w, r, id)
+
+	case sub == "suggest-components" && r.Method == http.MethodPost:
+		s.suggestComponents(w, r, id)
 
 	case sub == "threat-status" && r.Method == http.MethodPost:
 		var req struct{ ThreatID, Status string }
@@ -237,7 +273,7 @@ func (s *Server) threatModelFromTarget(w http.ResponseWriter, r *http.Request, a
 	}
 	threatCount := 0
 	for _, c := range comps {
-		comp, err := s.threats.AddComponent(m.ID, "component", c.Name, c.Tech, "from "+c.Source, now)
+		comp, err := s.threats.AddComponent(m.ID, "component", c.Name, c.Tech, "from "+c.Source, "detected", now)
 		if err != nil {
 			continue
 		}
@@ -277,9 +313,66 @@ func (s *Server) suggestThreats(w http.ResponseWriter, r *http.Request, id strin
 	}
 	in.FindingCategories = s.findingCategoriesFor(m.TargetID)
 
-	// Provider/model/endpoint come from the target tree's appsec.yml, never the
-	// request. A cloud/absent dir falls back to defaults (local Ollama).
-	root, _ := s.targetDir(m.TargetID)
+	client, cfg, ok := s.llmClientForTarget(w, r, m.TargetID)
+	if !ok {
+		return
+	}
+	suggestions, err := triage.SuggestThreats(r.Context(), client, in, time.Duration(cfg.Triage.TimeoutSec)*time.Second)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	s.audit(audit.EventThreatUpdate, actorFrom(r), map[string]string{"model": id, "action": "suggest", "count": itoa(len(suggestions))})
+	writeJSON(w, http.StatusOK, map[string]any{"suggestions": suggestions, "model": client.Name()})
+}
+
+// suggestComponents asks the target's configured LLM to propose architecture
+// components from a bounded repo outline plus what the deterministic IaC scan
+// already found. Advisory only: candidates are returned, never persisted — the
+// human confirms each via POST .../components with source=assisted. Same seam
+// discipline as suggest: config from the target tree, request input can't pick
+// the provider, output validated against the tech/kind enums.
+func (s *Server) suggestComponents(w http.ResponseWriter, r *http.Request, id string) {
+	m, err := s.threats.GetModel(id)
+	if err != nil {
+		s.writeThreatErr(w, err)
+		return
+	}
+	comps, _ := s.threats.Components(id)
+
+	in := triage.SuggestComponentsInput{AppName: m.Name}
+	for _, c := range comps {
+		in.Existing = append(in.Existing, c.Name)
+	}
+	root, hasDir := s.targetDir(m.TargetID)
+	if hasDir {
+		in.Outline = repoOutline(root)
+		if detected, derr := iacdetect.Scan(root); derr == nil {
+			for _, d := range detected {
+				in.Detected = append(in.Detected, d.Name+" ("+d.Tech+") from "+d.Source)
+			}
+		}
+	}
+
+	client, cfg, ok := s.llmClientForTarget(w, r, m.TargetID)
+	if !ok {
+		return
+	}
+	suggestions, err := triage.SuggestComponents(r.Context(), client, in, time.Duration(cfg.Triage.TimeoutSec)*time.Second)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	s.audit(audit.EventThreatUpdate, actorFrom(r), map[string]string{"model": id, "action": "suggest-components", "count": itoa(len(suggestions))})
+	writeJSON(w, http.StatusOK, map[string]any{"suggestions": suggestions, "model": client.Name()})
+}
+
+// llmClientForTarget builds the LLM client for a target's configured provider
+// and pings it, writing the 503 itself when unreachable. Provider, model, and
+// endpoint come from the target tree's appsec.yml, never the request; a
+// cloud/absent dir falls back to defaults (local Ollama).
+func (s *Server) llmClientForTarget(w http.ResponseWriter, r *http.Request, targetID string) (llm.Client, config.Config, bool) {
+	root, _ := s.targetDir(targetID)
 	cfg, err := repoConfig(root)
 	if err != nil {
 		cfg = config.Default()
@@ -289,20 +382,13 @@ func (s *Server) suggestThreats(w http.ResponseWriter, r *http.Request, id strin
 		factory = pipeline.NewLLMClient
 	}
 	client := factory(cfg)
-	ctx := r.Context()
 	if p, ok := client.(interface{ Ping(context.Context) error }); ok {
-		if err := p.Ping(ctx); err != nil {
+		if err := p.Ping(r.Context()); err != nil {
 			writeErr(w, http.StatusServiceUnavailable, "no reachable LLM provider — configure triage in the target's appsec.yml")
-			return
+			return nil, cfg, false
 		}
 	}
-	suggestions, err := triage.SuggestThreats(ctx, client, in, time.Duration(cfg.Triage.TimeoutSec)*time.Second)
-	if err != nil {
-		writeErr(w, http.StatusBadGateway, err.Error())
-		return
-	}
-	s.audit(audit.EventThreatUpdate, actorFrom(r), map[string]string{"model": id, "action": "suggest", "count": itoa(len(suggestions))})
-	writeJSON(w, http.StatusOK, map[string]any{"suggestions": suggestions, "model": client.Name()})
+	return client, cfg, true
 }
 
 // findingCategoriesFor returns the distinct finding categories in a target's
