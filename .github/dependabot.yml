@@ -23,6 +23,13 @@ updates:
     labels: ["dependencies", "javascript"]
     commit-message:
       prefix: "deps(ui)"
+    ignore:
+      # Major-version bumps for the console toolchain (Tailwind, TypeScript,
+      # Vite, React, and friends) each need a deliberate migration with a build
+      # and browser check, not an unattended PR. Patch and minor updates still
+      # come through here, and security fixes come through regardless.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # The GitHub Actions the CI workflow pins.
   - package-ecosystem: github-actions
