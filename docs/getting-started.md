@@ -99,6 +99,11 @@ never authors a command that runs.
 
 Argus ships curated detection, but you are not stuck with it.
 
+- **Enable a rule pack.** In the console's Admin → Detection rules tab, browse a
+  catalog of vetted semgrep packs grouped by language, framework, cloud stack,
+  and weakness class, and enable the ones for your stack with one click. Packs
+  already in your profile are marked, so you can tell what is new.
+
 - **Bring your own semgrep rules.** Point `semgrep_rulesets:` in `appsec.yml` at
   a registry pack or a local rule file or directory. A leading `"+"` entry adds
   your rules to the profile packs; without it they replace them. In the console

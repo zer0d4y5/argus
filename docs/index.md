@@ -81,9 +81,10 @@ Free and private aren't the compromise. They're the whole idea.
 
 - :material-pencil-ruler: **Detection you can extend**
 
-    Bring your own semgrep rules, or describe a detection in plain language and
-    let the local model draft one. You validate it, test it against an example,
-    edit it freely, and save it. Nothing runs until you do.
+    Enable vetted rule packs by language, framework, or cloud stack from a
+    catalog; bring your own semgrep rules; or describe a detection in plain
+    language and let the local model draft one. You validate it, test it against
+    an example, edit it freely, and save it. Nothing runs until you do.
 
 </div>
 

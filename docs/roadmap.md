@@ -22,7 +22,8 @@ still catching runtime issues.
   reachability context lands with IAST (Phase 7).
 - **Phase 3: Eagle-eye coverage & web console (shipped, this cycle):**
   curated `fast|standard|max` scan profiles running per-language semgrep packs
-  across nine languages; a labeled polyglot fixture set with a coverage test
+  across thirteen languages plus the platform's own curated local rules; a
+  labeled polyglot fixture set with a coverage test
   and a generated language × weakness matrix (`docs/coverage.md`); file-based
   run history (`scan --save`); and the first web console (`argus serve`) with
   Overview, Findings, and Runs tabs, served from the single embedded binary,

@@ -24,9 +24,9 @@ into a single findings model.
 
 <p align="center"><img src="docs/diagrams/pipeline.svg" alt="Argus pipeline: scanners and cloud feed one findings model, enriched deterministically, then gating CI, exporting reports, and feeding the console" width="900"/></p>
 
-**Everything, one model.** SAST across **eleven languages** (Python,
-JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin, Rust, Scala; C via
-security-audit), secrets, dependencies (SCA), **IaC misconfiguration**
+**Everything, one model.** SAST across **thirteen languages** (Python,
+JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin, Rust, Scala, C,
+Swift), secrets, dependencies (SCA), **IaC misconfiguration**
 (Terraform, CloudFormation, Kubernetes, Dockerfile, Helm, plus Bicep/ARM and
 Pulumi for architecture detection), and **cloud security posture** (prowler:
 AWS, Azure, GCP) all flow through the same banded severity, risk signals, and
@@ -107,7 +107,8 @@ Out of the box the console is a read-only viewer with no login. Create users
 (`argus user add <name> --role admin`) and it becomes an **operational
 console**: login + roles (viewer/operator/admin), scan launching against
 registered targets (`argus target add`) through a strictly serial job queue,
-user management, and an append-only audit log. Threat model and design:
+user management, **detection-rule management** (enable rule packs, bring or
+AI-author custom rules), and an append-only audit log. Threat model and design:
 [docs/console-ops.md](docs/console-ops.md).
 
 | Overview | Findings | Runs |
@@ -257,12 +258,31 @@ reachable means the scan simply runs without verdicts.
 ## Scan profiles & coverage
 
 `--profile fast|standard|max` (config: `profile:`) selects the curated semgrep
-ruleset. `standard` is the default: a security-audit + OWASP base plus a
-per-language pack for all nine languages. Coverage is **proven, not claimed**: a
-labeled fixture per language (`testdata/polyglot/`) and a network-dependent test
-assert every canary is detected under `standard`, and
+ruleset. `standard` is the default: a security-audit + OWASP base, a per-language
+pack for all thirteen languages, and the **`argus/curated` local ruleset**: the
+platform's own rules for weaknesses the registry packs miss (SSRF, XXE, path
+traversal, open redirect, unsafe deserialization, weak crypto, LDAP injection,
+disabled TLS verification, and more). Coverage is **proven, not claimed**:
+labeled fixtures (`testdata/polyglot/`) and a network-dependent test assert every
+canary and every curated rule catches a plant the registry packs miss, and
 [docs/coverage.md](docs/coverage.md) is a generated language × weakness matrix.
 Breadth raises false-positive volume on purpose: local AI triage is the answer.
+
+**Extend the detection, three ways** (admin, in the console's Detection rules
+tab, or via `semgrep_rulesets:` in `appsec.yml`):
+
+- **Bring your own rules**: point at registry packs or local rule files/dirs;
+  they add to the profile (or replace it), validated before a scan uses them.
+- **A rule-pack catalog**: browse and one-click enable vetted semgrep packs
+  grouped by language, framework, cloud stack, and weakness class.
+- **AI-assisted authoring**: describe a detection in plain language, a local
+  LLM drafts a semgrep rule, you validate and test it against an example, then
+  save it. A deterministic gate rejects catastrophic-backtracking and
+  match-everything rules; nothing runs until you confirm.
+
+Prefer [Opengrep](https://github.com/opengrep/opengrep) (the community Semgrep
+fork)? It is a drop-in: install it and Argus uses it automatically, or set
+`ARGUS_SEMGREP_BINARY=opengrep`.
 
 The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
 Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every
@@ -312,7 +332,9 @@ values.
 ```yaml
 scanners: []            # subset to run, e.g. [semgrep, gitleaks]; empty = all
 profile: standard       # fast | standard | max: the curated semgrep ruleset
-semgrep_rulesets: []    # optional: override the profile with your own pack list
+semgrep_rulesets: []    # optional: registry packs, argus/curated, or local rule
+                        # files/dirs. A leading "+" adds to the profile; no "+"
+                        # replaces it. Local paths are validated before use.
 fail_severity: high     # critical | high | medium | low | info | none
 format: markdown        # sarif | markdown | json
 ignore_paths:           # glob patterns; `dir/**` ignores a subtree
