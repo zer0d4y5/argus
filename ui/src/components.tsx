@@ -3,14 +3,32 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Severity, GateInfo } from "./api";
 import { SEV_CHIP, SEV_COLOR, CATEGORY_CHIP, CATEGORY_LABEL, CATEGORY_COLOR } from "./theme";
 
-// Logo is the Argus mark: a shield with a check. Inline SVG (no asset
-// fetch, CSP-safe), sized by the `size` prop, tinted by currentColor's
-// sibling classes on the wrapper.
+// Logo is the Argus mark: the all-seeing eye (Argus Panoptes, the hundred-eyed
+// watchman) set in a hexagonal security badge. Inline SVG (no asset fetch,
+// CSP-safe), sized by the `size` prop. The favicon in index.html is the same
+// mark — keep the two in sync. Fixed brand colors (indigo iris ramp) so it
+// reads identically on light and dark.
 export function Logo({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
-      <path d="M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4Z" className="fill-blue-600 dark:fill-blue-500" />
-      <path d="m10.6 15.2-2.8-2.8 1.4-1.4 1.4 1.4 4-4 1.4 1.4-5.4 5.4Z" className="fill-white" />
+      <defs>
+        <linearGradient id="argus-badge" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#6b74e0" />
+          <stop offset="1" stopColor="#363b8f" />
+        </linearGradient>
+        <radialGradient id="argus-iris" cx="0.42" cy="0.36" r="0.75">
+          <stop offset="0" stopColor="#8b93ef" />
+          <stop offset="1" stopColor="#3a3f9e" />
+        </radialGradient>
+      </defs>
+      {/* hexagonal badge (rounded via round-join stroke) */}
+      <path d="M21 12 16.5 19.79 7.5 19.79 3 12 7.5 4.21 16.5 4.21Z" fill="url(#argus-badge)" stroke="#363b8f" strokeWidth="1.4" strokeLinejoin="round" />
+      {/* the eye */}
+      <path d="M6.3 12C8.8 7.8 15.2 7.8 17.7 12 15.2 16.2 8.8 16.2 6.3 12Z" fill="#fff" />
+      <circle cx="12" cy="12" r="3.75" fill="none" stroke="#4b53c4" strokeWidth="0.5" opacity="0.4" />
+      <circle cx="12" cy="12" r="2.9" fill="url(#argus-iris)" />
+      <circle cx="12" cy="12" r="1.2" fill="#0d0e26" />
+      <circle cx="13" cy="10.95" r="0.58" fill="#fff" />
     </svg>
   );
 }
