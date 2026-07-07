@@ -30,6 +30,15 @@ func TestApplicableMatching(t *testing.T) {
 		{"ebs encryption",
 			cloudFinding("ec2_ebs_default_encryption", map[string]string{"service": "ec2", "region": "us-east-1"}),
 			[]string{"aws-ec2-ebs-encryption-by-default"}},
+		{"s3 versioning",
+			cloudFinding("s3_bucket_object_versioning", map[string]string{"service": "s3", "resourceName": "my-bucket"}),
+			[]string{"aws-s3-enable-versioning"}},
+		{"cloudtrail log validation",
+			cloudFinding("cloudtrail_log_file_validation_enabled", map[string]string{"service": "cloudtrail", "resourceType": "AwsCloudTrailTrail", "resourceName": "org-trail"}),
+			[]string{"aws-cloudtrail-log-file-validation"}},
+		{"ec2 imdsv2",
+			cloudFinding("ec2_instance_imdsv2_enabled", map[string]string{"service": "ec2", "resourceType": "AwsEc2Instance", "resourceName": "i-0abc1234"}),
+			[]string{"aws-ec2-enforce-imdsv2"}},
 		{"unrelated cloud finding",
 			cloudFinding("iam_root_mfa_enabled", map[string]string{"service": "iam"}),
 			nil},
@@ -137,3 +146,43 @@ func TestCatalogNoDestructiveVerbs(t *testing.T) {
 		}
 	}
 }
+
+// TestNewEntriesBuild validates the added fixes resolve their param and reject
+// hostile values via the grammar.
+func TestNewEntriesBuild(t *testing.T) {
+	cases := []struct {
+		id      string
+		meta    map[string]string
+		wantArg string // a token expected in the resolved apply command
+		badName string // a value that must fail the grammar
+	}{
+		{"aws-s3-enable-versioning", map[string]string{"service": "s3", "resourceName": "prod-logs"}, "prod-logs", "Bad Bucket!"},
+		{"aws-cloudtrail-log-file-validation", map[string]string{"service": "cloudtrail", "resourceType": "AwsCloudTrailTrail", "resourceName": "org-trail"}, "org-trail", "trail; rm -rf /"},
+		{"aws-ec2-enforce-imdsv2", map[string]string{"service": "ec2", "resourceType": "AwsEc2Instance", "resourceName": "i-0abcdef12"}, "i-0abcdef12", "i-notvalid$(x)"},
+	}
+	for _, tc := range cases {
+		r, ok := ByID(tc.id)
+		if !ok {
+			t.Fatalf("catalog missing %s", tc.id)
+		}
+		// figure out the check keyword-carrying rule id from the entry
+		f := cloudFinding("x_"+strings.Join(r.CheckKeywords, "_")+"_y", tc.meta)
+		plan, err := Build(r, f)
+		if err != nil {
+			t.Fatalf("%s build: %v", tc.id, err)
+		}
+		if !strings.Contains(strings.Join(plan.Apply[0], " "), tc.wantArg) {
+			t.Errorf("%s apply missing %q: %v", tc.id, tc.wantArg, plan.Apply[0])
+		}
+		bad := tc.meta
+		badCopy := map[string]string{}
+		for k, v := range bad {
+			badCopy[k] = v
+		}
+		badCopy["resourceName"] = tc.badName
+		if _, err := Build(r, cloudFinding("x_"+strings.Join(r.CheckKeywords, "_")+"_y", badCopy)); err == nil {
+			t.Errorf("%s accepted hostile value %q", tc.id, tc.badName)
+		}
+	}
+}
+

@@ -25,10 +25,10 @@ import (
 // Remediation is one curated fix. Matching and command building are data-
 // driven; the templates are reviewed argv with {param} placeholders.
 type Remediation struct {
-	ID          string   // stable id, e.g. "aws-s3-block-public-access"
-	Title       string   // human summary of what applying does
-	Provider    string   // "aws" (the only provider this beat)
-	Description string   // one or two sentences for the console
+	ID          string // stable id, e.g. "aws-s3-block-public-access"
+	Title       string // human summary of what applying does
+	Provider    string // "aws" (the only provider this beat)
+	Description string // one or two sentences for the console
 
 	// Matching. An entry applies to a CLOUD finding when the provider matches,
 	// any Service token appears in the finding's service/resourceType, and
@@ -64,12 +64,24 @@ const (
 	fromRegion                          // finding Meta["region"]
 )
 
+// sourceMetaKey maps a param source to the finding meta key it reads.
+func (p paramSource) metaKey() string {
+	switch p {
+	case fromRegion:
+		return "region"
+	default:
+		return "resourceName"
+	}
+}
+
 // Grammars for the resource attributes the templates substitute. Values come
 // from prowler scanning the operator's own account, but they are validated
 // anyway (defense in depth) so a malformed name can never reach an argv slot.
 var (
-	s3BucketPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
-	regionPattern   = regexp.MustCompile(`^[a-z]{2}-[a-z]+-\d{1,2}$`)
+	s3BucketPattern   = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
+	regionPattern     = regexp.MustCompile(`^[a-z]{2}-[a-z]+-\d{1,2}$`)
+	trailNamePattern  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$`)
+	instanceIDPattern = regexp.MustCompile(`^i-[0-9a-f]{8,17}$`)
 )
 
 // Catalog is the reviewed set of remediations. Adding one is a vetted change:
@@ -77,13 +89,13 @@ var (
 // and required permissions.
 var Catalog = []Remediation{
 	{
-		ID:          "aws-s3-block-public-access",
-		Title:       "Block all public access on the bucket",
-		Provider:    "aws",
-		Description: "Turns on all four S3 Block Public Access settings for the bucket, so ACLs and policies can't expose it.",
-		Services:    []string{"s3", "bucket"},
+		ID:            "aws-s3-block-public-access",
+		Title:         "Block all public access on the bucket",
+		Provider:      "aws",
+		Description:   "Turns on all four S3 Block Public Access settings for the bucket, so ACLs and policies can't expose it.",
+		Services:      []string{"s3", "bucket"},
 		CheckKeywords: []string{"public"},
-		Params: []Param{{Name: "bucket", Source: fromResourceName, Pattern: s3BucketPattern}},
+		Params:        []Param{{Name: "bucket", Source: fromResourceName, Pattern: s3BucketPattern}},
 		DryRun: [][]string{
 			{"aws", "s3api", "get-public-access-block", "--bucket", "{bucket}"},
 		},
@@ -97,13 +109,13 @@ var Catalog = []Remediation{
 		Permissions:  []string{"s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock"},
 	},
 	{
-		ID:          "aws-s3-default-encryption",
-		Title:       "Enable default encryption on the bucket",
-		Provider:    "aws",
-		Description: "Sets SSE-S3 (AES-256) default encryption so new objects are encrypted at rest.",
-		Services:    []string{"s3", "bucket"},
+		ID:            "aws-s3-default-encryption",
+		Title:         "Enable default encryption on the bucket",
+		Provider:      "aws",
+		Description:   "Sets SSE-S3 (AES-256) default encryption so new objects are encrypted at rest.",
+		Services:      []string{"s3", "bucket"},
 		CheckKeywords: []string{"encryption"},
-		Params: []Param{{Name: "bucket", Source: fromResourceName, Pattern: s3BucketPattern}},
+		Params:        []Param{{Name: "bucket", Source: fromResourceName, Pattern: s3BucketPattern}},
 		DryRun: [][]string{
 			{"aws", "s3api", "get-bucket-encryption", "--bucket", "{bucket}"},
 		},
@@ -117,13 +129,13 @@ var Catalog = []Remediation{
 		Permissions:  []string{"s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration"},
 	},
 	{
-		ID:          "aws-ec2-ebs-encryption-by-default",
-		Title:       "Enable EBS encryption by default in the region",
-		Provider:    "aws",
-		Description: "Turns on account-level EBS encryption by default for the region, so new volumes are encrypted.",
-		Services:    []string{"ec2", "ebs", "volume"},
+		ID:            "aws-ec2-ebs-encryption-by-default",
+		Title:         "Enable EBS encryption by default in the region",
+		Provider:      "aws",
+		Description:   "Turns on account-level EBS encryption by default for the region, so new volumes are encrypted.",
+		Services:      []string{"ec2", "ebs", "volume"},
 		CheckKeywords: []string{"ebs", "encryption"},
-		Params: []Param{{Name: "region", Source: fromRegion, Pattern: regionPattern}},
+		Params:        []Param{{Name: "region", Source: fromRegion, Pattern: regionPattern}},
 		DryRun: [][]string{
 			{"aws", "ec2", "get-ebs-encryption-by-default", "--region", "{region}"},
 		},
@@ -133,6 +145,62 @@ var Catalog = []Remediation{
 		Reversible:   true,
 		ReversalNote: "Run disable-ebs-encryption-by-default to revert; existing volumes are unaffected either way.",
 		Permissions:  []string{"ec2:GetEbsEncryptionByDefault", "ec2:EnableEbsEncryptionByDefault"},
+	},
+	{
+		ID:            "aws-s3-enable-versioning",
+		Title:         "Enable versioning on the bucket",
+		Provider:      "aws",
+		Description:   "Turns on S3 versioning so overwritten or deleted objects can be recovered.",
+		Services:      []string{"s3", "bucket"},
+		CheckKeywords: []string{"versioning"},
+		Params:        []Param{{Name: "bucket", Source: fromResourceName, Pattern: s3BucketPattern}},
+		DryRun: [][]string{
+			{"aws", "s3api", "get-bucket-versioning", "--bucket", "{bucket}"},
+		},
+		Apply: [][]string{
+			{"aws", "s3api", "put-bucket-versioning", "--bucket", "{bucket}",
+				"--versioning-configuration", "Status=Enabled"},
+		},
+		Reversible:   true,
+		ReversalNote: "Versioning can be suspended (Status=Suspended); already-stored versions remain.",
+		Permissions:  []string{"s3:GetBucketVersioning", "s3:PutBucketVersioning"},
+	},
+	{
+		ID:            "aws-cloudtrail-log-file-validation",
+		Title:         "Enable CloudTrail log file validation",
+		Provider:      "aws",
+		Description:   "Turns on log-file integrity validation so tampering with delivered CloudTrail logs is detectable.",
+		Services:      []string{"cloudtrail", "trail"},
+		CheckKeywords: []string{"validation"},
+		Params:        []Param{{Name: "trail", Source: fromResourceName, Pattern: trailNamePattern}},
+		DryRun: [][]string{
+			{"aws", "cloudtrail", "get-trail", "--name", "{trail}"},
+		},
+		Apply: [][]string{
+			{"aws", "cloudtrail", "update-trail", "--name", "{trail}", "--enable-log-file-validation"},
+		},
+		Reversible:   true,
+		ReversalNote: "Run update-trail with --no-enable-log-file-validation to revert.",
+		Permissions:  []string{"cloudtrail:GetTrail", "cloudtrail:UpdateTrail"},
+	},
+	{
+		ID:            "aws-ec2-enforce-imdsv2",
+		Title:         "Require IMDSv2 on the instance",
+		Provider:      "aws",
+		Description:   "Sets the instance metadata service to token-required (IMDSv2), which blocks the SSRF-prone IMDSv1 path.",
+		Services:      []string{"ec2", "instance"},
+		CheckKeywords: []string{"imdsv2"},
+		Params:        []Param{{Name: "instance", Source: fromResourceName, Pattern: instanceIDPattern}},
+		DryRun: [][]string{
+			{"aws", "ec2", "describe-instances", "--instance-ids", "{instance}"},
+		},
+		Apply: [][]string{
+			{"aws", "ec2", "modify-instance-metadata-options", "--instance-id", "{instance}",
+				"--http-tokens", "required", "--http-endpoint", "enabled"},
+		},
+		Reversible:   true,
+		ReversalNote: "Set --http-tokens optional to allow IMDSv1 again (not recommended).",
+		Permissions:  []string{"ec2:DescribeInstances", "ec2:ModifyInstanceMetadataOptions"},
 	},
 }
 
@@ -197,14 +265,7 @@ func Build(r Remediation, f model.Finding) (Plan, error) {
 	vals := map[string]string{}
 	var region string
 	for _, p := range r.Params {
-		raw := ""
-		switch p.Source {
-		case fromResourceName:
-			raw = f.Meta["resourceName"]
-		case fromRegion:
-			raw = f.Meta["region"]
-		}
-		raw = strings.TrimSpace(raw)
+		raw := strings.TrimSpace(f.Meta[p.Source.metaKey()])
 		if raw == "" {
 			return Plan{}, fmt.Errorf("remediation %s: finding is missing %s", r.ID, p.Name)
 		}
