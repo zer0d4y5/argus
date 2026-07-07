@@ -5,6 +5,8 @@
 
 <p align="center"><strong>The all-seeing watch over your code and the cloud it runs in.</strong></p>
 
+<p align="center">From a student scanning a class project to an enterprise with SSO and an audit trail —<br/>the same binary, local-first and free at the core.</p>
+
 <p align="center">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
   <img alt="Go" src="https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white" />
@@ -57,6 +59,23 @@ argus target  → registered scan targets the console may launch against
 argus ticket  → work items over findings: create | list | show | link | comment
 argus threats → threat models: list | show | STRIDE library | enumerate
 ```
+
+## Who it's for
+
+The same binary meets you where you are, and grows as you do:
+
+- **Students & learners** — scan a project on your laptop, free and local, no
+  account, and see real findings mapped to real weakness classes.
+- **IT shops & solo builders** — one command in CI, a severity gate, and a
+  console anyone can read. Nothing to host, no per-seat bill.
+- **Startups** — code and cloud in one view, compliance evidence for the first
+  audit conversation, and triage that keeps the noise survivable.
+- **Enterprises** — SSO, role-based access, an audit trail, approved
+  remediation, and gap reports a GRC lead can hand to an auditor.
+
+Local-first and free at the core; the controls a larger team needs are layers
+you turn on. Where SSO and approved cloud remediation are headed:
+[docs/roadmap-platform.md](docs/roadmap-platform.md).
 
 ## The console
 
@@ -311,6 +330,7 @@ repo and adjust the gate.
 - [Compliance](docs/compliance.md) — frameworks, mapping philosophy, adding a framework
 - [Console & pillars](docs/console-ops.md) — authz model, ticketing, threat modeling, audit
 - [Roadmap](docs/roadmap.md) — what's next: DAST, more cloud providers, IAST
+- [Platform evolution](docs/roadmap-platform.md) — SSO, approved cloud remediation, and the "for everyone" thesis
 
 ## Development
 
