@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/leaky-hub/appsec/internal/cli"
+	"github.com/leaky-hub/argus/internal/cli"
 )
 
 func main() {

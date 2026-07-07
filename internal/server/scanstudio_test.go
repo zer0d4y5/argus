@@ -17,13 +17,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/config"
-	"github.com/leaky-hub/appsec/internal/jobs"
-	"github.com/leaky-hub/appsec/internal/llm"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/runstore"
-	"github.com/leaky-hub/appsec/internal/snippet"
-	"github.com/leaky-hub/appsec/internal/targets"
+	"github.com/leaky-hub/argus/internal/config"
+	"github.com/leaky-hub/argus/internal/jobs"
+	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/leaky-hub/argus/internal/snippet"
+	"github.com/leaky-hub/argus/internal/targets"
 )
 
 func TestScanLaunchScopeValidation(t *testing.T) {

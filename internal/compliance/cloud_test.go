@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/cloudscan"
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/cloudscan"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // TestCloudCompliancePassthrough proves prowler's full per-finding compliance

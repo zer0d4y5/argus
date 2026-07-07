@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 const (

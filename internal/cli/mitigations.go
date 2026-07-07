@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/appsec/internal/mitigation"
+	"github.com/leaky-hub/argus/internal/mitigation"
 )
 
 func init() {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 func WriteMarkdown(w io.Writer, findings []model.Finding) error {

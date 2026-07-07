@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // The OCSF Detection Finding fields this parser reads. Designed from what

@@ -30,7 +30,7 @@ open-by-default plan in the README) or on a paid plan:
 
 ```bash
 # Via the API:
-gh api -X POST repos/leaky-hub/appsec/rulesets --input .github/rulesets/protect-main.json
+gh api -X POST repos/leaky-hub/argus/rulesets --input .github/rulesets/protect-main.json
 
 # Or in the UI: Settings > Rules > Rulesets > New ruleset > Import a ruleset,
 # and pick this file.

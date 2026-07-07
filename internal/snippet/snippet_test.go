@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 func writeFile(t *testing.T, path, content string) {

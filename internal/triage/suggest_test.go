@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/llm"
+	"github.com/leaky-hub/argus/internal/llm"
 )
 
 func TestParseSuggestFiltersAndBounds(t *testing.T) {

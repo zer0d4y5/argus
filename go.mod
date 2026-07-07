@@ -1,4 +1,4 @@
-module github.com/leaky-hub/appsec
+module github.com/leaky-hub/argus
 
 go 1.26.4
 

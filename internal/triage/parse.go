@@ -13,7 +13,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 type rawVerdict struct {

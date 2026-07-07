@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/config"
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/config"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // Admin console-settings endpoint (admin-only, audited). GET returns the

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // Cloud compliance passthrough (cloud-posture session follow-up).

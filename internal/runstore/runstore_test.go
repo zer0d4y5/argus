@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/report"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/report"
 )
 
 func writeFile(dir, name, content string) error {

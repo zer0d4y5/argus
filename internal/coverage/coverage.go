@@ -17,8 +17,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/scanner"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/scanner"
 )
 
 // Canary is a single planted vulnerability that must be detected.

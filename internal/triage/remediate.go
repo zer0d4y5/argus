@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/llm"
-	"github.com/leaky-hub/appsec/internal/mitigation"
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/leaky-hub/argus/internal/mitigation"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // Remediation kinds (closed enum).

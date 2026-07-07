@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/cloudscan"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/runstore"
+	"github.com/leaky-hub/argus/internal/cloudscan"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/runstore"
 )
 
 // writeAWSConfig points cloudscan's profile discovery at a temp config with a

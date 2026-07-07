@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/cloudscan"
-	"github.com/leaky-hub/appsec/internal/compliance"
-	"github.com/leaky-hub/appsec/internal/jobs"
-	"github.com/leaky-hub/appsec/internal/scanner"
-	"github.com/leaky-hub/appsec/internal/server/auth"
-	"github.com/leaky-hub/appsec/internal/targets"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/cloudscan"
+	"github.com/leaky-hub/argus/internal/compliance"
+	"github.com/leaky-hub/argus/internal/jobs"
+	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/leaky-hub/argus/internal/server/auth"
+	"github.com/leaky-hub/argus/internal/targets"
 )
 
 // Ops handlers: users, targets, scans, audit. The authz middleware has

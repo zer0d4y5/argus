@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/appsec/internal/targets"
+	"github.com/leaky-hub/argus/internal/targets"
 )
 
 // Scan-target registry management. Targets are the console's allowlist of

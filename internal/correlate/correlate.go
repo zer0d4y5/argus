@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // Correlate collapses duplicate findings and returns the merged, sorted set.

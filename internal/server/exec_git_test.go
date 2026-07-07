@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/gitws"
-	"github.com/leaky-hub/appsec/internal/jobs"
-	"github.com/leaky-hub/appsec/internal/targets"
+	"github.com/leaky-hub/argus/internal/gitws"
+	"github.com/leaky-hub/argus/internal/jobs"
+	"github.com/leaky-hub/argus/internal/targets"
 )
 
 func TestGitTargetScanEndToEnd(t *testing.T) {

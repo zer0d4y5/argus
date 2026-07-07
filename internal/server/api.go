@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/compliance"
-	"github.com/leaky-hub/appsec/internal/coverage"
-	"github.com/leaky-hub/appsec/internal/disposition"
-	"github.com/leaky-hub/appsec/internal/mitigation"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/owasp"
-	"github.com/leaky-hub/appsec/internal/report"
-	"github.com/leaky-hub/appsec/internal/runstore"
+	"github.com/leaky-hub/argus/internal/compliance"
+	"github.com/leaky-hub/argus/internal/coverage"
+	"github.com/leaky-hub/argus/internal/disposition"
+	"github.com/leaky-hub/argus/internal/mitigation"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/owasp"
+	"github.com/leaky-hub/argus/internal/report"
+	"github.com/leaky-hub/argus/internal/runstore"
 )
 
 // These types are the JSON API contract consumed by the React console. They are

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/disposition"
-	"github.com/leaky-hub/appsec/internal/runstore"
-	"github.com/leaky-hub/appsec/internal/targets"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/disposition"
+	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/leaky-hub/argus/internal/targets"
 )
 
 // Finding-workflow disposition endpoints (operator+). A disposition is durable

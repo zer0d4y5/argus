@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/runstore"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/runstore"
 )
 
 // testServer builds a Server over a temp store seeded with two runs, the second

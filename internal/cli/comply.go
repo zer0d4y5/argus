@@ -11,13 +11,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/appsec/internal/compliance"
-	"github.com/leaky-hub/appsec/internal/correlate"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/pipeline"
-	"github.com/leaky-hub/appsec/internal/risk"
-	"github.com/leaky-hub/appsec/internal/runstore"
-	"github.com/leaky-hub/appsec/internal/scanner"
+	"github.com/leaky-hub/argus/internal/compliance"
+	"github.com/leaky-hub/argus/internal/correlate"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/pipeline"
+	"github.com/leaky-hub/argus/internal/risk"
+	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/leaky-hub/argus/internal/scanner"
 )
 
 func init() {

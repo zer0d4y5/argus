@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/leaky-hub/appsec/internal/mitigation"
+	"github.com/leaky-hub/argus/internal/mitigation"
 )
 
 // handleMitigations serves curated secure-coding guidance for a weakness class.

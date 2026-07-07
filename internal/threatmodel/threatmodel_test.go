@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/store"
+	"github.com/leaky-hub/argus/internal/store"
 )
 
 func newStore(t *testing.T) *Store {

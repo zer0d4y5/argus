@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/config"
-	"github.com/leaky-hub/appsec/internal/iacdetect"
-	"github.com/leaky-hub/appsec/internal/llm"
-	"github.com/leaky-hub/appsec/internal/pipeline"
-	"github.com/leaky-hub/appsec/internal/targets"
-	"github.com/leaky-hub/appsec/internal/threatlib"
-	"github.com/leaky-hub/appsec/internal/threatmodel"
-	"github.com/leaky-hub/appsec/internal/triage"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/config"
+	"github.com/leaky-hub/argus/internal/iacdetect"
+	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/leaky-hub/argus/internal/pipeline"
+	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/leaky-hub/argus/internal/threatlib"
+	"github.com/leaky-hub/argus/internal/threatmodel"
+	"github.com/leaky-hub/argus/internal/triage"
 )
 
 // Threat-modeling endpoints. A model is scoped to a target; its components drive

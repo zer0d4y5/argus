@@ -9,7 +9,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // highImpactCWEs is the direct code-execution / auth-bypass / data-exfil

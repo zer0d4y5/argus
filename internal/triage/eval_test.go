@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/llm"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/risk"
+	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/risk"
 )
 
 const (

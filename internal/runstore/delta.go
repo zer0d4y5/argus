@@ -1,8 +1,8 @@
 package runstore
 
 import (
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/report"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/report"
 )
 
 // Delta is the difference between a previous run and the current run, keyed by

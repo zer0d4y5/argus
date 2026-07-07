@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/scanner"
+	"github.com/leaky-hub/argus/internal/scanner"
 )
 
 // OversizeLimitBytes is the accounting threshold for "large file": above it,

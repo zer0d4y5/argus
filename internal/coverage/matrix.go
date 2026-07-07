@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/scanner"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/scanner"
 )
 
 // vulnClass groups the CWEs that represent one weakness category, for the

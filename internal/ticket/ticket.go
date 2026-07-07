@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/store"
+	"github.com/leaky-hub/argus/internal/store"
 )
 
 // Field bounds. Human text, so bounded rather than validated for content.

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/runstore"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/runstore"
 )
 
 // recExec records remediation commands and returns canned output.

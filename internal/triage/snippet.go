@@ -15,8 +15,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/snippet"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/snippet"
 )
 
 const (

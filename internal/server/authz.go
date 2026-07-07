@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/server/auth"
+	"github.com/leaky-hub/argus/internal/server/auth"
 )
 
 // This file is the console's entire authorization policy: ONE table, ONE

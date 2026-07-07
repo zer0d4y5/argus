@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/llm"
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // ErrSecretCloud is returned when a SECRET finding would be explained by a

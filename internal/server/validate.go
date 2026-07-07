@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/pipeline"
-	"github.com/leaky-hub/appsec/internal/runstore"
-	"github.com/leaky-hub/appsec/internal/targets"
-	"github.com/leaky-hub/appsec/internal/triage"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/pipeline"
+	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/leaky-hub/argus/internal/triage"
 )
 
 // On-demand severity validation (POST /api/validate, operator+). For a run

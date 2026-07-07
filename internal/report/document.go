@@ -1,8 +1,8 @@
 package report
 
 import (
-	"github.com/leaky-hub/appsec/internal/coverage"
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/coverage"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // Document is the canonical JSON report shape. It is what `WriteJSON` emits and

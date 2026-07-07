@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // TestRemediatePromptGroundsCodeFindings: a code finding whose CWE maps to the

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // TestSARIFPhase2Properties pins the Phase 2 enrichment contract: riskScore

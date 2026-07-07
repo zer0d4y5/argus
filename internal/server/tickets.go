@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/disposition"
-	"github.com/leaky-hub/appsec/internal/report"
-	"github.com/leaky-hub/appsec/internal/runstore"
-	"github.com/leaky-hub/appsec/internal/targets"
-	"github.com/leaky-hub/appsec/internal/ticket"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/disposition"
+	"github.com/leaky-hub/argus/internal/report"
+	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/leaky-hub/argus/internal/ticket"
 )
 
 // Ticketing endpoints. A ticket is the work-tracking layer over findings; it

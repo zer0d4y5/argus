@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/leaky-hub/appsec/internal/server/auth"
+	"github.com/leaky-hub/argus/internal/server/auth"
 )
 
 // Console user management. This is the ONLY way to create the first user —

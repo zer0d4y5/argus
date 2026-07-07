@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/disposition"
+	"github.com/leaky-hub/argus/internal/disposition"
 )
 
 // TestTicketLifecycle drives the ticket endpoints end to end: create from a

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/leaky-hub/appsec/internal/config"
+	"github.com/leaky-hub/argus/internal/config"
 )
 
 // Console-managed OIDC settings. The admin panel edits these and they persist

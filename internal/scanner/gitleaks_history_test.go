@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 func rawSecret(rule, file string, line int, desc string) model.RawFinding {

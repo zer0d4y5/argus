@@ -8,18 +8,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/gitws"
-	"github.com/leaky-hub/appsec/internal/jobs"
-	"github.com/leaky-hub/appsec/internal/model"
-	"github.com/leaky-hub/appsec/internal/runstore"
-	"github.com/leaky-hub/appsec/internal/server"
-	"github.com/leaky-hub/appsec/internal/server/auth"
-	"github.com/leaky-hub/appsec/internal/store"
-	"github.com/leaky-hub/appsec/internal/targets"
-	"github.com/leaky-hub/appsec/internal/threatmodel"
-	"github.com/leaky-hub/appsec/internal/ticket"
-	"github.com/leaky-hub/appsec/ui"
+	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/leaky-hub/argus/internal/gitws"
+	"github.com/leaky-hub/argus/internal/jobs"
+	"github.com/leaky-hub/argus/internal/model"
+	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/leaky-hub/argus/internal/server"
+	"github.com/leaky-hub/argus/internal/server/auth"
+	"github.com/leaky-hub/argus/internal/store"
+	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/leaky-hub/argus/internal/threatmodel"
+	"github.com/leaky-hub/argus/internal/ticket"
+	"github.com/leaky-hub/argus/ui"
 )
 
 func init() {

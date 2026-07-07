@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/appsec/internal/server/auth"
+	"github.com/leaky-hub/argus/internal/server/auth"
 )
 
 // fakeOIDC is an injected authenticator: it stands in for the real provider so

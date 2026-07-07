@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // The remediation safety linter. AI-generated remediation is ADVICE the user

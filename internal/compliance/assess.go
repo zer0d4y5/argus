@@ -3,7 +3,7 @@ package compliance
 import (
 	"time"
 
-	"github.com/leaky-hub/appsec/internal/model"
+	"github.com/leaky-hub/argus/internal/model"
 )
 
 // SECURITY-CRITICAL BUCKETING: this file decides what the gap report claims.
