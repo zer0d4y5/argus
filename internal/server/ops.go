@@ -226,6 +226,7 @@ func (s *Server) handleTargets(w http.ResponseWriter, r *http.Request) {
 			// selects the cloud path.
 			Provider    string   `json:"provider"`
 			ProfileName string   `json:"profileName"`
+			Account     string   `json:"account"` // Azure subscription id / GCP project id
 			Regions     []string `json:"regions"`
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 8192)
@@ -246,7 +247,7 @@ func (s *Server) handleTargets(w http.ResponseWriter, r *http.Request) {
 			// AddCloud validates the provider and the profile NAME against the
 			// closed list discovered from the local cloud config (C1/C2). No
 			// key material is accepted here — profileName is an identifier only.
-			t, err = s.targets.AddCloud(req.Name, req.Provider, req.ProfileName, req.Regions, req.Scanners, req.Profile)
+			t, err = s.targets.AddCloud(req.Name, req.Provider, req.ProfileName, req.Account, req.Regions, req.Scanners, req.Profile)
 		case req.URL != "" && req.Path != "":
 			writeErr(w, http.StatusBadRequest, "provide either path (directory target) or url (git target), not both")
 			return

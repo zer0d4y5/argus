@@ -79,9 +79,10 @@ type Target struct {
 	// is a NAME validated against the closed list discovered from the local
 	// cloud config (never free-form), passed to prowler as an identifier. No
 	// key material ever reaches this struct, targets.json, or a log.
-	Provider    string   `json:"provider,omitempty"`    // "aws" (cloud targets)
-	ProfileName string   `json:"profileName,omitempty"` // a name from the local cloud config's closed list
-	Regions     []string `json:"regions,omitempty"`     // optional region filter
+	Provider    string   `json:"provider,omitempty"`    // "aws" | "azure" | "gcp" (cloud targets)
+	ProfileName string   `json:"profileName,omitempty"` // AWS: a name from the local cloud config's closed list
+	Account     string   `json:"account,omitempty"`     // Azure subscription id / GCP project id (the account reference)
+	Regions     []string `json:"regions,omitempty"`     // AWS optional region filter
 
 	Scanners  []string  `json:"scanners,omitempty"` // allowed subset; empty = all
 	Profile   string    `json:"profile,omitempty"`  // default profile; empty = standard
@@ -359,14 +360,15 @@ func (r *Registry) AddGit(name, rawURL, branch string, scannerNames []string, pr
 // accepted, stored, or logged — the console form offers the discovered names
 // as opaque choices and this is the one place a chosen name is bound to a
 // target. Scans resolve the name against prowler at run time.
-func (r *Registry) AddCloud(name, provider, profileName string, regions, scannerNames []string, profile string) (Target, error) {
+func (r *Registry) AddCloud(name, provider, profileName, account string, regions, scannerNames []string, profile string) (Target, error) {
 	if !nameRe.MatchString(name) {
 		return Target{}, fmt.Errorf("invalid target name (letters, digits, space, . _ / -; max 80)")
 	}
-	// Provider + profile-name closed-list validation lives in cloudscan (the
-	// one owner of the credential-reference contract). C1/C2: a name outside
-	// the discovered closed list never registers.
-	if err := cloudscan.Validate(cloudscan.Options{Provider: provider, Profile: profileName, Regions: regions}); err != nil {
+	// Provider + account-reference validation lives in cloudscan (the one owner
+	// of the credential-reference contract): an AWS profile outside the
+	// discovered closed list, or a malformed Azure/GCP account id, never
+	// registers. No key material ever reaches this struct.
+	if err := cloudscan.Validate(cloudscan.Options{Provider: provider, Profile: profileName, Account: account, Regions: regions}); err != nil {
 		return Target{}, err
 	}
 	for _, rg := range regions {
@@ -392,12 +394,12 @@ func (r *Registry) AddCloud(name, provider, profileName string, regions, scanner
 		if t.Name == name {
 			return Target{}, fmt.Errorf("target name %q already exists", name)
 		}
-		if t.Kind() == TypeCloud && t.Provider == provider && t.ProfileName == profileName {
-			return Target{}, fmt.Errorf("cloud profile already registered as %q (%s)", t.Name, t.ID)
+		if t.Kind() == TypeCloud && t.Provider == provider && t.ProfileName == profileName && t.Account == account {
+			return Target{}, fmt.Errorf("cloud account already registered as %q (%s)", t.Name, t.ID)
 		}
 	}
 	t := Target{ID: newID(), Name: name, Type: TypeCloud, Provider: provider, ProfileName: profileName,
-		Regions: regions, Scanners: scannerNames, Profile: profile, CreatedAt: time.Now().UTC()}
+		Account: account, Regions: regions, Scanners: scannerNames, Profile: profile, CreatedAt: time.Now().UTC()}
 	r.targets = append(r.targets, t)
 	if err := r.save(); err != nil {
 		r.loaded = false

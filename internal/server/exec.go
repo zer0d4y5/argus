@@ -149,6 +149,7 @@ func execCloudScan(ctx context.Context, reg *targets.Registry, t targets.Target,
 	res, err := pipeline.RunCloud(cctx, pipeline.CloudOptions{
 		Provider: t.Provider,
 		Profile:  t.ProfileName,
+		Account:  t.Account,
 		Regions:  t.Regions,
 		Config:   cfg,
 	}, progress)

@@ -28,25 +28,47 @@ import (
 	"github.com/leaky-hub/appsec/internal/model"
 )
 
-// ProviderAWS is the one supported provider this beat. Azure and GCP are
-// documented next-beat work (docs/console-ops.md): they land only with
-// recorded fixtures and uniform flag plumbing, never as stubs.
-const ProviderAWS = "aws"
+// Supported cloud providers. Each references an account without collecting a
+// secret: AWS by a named ~/.aws profile (AWS_PROFILE), Azure by a subscription
+// id, GCP by a project id. Azure/GCP auth (a service principal in the env for
+// Azure, Application Default Credentials for GCP) is supplied by the operator
+// in the environment prowler inherits — Argus passes only the account id, in
+// argv, never a key.
+const (
+	ProviderAWS   = "aws"
+	ProviderAzure = "azure"
+	ProviderGCP   = "gcp"
+)
 
 // ToolName is the reporting tool name on every cloud finding.
 const ToolName = "prowler"
 
 // KnownProviders returns the providers a cloud scan accepts, sorted.
-func KnownProviders() []string { return []string{ProviderAWS} }
+func KnownProviders() []string { return []string{ProviderAWS, ProviderAzure, ProviderGCP} }
 
 // ValidProvider reports whether name is a supported cloud provider.
-func ValidProvider(name string) bool { return name == ProviderAWS }
+func ValidProvider(name string) bool {
+	return name == ProviderAWS || name == ProviderAzure || name == ProviderGCP
+}
+
+// AccountLabel names the per-provider account reference for UI/errors.
+func AccountLabel(provider string) string {
+	switch provider {
+	case ProviderAzure:
+		return "subscription id"
+	case ProviderGCP:
+		return "project id"
+	default:
+		return "profile"
+	}
+}
 
 // Options configure one cloud posture scan.
 type Options struct {
 	Provider string   // must satisfy ValidProvider
 	Profile  string   // AWS named profile — must be in ListAWSProfiles()
-	Regions  []string // optional region filter; empty = provider default (all)
+	Regions  []string // AWS optional region filter; empty = provider default (all)
+	Account  string   // Azure subscription id / GCP project id (the account reference)
 }
 
 // Result is a parsed prowler run: the FAIL findings mapped into RawFindings
@@ -67,6 +89,22 @@ type Result struct {
 // exec args (never shell, never env), but a closed grammar keeps the argv
 // boring: AWS region names are lowercase letters, digits, and dashes.
 var regionPattern = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
+
+// azureSubscriptionPattern is a GUID; gcpProjectPattern is Google's project-id
+// grammar (6–30 chars, lowercase letter first, letters/digits/hyphens).
+var (
+	azureSubscriptionPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	gcpProjectPattern        = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
+)
+
+// accountRef returns the account reference shown in progress lines (profile for
+// AWS, subscription/project id for Azure/GCP) — a reference, never a secret.
+func accountRef(opts Options) string {
+	if opts.Provider == ProviderAWS {
+		return opts.Profile
+	}
+	return opts.Account
+}
 
 // Available reports whether the prowler binary is on PATH.
 func Available() bool {
@@ -122,20 +160,51 @@ func Validate(opts Options) error {
 		return fmt.Errorf("unknown cloud provider %q; must be one of %s",
 			opts.Provider, strings.Join(KnownProviders(), ", "))
 	}
-	profiles, err := ListAWSProfiles()
-	if err != nil {
-		return fmt.Errorf("discover AWS profiles: %w", err)
-	}
-	if !contains(profiles, opts.Profile) {
-		return fmt.Errorf("unknown AWS profile %q: not present in the local AWS config (known: %s)",
-			opts.Profile, strings.Join(profiles, ", "))
-	}
-	for _, r := range opts.Regions {
-		if !regionPattern.MatchString(r) {
-			return fmt.Errorf("invalid region %q", r)
+	switch opts.Provider {
+	case ProviderAWS:
+		profiles, err := ListAWSProfiles()
+		if err != nil {
+			return fmt.Errorf("discover AWS profiles: %w", err)
+		}
+		if !contains(profiles, opts.Profile) {
+			return fmt.Errorf("unknown AWS profile %q: not present in the local AWS config (known: %s)",
+				opts.Profile, strings.Join(profiles, ", "))
+		}
+		for _, r := range opts.Regions {
+			if !regionPattern.MatchString(r) {
+				return fmt.Errorf("invalid region %q", r)
+			}
+		}
+	case ProviderAzure:
+		if !azureSubscriptionPattern.MatchString(opts.Account) {
+			return fmt.Errorf("invalid Azure subscription id %q (want a GUID)", opts.Account)
+		}
+	case ProviderGCP:
+		if !gcpProjectPattern.MatchString(opts.Account) {
+			return fmt.Errorf("invalid GCP project id %q", opts.Account)
 		}
 	}
 	return nil
+}
+
+// buildArgs assembles prowler's argv for a validated scan. Per-provider: AWS
+// takes an optional region filter; Azure a --subscription-ids; GCP a
+// --project-ids. All values are already validated against a closed grammar, and
+// this is argv (never a shell), so nothing here can inject.
+func buildArgs(opts Options, outDir string) []string {
+	args := []string{opts.Provider, "-M", "json-ocsf", "--output-directory", outDir, "--output-filename", "scan"}
+	switch opts.Provider {
+	case ProviderAWS:
+		if len(opts.Regions) > 0 {
+			args = append(args, "-f")
+			args = append(args, opts.Regions...)
+		}
+	case ProviderAzure:
+		args = append(args, "--subscription-ids", opts.Account)
+	case ProviderGCP:
+		args = append(args, "--project-ids", opts.Account)
+	}
+	return args
 }
 
 // Scan runs prowler against the referenced account and returns the parsed
@@ -160,17 +229,14 @@ func Scan(ctx context.Context, opts Options, progress func(string)) (Result, err
 	}
 	defer os.RemoveAll(outDir)
 
-	args := []string{opts.Provider, "-M", "json-ocsf", "--output-directory", outDir, "--output-filename", "scan"}
-	if len(opts.Regions) > 0 {
-		args = append(args, "-f")
-		args = append(args, opts.Regions...)
-	}
-	progress(fmt.Sprintf("==> running prowler (CLOUD) against %s profile %q\n", opts.Provider, opts.Profile))
+	args := buildArgs(opts, outDir)
+	progress(fmt.Sprintf("==> running prowler (CLOUD) against %s %s %q\n", opts.Provider, AccountLabel(opts.Provider), accountRef(opts)))
 
 	cmd := exec.CommandContext(ctx, "prowler", args...)
-	// The credential REFERENCE: a validated profile name, resolved by the
-	// AWS SDK inside the child. The value never appears in our output, run
-	// files, or prompts; the env entry dies with the child process.
+	// The credential REFERENCE: for AWS a validated profile name resolved by
+	// the SDK inside the child; for Azure/GCP the account id is in argv and
+	// auth comes from the operator's own env (SP vars / ADC). Either way no key
+	// material enters our output, run files, or prompts.
 	cmd.Env = childEnv(os.Environ(), opts.Provider, opts.Profile)
 	cmd.Stdout = nil // prowler's stdout banner is noise; findings go to the file
 	var stderrTail tailBuffer

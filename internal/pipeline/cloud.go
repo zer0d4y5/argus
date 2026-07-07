@@ -14,6 +14,7 @@ type CloudOptions struct {
 	Provider string
 	Profile  string
 	Regions  []string
+	Account  string
 	Config   config.Config
 }
 
@@ -50,6 +51,7 @@ func RunCloud(ctx context.Context, opts CloudOptions, progress Progress) (CloudR
 		Provider: opts.Provider,
 		Profile:  opts.Profile,
 		Regions:  opts.Regions,
+		Account:  opts.Account,
 	}, progress)
 	if err != nil {
 		return CloudResult{}, err
