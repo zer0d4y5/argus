@@ -425,10 +425,7 @@ func (s *Server) suggestComponents(w http.ResponseWriter, r *http.Request, id st
 // cloud/absent dir falls back to defaults (local Ollama).
 func (s *Server) llmClientForTarget(w http.ResponseWriter, r *http.Request, targetID string) (llm.Client, config.Config, bool) {
 	root, _ := s.targetDir(targetID)
-	cfg, err := repoConfig(root)
-	if err != nil {
-		cfg = config.Default()
-	}
+	cfg := s.effectiveConfig(root)
 	factory := s.llmFactory
 	if factory == nil {
 		factory = pipeline.NewLLMClient

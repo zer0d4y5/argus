@@ -240,6 +240,8 @@ func TestAuthzMatrix(t *testing.T) {
 
 		{"GET", "/api/admin/oidc", 401, 403, 403, pass},
 		{"PUT", "/api/admin/oidc", 401, 403, 403, pass},
+		{"GET", "/api/admin/settings", 401, 403, 403, pass},
+		{"PUT", "/api/admin/settings", 401, 403, 403, pass},
 		{"GET", "/api/audit", 401, 403, 403, pass},
 
 		// Unlisted routes fail closed: mutating verbs need admin.

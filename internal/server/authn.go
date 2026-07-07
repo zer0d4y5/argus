@@ -68,7 +68,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	u := UserInfo{ID: sess.UserID, Username: sess.Username, Role: string(sess.Role)}
 	resp := MeResponse{AuthRequired: true, Authenticated: true, User: &u, CSRFToken: sess.CSRF}
 	// Feature flag for the UI: repo name only, never token material.
-	if cfg, err := repoConfig(s.dir); err == nil && cfg.GitHubEnabled() {
+	if cfg := s.effectiveConfig(s.dir); cfg.GitHubEnabled() {
 		resp.GitHubRepo = cfg.Ticketing.GitHub.Repo
 	}
 	writeJSON(w, http.StatusOK, resp)

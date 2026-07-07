@@ -78,7 +78,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	users := auth.ForRepo(dir)
 	registry := targets.ForRepo(dir)
 	auditLog := audit.ForRepo(dir)
-	queue := jobs.New(server.ScanExecutor(registry, auditLog, gitws.New()))
+	queue := jobs.New(server.ScanExecutor(registry, auditLog, gitws.New(), dir))
 	queue.Start(cmd.Context())
 
 	// The embedded SQLite store holds the ticketing (and, later, threat-model)

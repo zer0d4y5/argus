@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/config"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/pipeline"
 	"github.com/leaky-hub/appsec/internal/runstore"
@@ -91,10 +90,7 @@ func (s *Server) computeValidation(ctx context.Context, store runstore.Store, re
 		return triage.Validation{}, http.StatusNotFound, errors.New("finding not found in this run")
 	}
 
-	cfg, err := repoConfig(s.dir)
-	if err != nil {
-		cfg = config.Default()
-	}
+	cfg := s.effectiveConfig(s.dir)
 	factory := s.llmFactory
 	if factory == nil {
 		factory = pipeline.NewLLMClient

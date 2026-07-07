@@ -173,6 +173,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/threat-models/", s.handleThreatModelByID)       // GET/DELETE + subaction POSTs
 	mux.HandleFunc("/api/threat-library", s.handleThreatLibrary)         // GET (viewer): component types for the picker
 	mux.HandleFunc("/api/admin/oidc", s.handleAdminOIDC)                  // GET/PUT SSO config (admin)
+	mux.HandleFunc("/api/admin/settings", s.handleAdminSettings)          // GET/PUT integrations + scanning config (admin)
 	mux.HandleFunc("/api/audit", s.handleAudit)                          // GET (admin)
 	mux.HandleFunc("/", s.handleStatic)
 	return securityHeaders(s.authGate(mux))

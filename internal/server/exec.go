@@ -32,9 +32,9 @@ import (
 // The triage provider/model/endpoint always come from the repo config —
 // neither the registry config block nor the request can touch them
 // (docs/console-ops.md S3).
-func ScanExecutor(reg *targets.Registry, auditLog *audit.Log, git gitws.Syncer) jobs.ExecFunc {
+func ScanExecutor(reg *targets.Registry, auditLog *audit.Log, git gitws.Syncer, servedDir string) jobs.ExecFunc {
 	return func(ctx context.Context, job jobs.Job, progress func(line string)) (jobs.Result, error) {
-		res, err := execScan(ctx, reg, git, job, progress)
+		res, err := execScan(ctx, reg, git, job, progress, servedDir)
 		// scan.finish is written for success and failure alike: the audit
 		// log, not in-memory job state, is the durable record.
 		details := map[string]string{"job": job.ID, "target": job.TargetID}
@@ -56,7 +56,7 @@ func ScanExecutor(reg *targets.Registry, auditLog *audit.Log, git gitws.Syncer) 
 	}
 }
 
-func execScan(ctx context.Context, reg *targets.Registry, git gitws.Syncer, job jobs.Job, progress func(line string)) (jobs.Result, error) {
+func execScan(ctx context.Context, reg *targets.Registry, git gitws.Syncer, job jobs.Job, progress func(line string), servedDir string) (jobs.Result, error) {
 	// Re-resolve at execution time: a target deleted while the job sat in
 	// the queue must not scan.
 	t, err := reg.Get(job.TargetID)
@@ -89,7 +89,7 @@ func execScan(ctx context.Context, reg *targets.Registry, git gitws.Syncer, job 
 		return out, err
 	}
 
-	cfg, err := mergeConfig(t, root, job.Options)
+	cfg, err := mergeConfig(t, root, job.Options, servedDir)
 	if err != nil {
 		return out, err
 	}
@@ -182,10 +182,17 @@ func execCloudScan(ctx context.Context, reg *targets.Registry, t targets.Target,
 // the repo's suppressions (console config can add suppressions, never undo
 // what the repo declares). Git targets additionally always ignore .appsec/**
 // so the workspace's own run history never feeds back into findings.
-func mergeConfig(t targets.Target, root string, opts jobs.Options) (config.Config, error) {
+func mergeConfig(t targets.Target, root string, opts jobs.Options, servedDir string) (config.Config, error) {
 	cfg, err := repoConfig(root)
 	if err != nil {
 		return cfg, err
+	}
+	// Overlay the console-managed settings when scanning the served repo, so a
+	// UI change to scan defaults / triage takes effect at launch.
+	if root == "" || root == servedDir {
+		if cs, cerr := loadConsoleSettings(servedDir); cerr == nil {
+			applyConsoleSettings(&cfg, cs)
+		}
 	}
 
 	// Layer 2: the registry entry.

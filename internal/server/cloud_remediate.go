@@ -121,11 +121,7 @@ func (s *Server) handleCloudRemediations(w http.ResponseWriter, r *http.Request)
 
 // remediationEnabled reports the config gate for executing remediations.
 func (s *Server) remediationEnabled() bool {
-	cfg, err := repoConfig(s.dir)
-	if err != nil {
-		return false
-	}
-	return cfg.Remediation.Enabled
+	return s.effectiveConfig(s.dir).Remediation.Enabled
 }
 
 // RemediateRunRequest asks to dry-run or apply one curated fix.

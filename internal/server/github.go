@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/leaky-hub/appsec/internal/audit"
-	"github.com/leaky-hub/appsec/internal/config"
 )
 
 // GitHub issue sync for tickets: create an issue from a ticket, or link an
@@ -38,10 +37,7 @@ func (s *Server) ticketGitHub(w http.ResponseWriter, r *http.Request, id string)
 		writeErr(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	cfg, err := repoConfig(s.dir)
-	if err != nil {
-		cfg = config.Default()
-	}
+	cfg := s.effectiveConfig(s.dir)
 	if !cfg.GitHubEnabled() {
 		writeErr(w, http.StatusBadRequest, "GitHub sync is not configured — set ticketing.github.repo in appsec.yml")
 		return

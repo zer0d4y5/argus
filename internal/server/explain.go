@@ -11,7 +11,6 @@ import (
 
 	"github.com/leaky-hub/appsec/internal/audit"
 	"github.com/leaky-hub/appsec/internal/compliance"
-	"github.com/leaky-hub/appsec/internal/config"
 	"github.com/leaky-hub/appsec/internal/model"
 	"github.com/leaky-hub/appsec/internal/pipeline"
 	"github.com/leaky-hub/appsec/internal/runstore"
@@ -181,10 +180,7 @@ func (s *Server) computeExplanation(ctx context.Context, store runstore.Store, r
 
 	// Provider/model/endpoint come from the target tree's own appsec.yml
 	// (defaults when absent) — request input cannot influence them (S3/S5).
-	cfg, err := repoConfig(root)
-	if err != nil {
-		cfg = config.Default()
-	}
+	cfg := s.effectiveConfig(root)
 
 	factory := s.llmFactory
 	if factory == nil {
@@ -270,10 +266,7 @@ func (s *Server) handlePostureSummary(w http.ResponseWriter, r *http.Request) {
 	// Enrich at read time so control gaps show for older runs (idempotent).
 	_ = compliance.Apply(doc.Findings)
 
-	cfg, err := repoConfig(s.dir)
-	if err != nil {
-		cfg = config.Default()
-	}
+	cfg := s.effectiveConfig(s.dir)
 	factory := s.llmFactory
 	if factory == nil {
 		factory = pipeline.NewLLMClient

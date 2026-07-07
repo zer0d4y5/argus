@@ -420,7 +420,7 @@ func TestMergeConfigPrecedence(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			cfg, err := mergeConfig(c.tgt(), root, c.opts)
+			cfg, err := mergeConfig(c.tgt(), root, c.opts, "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -435,7 +435,7 @@ func TestMergeConfigPrecedence(t *testing.T) {
 	// form for both root shapes.
 	git := targets.Target{ID: "t-2", Name: "g", Type: targets.TypeGit, URL: "https://x/y.git"}
 	for _, gitRoot := range []string{root, ".appsec/workspace/t-2"} {
-		cfg, err := mergeConfig(git, gitRoot, jobs.Options{})
+		cfg, err := mergeConfig(git, gitRoot, jobs.Options{}, "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -455,7 +455,7 @@ func TestMergeConfigPrecedence(t *testing.T) {
 	}
 
 	// Framework focus that empties the set is an executor error too.
-	if _, err := mergeConfig(base, root, jobs.Options{Scanners: []string{"gitleaks"}, Frameworks: []string{"CIS-AWS"}}); err == nil {
+	if _, err := mergeConfig(base, root, jobs.Options{Scanners: []string{"gitleaks"}, Frameworks: []string{"CIS-AWS"}}, ""); err == nil {
 		t.Error("empty narrowed set accepted at merge time")
 	}
 }

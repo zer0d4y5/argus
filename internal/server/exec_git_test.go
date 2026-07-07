@@ -63,7 +63,7 @@ func TestGitTargetScanEndToEnd(t *testing.T) {
 	entry := targets.Target{ID: "t-e2e", Name: "remote", Type: targets.TypeGit, URL: "file://" + bare, Branch: "main", Scanners: []string{"gitleaks"}}
 	writeRegistry(t, served, entry)
 
-	execFn := ScanExecutor(reg, nil, gitws.NewInsecureFileForTest())
+	execFn := ScanExecutor(reg, nil, gitws.NewInsecureFileForTest(), "")
 	job := jobs.Job{ID: "j-1", TargetID: "t-e2e", LaunchedBy: "test", Options: jobs.Options{Scope: "src"}}
 	var progress []string
 	res, err := execFn(context.Background(), job, func(l string) { progress = append(progress, l) })
