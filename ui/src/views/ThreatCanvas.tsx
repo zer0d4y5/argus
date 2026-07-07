@@ -15,6 +15,22 @@ const KINDS: { kind: string; label: string }[] = [
   { kind: "external-entity", label: "External" },
   { kind: "boundary", label: "Trust boundary" },
 ];
+// Zone types for a trust boundary, stored in the component's `tech` field (which
+// carries no meaning for a boundary otherwise). Values are lowercase because the
+// server lowercases tech; labels are what the canvas shows.
+const BOUNDARY_TYPES: { value: string; label: string }[] = [
+  { value: "dmz", label: "DMZ" },
+  { value: "vpc", label: "VPC / VNet" },
+  { value: "subnet", label: "Subnet" },
+  { value: "on-prem", label: "On-prem" },
+  { value: "internet", label: "Internet / public" },
+  { value: "cloud-account", label: "Cloud account" },
+  { value: "cluster", label: "Kubernetes cluster" },
+];
+function boundaryTypeLabel(tech?: string): string {
+  if (!tech) return "";
+  return BOUNDARY_TYPES.find((b) => b.value === tech)?.label ?? tech.toUpperCase();
+}
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
@@ -249,6 +265,9 @@ export function ThreatCanvas({
               <g key={c.id} onPointerDown={(e) => startDrag(e, c.id)} onPointerMove={handleMove} onPointerUp={handleUp} style={{ cursor: canEdit ? "grab" : "default" }}>
                 <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={12} className={`fill-amber-500/5 ${sel ? "stroke-accent-500" : "stroke-amber-500/50"}`} strokeWidth={sel ? 2 : 1.5} strokeDasharray="6 4" />
                 <text x={b.x + 10} y={b.y + 18} className="fill-amber-600 dark:fill-amber-400" fontSize={11} fontWeight={600}>{c.name}</text>
+                {c.tech && (
+                  <text x={b.x + b.w - 10} y={b.y + 18} textAnchor="end" className="fill-amber-500 dark:fill-amber-500/90" fontSize={10} fontWeight={700} letterSpacing={0.5}>{boundaryTypeLabel(c.tech).toUpperCase()}</text>
+                )}
                 {canEdit && sel && (
                   <rect x={b.x + b.w - 12} y={b.y + b.h - 12} width={12} height={12} className="fill-accent-500" style={{ cursor: "nwse-resize" }}
                     onPointerDown={(e) => startResize(e, c.id)} onPointerMove={handleMove} onPointerUp={handleUp} />
@@ -319,11 +338,19 @@ export function ThreatCanvas({
             className="rounded-md border border-gray-300 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800">
             {KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
           </select>
-          <select value={selected.tech ?? ""} onChange={(e) => onUpdateComponent(selected.id, { name: selected.name, tech: e.target.value, kind: selected.kind })}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800">
-            <option value="">tech…</option>
-            {library.map((l) => <option key={l.tech} value={l.tech}>{l.title}</option>)}
-          </select>
+          {selected.kind === "boundary" ? (
+            <select value={selected.tech ?? ""} onChange={(e) => onUpdateComponent(selected.id, { name: selected.name, tech: e.target.value, kind: selected.kind })}
+              className="rounded-md border border-gray-300 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800" title="Zone type">
+              <option value="">zone type…</option>
+              {BOUNDARY_TYPES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+            </select>
+          ) : (
+            <select value={selected.tech ?? ""} onChange={(e) => onUpdateComponent(selected.id, { name: selected.name, tech: e.target.value, kind: selected.kind })}
+              className="rounded-md border border-gray-300 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800" title="Technology">
+              <option value="">tech…</option>
+              {library.map((l) => <option key={l.tech} value={l.tech}>{l.title}</option>)}
+            </select>
+          )}
           <button onClick={() => { onDeleteComponent(selected.id); setSelectedId(null); }} className="ml-auto rounded-md border border-gray-300 px-2 py-1 text-red-600 hover:bg-red-50 dark:border-gray-700 dark:text-red-400 dark:hover:bg-red-950/30">Delete node</button>
         </div>
       )}

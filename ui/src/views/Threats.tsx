@@ -266,7 +266,7 @@ function ModelDetail({ detail, library, canEdit, canDelete, onChange, onDelete, 
             onRemoveFlow={removeFlow}
           />
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Add nodes from the toolbar and click the canvas to place them; click a node to rename, re-tech, or delete it; drag to move. Drag a selected trust boundary's corner to resize it. The red badge counts a component's threats.
+            Add nodes from the toolbar and click the canvas to place them; click a node to rename, re-tech, or delete it; drag to move. Give a selected trust boundary a zone type (DMZ, VPC, subnet…) and drag its corner to resize. The red badge counts a component's threats.
           </p>
         </div>
       )}
