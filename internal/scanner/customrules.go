@@ -174,10 +174,11 @@ func FirstInvalid(statuses []RulesetStatus) *RulesetStatus {
 // safe to run over a user-supplied path. semgrep missing from PATH is itself a
 // clear error (the scan could not have used the rule anyway).
 func semgrepValidate(ctx context.Context, path string) error {
-	if _, err := exec.LookPath("semgrep"); err != nil {
+	bin := semgrepBinary()
+	if _, err := exec.LookPath(bin); err != nil {
 		return fmt.Errorf("cannot validate %s: semgrep is not installed", filepath.Base(path))
 	}
-	cmd := exec.CommandContext(ctx, "semgrep", "--validate", "--config", path, "--metrics=off", "--quiet")
+	cmd := exec.CommandContext(ctx, bin, "--validate", "--config", path, "--metrics=off", "--quiet")
 	out, err := cmd.CombinedOutput()
 	if ctx.Err() != nil {
 		return fmt.Errorf("validation of %s timed out", filepath.Base(path))

@@ -18,9 +18,9 @@ type Semgrep struct {
 	Rulesets []string
 }
 
-func (s *Semgrep) Name() string     { return "semgrep" }
+func (s *Semgrep) Name() string     { return "semgrep" } //nolint // findings are always attributed to semgrep, even under Opengrep (a compatible fork)
 func (s *Semgrep) Category() string { return model.CategorySAST }
-func (s *Semgrep) Available() bool  { return toolOnPath("semgrep") }
+func (s *Semgrep) Available() bool  { return toolOnPath("semgrep") || toolOnPath("opengrep") }
 
 // Scan executes semgrep against the target and returns raw findings. Each
 // ruleset pack is passed as a separate --config flag (semgrep unions them). An
@@ -54,7 +54,7 @@ func (s *Semgrep) Scan(ctx context.Context, target string) ([]model.RawFinding, 
 	}
 	args = append(args, target)
 
-	data, err := runJSON(ctx, "semgrep", args...)
+	data, err := runJSON(ctx, semgrepBinary(), args...)
 	if err != nil {
 		return nil, fmt.Errorf("semgrep scan failed: %w", err)
 	}

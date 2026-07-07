@@ -149,8 +149,8 @@ every profile. Counts below are from the live scan that generated this file.
 
 | Profile | Findings pre-correlate | Post-correlate | Duplicates collapsed | Findings per plant (post) | Safe-code false flags |
 |---|---:|---:|---:|---:|---:|
-| `standard` | 48 | 45 | 3 | 0.9 | 0/15 |
-| `max` | 102 | 74 | 28 | 1.4 | 1/15 |
+| `standard` | 65 | 60 | 5 | 0.9 | 0/29 |
+| `max` | 129 | 93 | 36 | 1.4 | 2/29 |
 
 **Safe-code false flags** is the precision metric (locked decision 2): the
 number of labeled `PLANT-FP` safe-code plants (parameterized SQL, constant

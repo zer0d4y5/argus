@@ -224,3 +224,294 @@ rules:
       - metavariable-regex:
           metavariable: $VAL
           regex: '"AKIA[0-9A-Z]{16}"'
+
+  # ---- Web and injection gaps (subagent-authored, earn-your-slot filtered) ----
+  # SSRF, XXE, path traversal, open redirect, LDAP injection, unsafe
+  # deserialization, weak crypto, and Go InsecureSkipVerify: each catches a
+  # plant the standard registry packs miss (proven by TestProfileRecall).
+  - id: argus-curated-py-ssrf-requests
+    languages: [python]
+    severity: ERROR
+    message: >
+      A URL built from a variable is passed to an HTTP client, allowing
+      Server-Side Request Forgery. Validate and allowlist the destination host
+      before making the request.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: requests.get($URL, ...)
+          - pattern: requests.post($URL, ...)
+          - pattern: requests.request($METHOD, $URL, ...)
+          - pattern: urllib.request.urlopen($URL, ...)
+          - pattern: urllib.request.urlopen($URL)
+      - pattern-not: requests.get("...", ...)
+      - pattern-not: requests.post("...", ...)
+      - pattern-not: requests.request($METHOD, "...", ...)
+      - pattern-not: urllib.request.urlopen("...", ...)
+      - pattern-not: urllib.request.urlopen("...")
+  - id: argus-curated-py-xxe-lxml
+    languages: [python]
+    severity: ERROR
+    message: >
+      XML is parsed with lxml without disabling entity resolution, exposing the
+      app to XXE. Build an etree.XMLParser(resolve_entities=False,
+      no_network=True) and pass it to parse/fromstring.
+    metadata:
+      cwe: "CWE-611: Improper Restriction of XML External Entity Reference"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: lxml.etree.parse($SRC)
+          - pattern: lxml.etree.fromstring($SRC)
+          - pattern: etree.parse($SRC)
+          - pattern: etree.fromstring($SRC)
+      - pattern-not: lxml.etree.parse($SRC, $PARSER)
+      - pattern-not: lxml.etree.fromstring($SRC, $PARSER)
+      - pattern-not: etree.parse($SRC, $PARSER)
+      - pattern-not: etree.fromstring($SRC, $PARSER)
+      - pattern-not: lxml.etree.parse($SRC, parser=$PARSER)
+      - pattern-not: lxml.etree.fromstring($SRC, parser=$PARSER)
+      - pattern-not: etree.parse($SRC, parser=$PARSER)
+      - pattern-not: etree.fromstring($SRC, parser=$PARSER)
+  - id: argus-curated-py-insecure-deserialization
+    languages: [python]
+    severity: ERROR
+    message: >
+      Deserializing untrusted data with pickle or an unsafe yaml.load allows
+      arbitrary code execution. Use a safe format (json) or yaml.safe_load, and
+      never unpickle attacker-controlled bytes.
+    metadata:
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads($DATA)
+          - pattern: pickle.load($DATA)
+          - pattern: cPickle.loads($DATA)
+          - pattern: cPickle.load($DATA)
+          - pattern: yaml.load($DATA, ...)
+      - pattern-not: yaml.load($DATA, Loader=yaml.SafeLoader)
+      - pattern-not: yaml.load($DATA, Loader=yaml.CSafeLoader)
+      - pattern-not: yaml.load($DATA, Loader=SafeLoader)
+  - id: argus-curated-js-ssrf
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >
+      Server-Side Request Forgery: an HTTP request uses a URL taken directly
+      from request input (req.query/req.body/req.params). An attacker can force
+      the server to request internal or arbitrary hosts. Validate the URL
+      against an allowlist before making the request.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      category: security
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: axios.get(req.query.$P, ...)
+      - pattern: axios.get(req.body.$P, ...)
+      - pattern: axios.get(req.params.$P, ...)
+      - pattern: fetch(req.query.$P, ...)
+      - pattern: fetch(req.body.$P, ...)
+      - pattern: fetch(req.params.$P, ...)
+      - pattern: got(req.query.$P, ...)
+      - pattern: got(req.body.$P, ...)
+      - pattern: http.get(req.query.$P, ...)
+      - pattern: http.get(req.body.$P, ...)
+      - pattern: https.get(req.query.$P, ...)
+      - pattern: https.get(req.body.$P, ...)
+  - id: argus-curated-js-path-traversal
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >
+      Path Traversal: a filesystem read uses a path built from request input
+      without sanitisation. An attacker can supply '../' sequences to read
+      arbitrary files. Restrict to a safe base directory and use path.basename().
+    metadata:
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: fs.readFile(req.query.$P, ...)
+          - pattern: fs.readFile(req.body.$P, ...)
+          - pattern: fs.readFile(req.params.$P, ...)
+          - pattern: fs.readFileSync(req.query.$P, ...)
+          - pattern: fs.readFileSync(req.body.$P, ...)
+          - pattern: fs.readFileSync(req.params.$P, ...)
+          - pattern: fs.createReadStream(req.query.$P, ...)
+          - pattern: fs.createReadStream(req.body.$P, ...)
+          - pattern: fs.createReadStream(req.params.$P, ...)
+      - pattern-not: fs.$F(path.basename(...), ...)
+  - id: argus-curated-js-open-redirect
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >
+      Open Redirect: res.redirect() is called with a destination taken directly
+      from request input. An attacker can craft a link that redirects victims to
+      a malicious site. Validate the target against an allowlist before redirecting.
+    metadata:
+      cwe: "CWE-601: URL Redirection to Untrusted Site (Open Redirect)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: res.redirect(req.query.$P)
+          - pattern: res.redirect(req.body.$P)
+          - pattern: res.redirect(req.params.$P)
+          - pattern: res.redirect($CODE, req.query.$P)
+          - pattern: res.redirect($CODE, req.body.$P)
+          - pattern: res.redirect($CODE, req.params.$P)
+      - pattern-not: res.redirect("...")
+      - pattern-not: res.redirect($CODE, "...")
+  - id: argus-curated-go-ssrf-request-from-variable
+    languages: [go]
+    severity: ERROR
+    message: >
+      HTTP request to a URL taken from a variable may allow Server-Side Request
+      Forgery. Validate and allow-list the destination host before making the request.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: http.Get($URL)
+          - pattern: http.Post($URL, ...)
+          - pattern: $CLIENT.Get($URL)
+          - pattern: $CLIENT.Post($URL, ...)
+      - pattern-not: http.Get("...")
+      - pattern-not: http.Post("...", ...)
+      - pattern-not: $CLIENT.Get("...")
+      - pattern-not: $CLIENT.Post("...", ...)
+  - id: argus-curated-go-path-traversal-join-input
+    languages: [go]
+    severity: ERROR
+    message: >
+      File path is built by joining untrusted input, which may allow path
+      traversal outside the intended directory. Wrap user input with
+      filepath.Base or validate it against an allow-list.
+    metadata:
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: os.Open(filepath.Join(...))
+          - pattern: os.ReadFile(filepath.Join(...))
+          - pattern: ioutil.ReadFile(filepath.Join(...))
+      - pattern-not: os.Open(filepath.Join(..., filepath.Base(...)))
+      - pattern-not: os.ReadFile(filepath.Join(..., filepath.Base(...)))
+      - pattern-not: ioutil.ReadFile(filepath.Join(..., filepath.Base(...)))
+  - id: argus-curated-go-tls-insecure-skip-verify
+    languages: [go]
+    severity: ERROR
+    message: >
+      Disabling certificate verification allows man-in-the-middle attacks.
+      Remove InsecureSkipVerify or set it to false.
+    metadata:
+      cwe: "CWE-295: Improper Certificate Validation"
+      category: security
+      confidence: HIGH
+    pattern: "tls.Config{..., InsecureSkipVerify: true, ...}"
+  - id: argus-curated-java-ssrf-url-openconnection
+    languages: [java]
+    severity: ERROR
+    message: >
+      A URL built from a non-constant value is opened, allowing SSRF. Validate the
+      host against an allowlist and reject internal/link-local addresses before
+      opening the connection.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: new URL($U).openConnection()
+          - pattern: new URL($U).openStream()
+          - patterns:
+              - pattern: $C.openConnection()
+              - pattern-inside: |
+                  $C = new URL($U);
+                  ...
+          - patterns:
+              - pattern: $C.openStream()
+              - pattern-inside: |
+                  $C = new URL($U);
+                  ...
+      - pattern-not: new URL("...").openConnection()
+      - pattern-not: new URL("...").openStream()
+      - metavariable-pattern:
+          metavariable: $U
+          patterns:
+            - pattern-not: '"..."'
+  - id: argus-curated-ruby-unsafe-yaml-load
+    languages: [ruby]
+    severity: ERROR
+    message: >
+      YAML.load / Marshal.load can instantiate arbitrary Ruby objects from
+      untrusted input, leading to remote code execution. Use YAML.safe_load
+      and never Marshal.load on request data.
+    metadata:
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: YAML.load(params[$K])
+          - pattern: YAML.load(request.$M)
+          - pattern: Marshal.load(params[$K])
+          - pattern: Marshal.load(request.$M)
+      - pattern-not: YAML.safe_load(...)
+  - id: argus-curated-php-unserialize-request
+    languages: [php]
+    severity: ERROR
+    message: >
+      unserialize() on request data can instantiate arbitrary objects and
+      trigger PHP object injection. Use json_decode() for untrusted input.
+    metadata:
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      category: security
+      confidence: HIGH
+    pattern-either:
+      - pattern: unserialize($_GET[...])
+      - pattern: unserialize($_POST[...])
+      - pattern: unserialize($_REQUEST[...])
+      - pattern: unserialize($_COOKIE[...])
+  - id: argus-curated-php-weak-crypto
+    languages: [php]
+    severity: ERROR
+    message: >
+      Weak cryptography: mcrypt is deprecated/insecure, and DES or ECB-mode
+      ciphers leak plaintext structure. Use openssl_encrypt with AES-GCM.
+    metadata:
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      category: security
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: mcrypt_encrypt(...)
+      - patterns:
+          - pattern: openssl_encrypt($DATA, $CIPHER, ...)
+          - metavariable-regex:
+              metavariable: $CIPHER
+              regex: '(?i)"[a-z0-9-]*(des|ecb)[a-z0-9-]*"'
+  - id: argus-curated-php-ldap-injection
+    languages: [php]
+    severity: ERROR
+    message: >
+      LDAP search filter built from request input allows LDAP injection.
+      Escape untrusted values with ldap_escape($v, "", LDAP_ESCAPE_FILTER).
+    metadata:
+      cwe: "CWE-90: Improper Neutralization of Special Elements used in an LDAP Query (LDAP Injection)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: ldap_search($CONN, $BASE, <... $_GET[...] ...>)
+          - pattern: ldap_search($CONN, $BASE, <... $_POST[...] ...>)
+          - pattern: ldap_search($CONN, $BASE, <... $_REQUEST[...] ...>)
+          - pattern: ldap_search($CONN, $BASE, <... $_COOKIE[...] ...>)
+      - pattern-not: ldap_search($CONN, $BASE, <... ldap_escape(...) ...>)

@@ -132,6 +132,18 @@ export function RuleAuthorPanel(): JSX.Element {
     }
   }
 
+  async function handleToggle(rule: SavedRule) {
+    setError(null);
+    setOkMsg(null);
+    try {
+      await opsApi.toggleRuleset(rule.path, !rule.active);
+      const updated = await opsApi.listRules();
+      setRules(updated.rules);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update rule");
+    }
+  }
+
   function renderIssues(issues: RuleSafetyIssue[]) {
     if (!issues || issues.length === 0) return null;
     return (
@@ -336,13 +348,22 @@ export function RuleAuthorPanel(): JSX.Element {
                   </span>
                   <div className="text-[11px] text-gray-400">{r.path}</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(r.name)}
-                  className="text-[11px] text-red-600 hover:underline dark:text-red-400"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleToggle(r)}
+                    className="text-[11px] text-accent-600 hover:underline dark:text-accent-400"
+                  >
+                    {r.active ? "Disable" : "Enable"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(r.name)}
+                    className="text-[11px] text-red-600 hover:underline dark:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>

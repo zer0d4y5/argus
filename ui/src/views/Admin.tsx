@@ -6,6 +6,7 @@ import { fmtTime } from "../theme";
 import { SSOConfigPanel } from "./SSOConfigPanel";
 import { ConsoleSettingsPanel } from "./ConsoleSettingsPanel";
 import { RuleAuthorPanel } from "./RuleAuthorPanel";
+import { RulePacksPanel } from "./RulePacksPanel";
 
 // AdminTab groups the admin panels so the page reads as focused sections
 // instead of one long scroll.
@@ -15,7 +16,7 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "users", label: "Users & SSO" },
   { id: "targets", label: "Targets" },
   { id: "integrations", label: "Integrations & scanning" },
-  { id: "rules", label: "Rule authoring" },
+  { id: "rules", label: "Detection rules" },
   { id: "audit", label: "Audit log" },
 ];
 
@@ -193,7 +194,12 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
 
       {subtab === "integrations" && <ConsoleSettingsPanel />}
 
-      {subtab === "rules" && <RuleAuthorPanel />}
+      {subtab === "rules" && (
+      <div className="space-y-6">
+        <RulePacksPanel />
+        <RuleAuthorPanel />
+      </div>
+      )}
 
       {subtab === "targets" && (
       <Panel title="Targets">

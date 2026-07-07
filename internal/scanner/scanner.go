@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -34,6 +35,35 @@ func All(semgrepRulesets []string) []Adapter {
 func toolOnPath(bin string) bool {
 	_, err := exec.LookPath(bin)
 	return err == nil
+}
+
+// SemgrepBinaryEnv is the env var that overrides which semgrep-compatible
+// binary Argus invokes. Opengrep (the community fork of semgrep, created after
+// Semgrep moved inter-file analysis to the paid tier) is a drop-in: same CLI,
+// same rule format, so it needs no code changes beyond the binary name.
+const SemgrepBinaryEnv = "ARGUS_SEMGREP_BINARY"
+
+// pickSemgrepBinary decides which semgrep-compatible binary to run: an explicit
+// override if it is present, else semgrep, else opengrep if only it is
+// installed. Falls back to "semgrep" so error messages name the expected tool.
+// Pure (onPath injected) for testing.
+func pickSemgrepBinary(override string, onPath func(string) bool) string {
+	if override != "" && onPath(override) {
+		return override
+	}
+	if onPath("semgrep") {
+		return "semgrep"
+	}
+	if onPath("opengrep") {
+		return "opengrep"
+	}
+	return "semgrep"
+}
+
+// semgrepBinary returns the semgrep-compatible binary to invoke, honoring the
+// ARGUS_SEMGREP_BINARY override and auto-detecting Opengrep.
+func semgrepBinary() string {
+	return pickSemgrepBinary(strings.TrimSpace(os.Getenv(SemgrepBinaryEnv)), toolOnPath)
 }
 
 // runJSON executes a command and returns its stdout. Scanners conventionally

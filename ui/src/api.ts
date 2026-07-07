@@ -444,6 +444,16 @@ export interface SavedRule {
   active: boolean;
 }
 
+// A rule-pack catalog entry (a curated semgrep registry pack).
+export interface CatalogPack {
+  id: string;
+  label: string;
+  category: string; // "language" | "framework" | "cloud" | "class"
+  description: string;
+  active: boolean; // currently in the custom rulesets
+  inProfile: boolean; // already run by the standard/max profile
+}
+
 export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; githubRepo?: string; ssoEnabled?: boolean; }
 
 // SSO (OIDC) admin configuration. The client secret is never here — the UI
@@ -691,6 +701,10 @@ export const opsApi = {
     send<{ name: string; path: string; activated: boolean }>("POST", "api/admin/rules", req),
   deleteRule: (name: string): Promise<{ deleted: string }> =>
     send<{ deleted: string }>("DELETE", `api/admin/rules/${encodeURIComponent(name)}`),
+  ruleCatalog: (): Promise<{ categories: string[]; packs: CatalogPack[] }> =>
+    send<{ categories: string[]; packs: CatalogPack[] }>("GET", "api/admin/rule-catalog"),
+  toggleRuleset: (entry: string, enabled: boolean): Promise<{ entry: string; enabled: boolean }> =>
+    send<{ entry: string; enabled: boolean }>("POST", "api/admin/rulesets/toggle", { entry, enabled }),
 
   getOIDCConfig: (): Promise<OIDCConfigView> =>
     send<OIDCConfigView>("GET", "api/admin/oidc"),

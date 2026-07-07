@@ -177,6 +177,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/admin/settings/validate-rulesets", s.handleValidateRulesets) // POST: check custom rules without saving (admin)
 	mux.HandleFunc("/api/admin/rules", s.handleRules)                                 // GET list, POST save custom rules (admin)
 	mux.HandleFunc("/api/admin/rules/", s.handleRulesSub)                             // POST /draft, /test; DELETE /{name} (admin)
+	mux.HandleFunc("/api/admin/rule-catalog", s.handleRuleCatalog)                    // GET the registry-pack menu (admin)
+	mux.HandleFunc("/api/admin/rulesets/toggle", s.handleToggleRuleset)               // POST enable/disable a pack or saved rule (admin)
 	mux.HandleFunc("/api/audit", s.handleAudit)                                       // GET (admin)
 	mux.HandleFunc("/", s.handleStatic)
 	return securityHeaders(s.authGate(mux))

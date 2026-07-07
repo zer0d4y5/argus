@@ -93,7 +93,7 @@ func TestRuleAgainstSnippet(ctx context.Context, ruleYAML, snippet, lang string)
 		return RuleTestResult{}, err
 	}
 
-	data, err := runJSON(ctx, "semgrep", "--json", "--quiet", "--metrics=off", "--timeout", "10",
+	data, err := runJSON(ctx, semgrepBinary(), "--json", "--quiet", "--metrics=off", "--timeout", "10",
 		"--config", rulePath, snippetPath)
 	if err != nil {
 		return RuleTestResult{}, fmt.Errorf("semgrep run failed: %w", err)

@@ -248,6 +248,8 @@ func TestAuthzMatrix(t *testing.T) {
 		{"POST", "/api/admin/rules/draft", 401, 403, 403, pass},                // AI draft: admin
 		{"POST", "/api/admin/rules/test", 401, 403, 403, pass},                 // validate/test: admin
 		{"DELETE", "/api/admin/rules/somename", 401, 403, 403, pass},           // delete a rule: admin
+		{"GET", "/api/admin/rule-catalog", 401, 403, 403, pass},                // rule-pack menu: admin
+		{"POST", "/api/admin/rulesets/toggle", 401, 403, 403, pass},            // enable/disable a pack or rule: admin
 		{"GET", "/api/audit", 401, 403, 403, pass},
 
 		// Unlisted routes fail closed: mutating verbs need admin.

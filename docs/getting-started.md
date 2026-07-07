@@ -127,6 +127,14 @@ triage:
   provider: ollama         # ollama (local) | anthropic (opt-in, key via env)
 ```
 
+### Opengrep instead of Semgrep
+
+The SAST engine is Semgrep by default. If you prefer [Opengrep](https://github.com/opengrep/opengrep),
+the community fork created after Semgrep moved inter-file analysis to its paid
+tier, it is a drop-in: same CLI, same rule format. Install it and Argus uses it
+automatically when Semgrep is absent, or set `ARGUS_SEMGREP_BINARY=opengrep` to
+prefer it. Findings are still attributed to "semgrep" in the model.
+
 ## In CI
 
 The repo ships a GitHub Actions workflow that scans on every pull request,

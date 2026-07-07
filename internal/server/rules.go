@@ -62,6 +62,87 @@ func (s *Server) llmClientForConsole(w http.ResponseWriter, r *http.Request) (ll
 	return client, time.Duration(cfg.Triage.TimeoutSec) * time.Second, true
 }
 
+// CatalogPack is one catalog entry with its current state for the console.
+type CatalogPack struct {
+	scanner.RulePack
+	Active    bool `json:"active"`    // currently in the custom rulesets
+	InProfile bool `json:"inProfile"` // already run by the standard/max profile
+}
+
+// handleRuleCatalog returns the curated registry-pack menu, grouped by
+// category, with each pack's active/in-profile state. Admin-only.
+func (s *Server) handleRuleCatalog(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeErr(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	cs, _ := loadConsoleSettings(s.dir)
+	active := map[string]bool{}
+	for _, e := range cs.SemgrepRulesets {
+		active[e] = true
+	}
+	packs := make([]CatalogPack, 0, len(scanner.RulePackCatalog))
+	for _, p := range scanner.RulePackCatalog {
+		packs = append(packs, CatalogPack{RulePack: p, Active: active[p.ID], InProfile: scanner.InDefaultProfile(p.ID)})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"categories": scanner.RulePackCategories, "packs": packs})
+}
+
+// ToggleRulesetRequest enables or disables one ruleset entry (a catalog pack or
+// a saved rule's path) by adding it to or removing it from the custom rulesets.
+type ToggleRulesetRequest struct {
+	Entry   string `json:"entry"`
+	Enabled bool   `json:"enabled"`
+}
+
+// handleToggleRuleset is the shared enable/disable for both the catalog packs
+// and saved-rule activation: it adds or removes one entry from the console
+// custom rulesets. Enabling validates the entry first (a pack must resolve, a
+// local rule must exist and pass semgrep --validate) so a scan is never wired
+// to a broken ruleset. Admin-only, audited.
+func (s *Server) handleToggleRuleset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var req ToggleRulesetRequest
+	if err := decodeBody(w, r, &req, 8192); err != nil {
+		return
+	}
+	entry := strings.TrimSpace(req.Entry)
+	if entry == "" || entry == scanner.AdditiveMarker {
+		writeErr(w, http.StatusBadRequest, "a ruleset entry is required")
+		return
+	}
+	if req.Enabled {
+		if statuses := scanner.ValidateRulesets(r.Context(), []string{entry}, s.dir); scanner.FirstInvalid(statuses) != nil {
+			writeErr(w, http.StatusBadRequest, scanner.FirstInvalid(statuses).Message)
+			return
+		}
+	}
+	cs, _ := loadConsoleSettings(s.dir)
+	kept := cs.SemgrepRulesets[:0]
+	for _, e := range cs.SemgrepRulesets {
+		if e != entry {
+			kept = append(kept, e)
+		}
+	}
+	if req.Enabled {
+		kept = append(kept, entry)
+	}
+	cs.SemgrepRulesets = kept
+	if cs.SemgrepRulesetsAdditive == nil {
+		add := true
+		cs.SemgrepRulesetsAdditive = &add
+	}
+	if err := saveConsoleSettings(s.dir, cs); err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not save settings")
+		return
+	}
+	s.audit(audit.EventConfigChange, actorFrom(r), map[string]string{"area": "rulesets", "entry": entry, "enabled": boolStr(req.Enabled)})
+	writeJSON(w, http.StatusOK, map[string]any{"entry": entry, "enabled": req.Enabled})
+}
+
 // handleRules is GET (list) and POST (save) on the collection.
 func (s *Server) handleRules(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {

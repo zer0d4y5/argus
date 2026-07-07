@@ -542,6 +542,17 @@ Custom rulesets set in the console apply to scans of the served repo; per-target
 `appsec.yml` files still win for their own targets (the §12.3 layering is
 unchanged).
 
+**Rule packs and management (Admin → Detection rules).** Rather than typing
+pack names, an admin can browse a curated **catalog** of vetted semgrep registry
+packs grouped by language, framework, cloud stack, and weakness class, and
+enable the ones for their stack with one click (each pack is verified to resolve
+against the registry, so the menu never offers a typo). Packs already run by the
+active profile are marked "in profile" so you can tell what is new versus
+redundant. Enabling or disabling a pack, and enabling or disabling one of your
+own saved rules, is the same underlying action: it adds or removes that entry
+from the additive custom rulesets, validated on enable and audited. Nothing is
+removed from the curated baseline; the catalog only adds.
+
 ### 12.10 AI-assisted rule authoring (assisted, human-confirmed)
 
 Writing a semgrep rule by hand is the hard part of §12.9. The console adds a
