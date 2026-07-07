@@ -88,7 +88,13 @@ auth:
 
 ---
 
-## 2. Approved cloud remediation
+## 2. Approved cloud remediation — SHIPPED
+
+> Shipped as designed below: a curated catalog (`internal/cloudremediate`), an
+> injectable profile-scoped runner, admin-only execution gated by
+> `remediation.enabled`, a per-finding panel with dry-run + apply, and an audit
+> trail. The LLM authors nothing that runs; a fix never marks a finding fixed.
+
 
 **Why:** finding a public S3 bucket and handing back a script the user pastes
 themselves is honest, but at scale people want the fix *applied* — with a human

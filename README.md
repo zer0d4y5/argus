@@ -311,12 +311,32 @@ auth:                   # console single sign-on (OIDC) — off unless configure
     default_role: viewer                  # role for a just-in-time user; admins promote from there
     group_claim: groups                   # optional: IdP claim carrying group names
     role_map: { argus-admins: admin }     # optional: group → console role
+remediation:            # approved cloud remediation — off by default
+  enabled: false        # allow admins to dry-run/apply the curated catalog against a cloud account
 ```
 
 Suppressed findings are counted on stderr — suppression is never silent. SSO
 is additive: configuring it adds a "Sign in with SSO" button; password login
-and `argus user add` keep working. The design is in
+and `argus user add` keep working. Both SSO and remediation are also editable
+from the console Admin tab. The design is in
 [docs/roadmap-platform.md](docs/roadmap-platform.md).
+
+## Approved cloud remediation
+
+A cloud finding's detail pane offers the curated fixes that apply to it —
+block S3 public access, enable default encryption, turn on EBS
+encryption-by-default — each shown as the **exact command that will run**, with
+the IAM permissions it needs and whether it's reversible. Nothing here is
+LLM-authored: execution is limited to a vetted catalog whose only variables are
+resource attributes pulled from the finding and validated against a strict
+grammar, run as argv (never a shell).
+
+It's off until `remediation.enabled` is set, and even then every apply is an
+explicit **admin** action: pick a write profile (separate from the read-only
+audit profile, referenced by name and resolved inside a child process — no key
+material enters Argus), preview with a dry-run, then apply. A destructive verb
+can't reach the catalog, a fix never marks a finding fixed (only a re-scan
+clears it), and every dry-run and apply is audited.
 
 ## GitHub Action
 
