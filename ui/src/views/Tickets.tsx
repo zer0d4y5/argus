@@ -44,9 +44,12 @@ function PriorityTag({ priority }: { priority: TicketPriority }) {
   );
 }
 
-export function Tickets({ canEdit, canDelete, openItem, onOpenItemChange }: {
+export function Tickets({ canEdit, canDelete, openItem, onOpenItemChange, githubRepo }: {
   canEdit: boolean;
   canDelete: boolean;
+  // Set when ticketing.github.repo is configured server-side: enables the
+  // create-or-link GitHub issue controls. The repo NAME only, never a token.
+  githubRepo?: string;
   // Controlled by App: the open pane's ticket id lives in the URL (?item=…)
   // so a ticket pane is shareable and reload-safe.
   openItem?: string;
@@ -278,6 +281,16 @@ export function Tickets({ canEdit, canDelete, openItem, onOpenItemChange }: {
               onCloseFixed={closeFixed}
               onDelete={remove}
               names={names}
+              githubRepo={githubRepo}
+              onGitHub={async (issueUrl) => {
+                try {
+                  const r = await opsApi.ticketGitHub(detail.id, issueUrl);
+                  toast({ kind: "success", message: issueUrl ? `Linked issue #${r.externalId}.` : `Created issue #${r.externalId}.` });
+                  refresh();
+                } catch (e) {
+                  toast({ kind: "error", message: e instanceof ApiError ? e.message : String(e) });
+                }
+              }}
             />
           </div>
         )}
@@ -360,6 +373,8 @@ function Detail({
   onCloseFixed,
   onDelete,
   names,
+  githubRepo,
+  onGitHub,
 }: {
   detail: TicketDetail;
   canEdit: boolean;
@@ -369,8 +384,14 @@ function Detail({
   onCloseFixed: () => void;
   onDelete: () => void;
   names: string[];
+  githubRepo?: string;
+  onGitHub?: (issueUrl?: string) => void;
 }) {
   const [comment, setComment] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  // The stored external URL is rendered as a link ONLY when it matches the
+  // exact GitHub issue shape the server validates; anything else shows as text.
+  const externalIsSafe = !!detail.externalUrl && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/.test(detail.externalUrl);
   return (
     <Panel
       title={detail.id}
@@ -422,6 +443,34 @@ function Detail({
           </span>
         )}
       </div>
+
+      {(detail.externalUrl || (githubRepo && canEdit)) && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          {detail.externalUrl ? (
+            externalIsSafe ? (
+              <a href={detail.externalUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 font-medium text-accent-700 hover:bg-gray-50 dark:border-gray-700 dark:text-accent-400 dark:hover:bg-gray-800">
+                GitHub issue #{detail.externalUrl.split("/").pop()}
+              </a>
+            ) : (
+              <span className="text-gray-500">external: {detail.externalUrl}</span>
+            )
+          ) : (
+            <>
+              <button onClick={() => onGitHub?.()} className="rounded-md border border-gray-300 px-2 py-0.5 font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800" title={`Create an issue in ${githubRepo}`}>
+                Create GitHub issue
+              </button>
+              <input
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="…or paste an issue URL"
+                className="w-64 rounded-md border border-gray-300 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800"
+                onKeyDown={(e) => { if (e.key === "Enter" && linkUrl.trim()) { onGitHub?.(linkUrl.trim()); setLinkUrl(""); } }}
+              />
+            </>
+          )}
+        </div>
+      )}
+
 
       <div className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-800">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Linked findings ({detail.links.length})</div>

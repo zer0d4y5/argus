@@ -191,6 +191,12 @@ func (s *Server) handleTicketByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.ticketCloseFixed(w, r, id)
+	case "github":
+		if r.Method != http.MethodPost {
+			writeErr(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		s.ticketGitHub(w, r, id)
 	default:
 		writeErr(w, http.StatusNotFound, "unknown ticket subresource")
 	}

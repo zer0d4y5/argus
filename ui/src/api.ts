@@ -350,7 +350,7 @@ export const SEVERITIES: Severity[] = ["critical", "high", "medium", "low", "inf
 // --- New TypeScript types (exact JSON contract from the Go server) ---
 
 export interface UserInfo { id: string; username: string; role: string; createdAt: string; }
-export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; }
+export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; githubRepo?: string; }
 export interface LoginResponse { user: UserInfo; csrfToken: string; }
 
 export interface Snippet { startLine: number; lines: string[] }
@@ -604,6 +604,8 @@ export const opsApi = {
     send<TicketComment>("POST", `api/tickets/${encodeURIComponent(id)}/comments`, { body }),
   ticketLink: (id: string, findingId: string, targetId?: string, remove?: boolean): Promise<{ links: TicketLink[] }> =>
     send<{ links: TicketLink[] }>("POST", `api/tickets/${encodeURIComponent(id)}/links`, { findingId, targetId, remove }),
+  ticketGitHub: (id: string, issueUrl?: string): Promise<{ externalUrl: string; externalId: string }> =>
+    send<{ externalUrl: string; externalId: string }>("POST", `api/tickets/${encodeURIComponent(id)}/github`, issueUrl ? { issueUrl } : {}),
   ticketCloseFixed: (id: string): Promise<{ markedFixed: number; skipped: number; kept: number }> =>
     send<{ markedFixed: number; skipped: number; kept: number }>("POST", `api/tickets/${encodeURIComponent(id)}/close-fixed`, {}),
 

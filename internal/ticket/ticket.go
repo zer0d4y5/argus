@@ -314,6 +314,20 @@ func (s *Store) Links(ticketID string) ([]Link, error) {
 	return out, rows.Err()
 }
 
+// SetExternal records the linked external issue (URL + id). Only the
+// REFERENCE is stored — never credentials, never issue content.
+func (s *Store) SetExternal(id, url, extID string, now time.Time) error {
+	res, err := s.db.Exec(`UPDATE tickets SET external_url=?, external_id=?, updated_at=? WHERE id=?`,
+		bound(url, 500), bound(extID, 100), now.UTC().Format(time.RFC3339), id)
+	if err != nil {
+		return fmt.Errorf("ticket: set external: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // StatusCounts returns how many tickets are in each status, for the Overview
 // work widget.
 func (s *Store) StatusCounts() (map[string]int, error) {

@@ -68,6 +68,10 @@ type Server struct {
 	queue    *jobs.Queue
 	tickets  *ticket.Store      // nil when the SQLite store isn't wired (legacy mode)
 	threats  *threatmodel.Store // nil disables threat-model endpoints
+
+	// githubAPIBase overrides the GitHub API endpoint IN TESTS ONLY; empty
+	// means https://api.github.com.
+	githubAPIBase string
 }
 
 // Options configure a Server.

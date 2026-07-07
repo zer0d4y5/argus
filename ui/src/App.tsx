@@ -638,7 +638,7 @@ export function App() {
               onDeleteRun={handleDeleteRun}
             />
           ))}
-        {activeTab === "tickets" && <Tickets canEdit={canLaunch} canDelete={role === "admin"} openItem={openItem} onOpenItemChange={setOpenItem} />}
+        {activeTab === "tickets" && <Tickets canEdit={canLaunch} canDelete={role === "admin"} openItem={openItem} onOpenItemChange={setOpenItem} githubRepo={me?.githubRepo} />}
         {activeTab === "threats" && <Threats canEdit={canLaunch} canDelete={role === "admin"} target={activeTarget === ALL_TARGETS ? "" : activeTarget} />}
         {activeTab === "operate" && opsEnabled && <Operate canLaunch={canLaunch} onOpenRun={openRun} />}
         {activeTab === "admin" && role === "admin" && <Admin selfUsername={user?.username ?? ""} />}

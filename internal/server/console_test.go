@@ -198,6 +198,7 @@ func TestAuthzMatrix(t *testing.T) {
 		{"POST", "/api/tickets/tk-1/comments", 401, 403, pass, pass},
 		{"POST", "/api/tickets/tk-1/links", 401, 403, pass, pass},
 		{"POST", "/api/tickets/tk-1/close-fixed", 401, 403, pass, pass}, // writes dispositions (operator, like /api/dispositions)
+		{"POST", "/api/tickets/tk-1/github", 401, 403, pass, pass},      // external sync (config-gated in the handler)
 		{"DELETE", "/api/tickets/tk-1", 401, 403, 403, pass},           // delete is admin-only
 
 		{"GET", "/api/threat-library", 401, pass, pass, pass},

@@ -33,6 +33,9 @@ type MeResponse struct {
 	Authenticated bool      `json:"authenticated"`
 	User          *UserInfo `json:"user,omitempty"`
 	CSRFToken     string    `json:"csrfToken,omitempty"`
+	// GitHubRepo is the configured issue-sync repo ("owner/name"), so the UI
+	// knows to offer the button. The repo NAME only — never token material.
+	GitHubRepo string `json:"githubRepo,omitempty"`
 }
 
 // LoginResponse is POST /api/auth/login on success.
@@ -61,7 +64,12 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := UserInfo{ID: sess.UserID, Username: sess.Username, Role: string(sess.Role)}
-	writeJSON(w, http.StatusOK, MeResponse{AuthRequired: true, Authenticated: true, User: &u, CSRFToken: sess.CSRF})
+	resp := MeResponse{AuthRequired: true, Authenticated: true, User: &u, CSRFToken: sess.CSRF}
+	// Feature flag for the UI: repo name only, never token material.
+	if cfg, err := repoConfig(s.dir); err == nil && cfg.GitHubEnabled() {
+		resp.GitHubRepo = cfg.Ticketing.GitHub.Repo
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
