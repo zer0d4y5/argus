@@ -25,6 +25,9 @@ type CloudResult struct {
 	Failed   int
 	Passed   int
 	Manual   int
+	// ToolVersion is the prowler release that produced the run (provenance
+	// for the saved run document); may be empty when the probe failed.
+	ToolVersion string
 }
 
 // RunCloud executes a cloud posture scan through prowler and the SAME
@@ -54,9 +57,10 @@ func RunCloud(ctx context.Context, opts CloudOptions, progress Progress) (CloudR
 
 	findings := Enrich(ctx, opts.Config, "", scan.Raw, progress)
 	return CloudResult{
-		Findings: findings,
-		Failed:   scan.Failed,
-		Passed:   scan.Passed,
-		Manual:   scan.Manual,
+		Findings:    findings,
+		Failed:      scan.Failed,
+		Passed:      scan.Passed,
+		Manual:      scan.Manual,
+		ToolVersion: scan.ToolVersion,
 	}, nil
 }

@@ -2,6 +2,7 @@ package compliance
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/leaky-hub/appsec/internal/model"
@@ -106,18 +107,21 @@ func TestKnownMappings(t *testing.T) {
 	}
 }
 
-// IaC rules land in the right CIS section AND the PCI configuration-standards
-// requirement; never in ASVS (out of scope).
+// IaC rules land on the right granular CIS-AWS control (never a section id —
+// the catalog is single-granularity so a report can't show "2.1 violated"
+// beside "2.1.5 clean") AND the PCI configuration-standards requirement;
+// never in ASVS (out of scope).
 func TestIaCRuleMappings(t *testing.T) {
 	cases := []struct {
 		ruleID string
 		want   []string
 	}{
-		{"CKV_AWS_24", []string{"CIS-AWS:5", "PCI-DSS:2.2.1"}},  // open SSH ingress -> Networking
-		{"AWS-0107", []string{"CIS-AWS:5", "PCI-DSS:2.2.1"}},    // trivy twin of the same class
-		{"CKV_AWS_3", []string{"CIS-AWS:2.2", "PCI-DSS:2.2.1"}}, // EBS encryption -> Storage/EC2
-		{"AWS-0092", []string{"CIS-AWS:2.1", "PCI-DSS:2.2.1"}},  // S3 public ACL -> Storage/S3
-		{"CKV_AWS_18", []string{"CIS-AWS:3", "PCI-DSS:2.2.1"}},  // access logging -> Logging
+		{"CKV_AWS_24", []string{"CIS-AWS:5.2", "PCI-DSS:2.2.1"}},  // open SSH ingress -> SG 0.0.0.0/0 admin ports
+		{"AWS-0107", []string{"CIS-AWS:5.2", "PCI-DSS:2.2.1"}},    // trivy twin of the same class
+		{"CKV_AWS_3", []string{"CIS-AWS:2.2.1", "PCI-DSS:2.2.1"}}, // EBS encryption
+		{"AWS-0092", []string{"CIS-AWS:2.1.5", "PCI-DSS:2.2.1"}},  // S3 public ACL -> block public access
+		{"CKV_AWS_145", []string{"CIS-AWS:2.1.1", "PCI-DSS:2.2.1"}}, // S3 encryption at rest
+		{"CKV_AWS_18", []string{"CIS-AWS:3.6", "PCI-DSS:2.2.1"}},  // S3 access logging
 		{"CKV_DOCKER_3", []string{"CIS-DOCKER:4", "PCI-DSS:2.2.1"}},
 		{"DS-0002", []string{"CIS-DOCKER:4", "PCI-DSS:2.2.1"}},   // root user, via DS- family
 		{"CKV_K8S_16", []string{"CIS-K8S:5.2", "PCI-DSS:2.2.1"}}, // privileged container
@@ -268,4 +272,32 @@ func TestValidateRejectsBadData(t *testing.T) {
 	if err := validate(&good); err != nil {
 		t.Fatalf("baseline framework should validate: %v", err)
 	}
+}
+
+// TestCISAWSSingleGranularity pins the disambiguation: no CIS-AWS control id
+// may be a dot-prefix of another (a "section" beside its own children), so a
+// gap report can never show a section violated next to a clean child control.
+func TestCISAWSSingleGranularity(t *testing.T) {
+	fws, err := Frameworks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range fws {
+		if fws[i].ID != "CIS-AWS" {
+			continue
+		}
+		ids := make([]string, 0, len(fws[i].Controls))
+		for _, c := range fws[i].Controls {
+			ids = append(ids, c.ID)
+		}
+		for _, a := range ids {
+			for _, b := range ids {
+				if a != b && strings.HasPrefix(b, a+".") {
+					t.Errorf("control %q is a section over %q — mixed granularity", a, b)
+				}
+			}
+		}
+		return
+	}
+	t.Fatal("CIS-AWS framework not found")
 }

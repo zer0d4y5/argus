@@ -16,22 +16,6 @@
   ],
   "controls": [
     {
-      "id": "2.1",
-      "title": "Storage — Simple Storage Service (S3): public access blocked, encryption at rest"
-    },
-    {
-      "id": "2.2",
-      "title": "Storage — Elastic Compute Cloud (EC2): EBS volume encryption"
-    },
-    {
-      "id": "3",
-      "title": "Logging: access and audit logging enabled"
-    },
-    {
-      "id": "5",
-      "title": "Networking: no unrestricted ingress to administrative ports"
-    },
-    {
       "id": "1.1",
       "title": "Maintain current contact details"
     },
@@ -288,19 +272,26 @@
   "rules": [
     {
       "ruleIds": [
-        "CKV_AWS_20",
         "CKV_AWS_145",
+        "AWS-0132"
+      ],
+      "controls": [
+        "2.1.1"
+      ]
+    },
+    {
+      "ruleIds": [
+        "CKV_AWS_20",
         "CKV2_AWS_6",
         "AWS-0086",
         "AWS-0087",
         "AWS-0091",
         "AWS-0092",
         "AWS-0093",
-        "AWS-0094",
-        "AWS-0132"
+        "AWS-0094"
       ],
       "controls": [
-        "2.1"
+        "2.1.5"
       ]
     },
     {
@@ -311,7 +302,7 @@
         "AWS-0027"
       ],
       "controls": [
-        "2.2"
+        "2.2.1"
       ]
     },
     {
@@ -320,7 +311,7 @@
         "AWS-0089"
       ],
       "controls": [
-        "3"
+        "3.6"
       ]
     },
     {
@@ -329,7 +320,7 @@
         "AWS-0107"
       ],
       "controls": [
-        "5"
+        "5.2"
       ]
     },
     {

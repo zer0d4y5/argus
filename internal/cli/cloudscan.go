@@ -96,7 +96,7 @@ func runCloudScan(cmd *cobra.Command, _ []string) error {
 	}
 
 	if save, _ := cmd.Flags().GetBool("save"); save {
-		if meta, err := saveCloudRun(provider, profile, findings); err != nil {
+		if meta, err := saveCloudRun(provider, profile, findings, res.ToolVersion); err != nil {
 			fmt.Fprintf(os.Stderr, "WARN: --save failed: %v\n", err)
 		} else {
 			fmt.Fprintf(os.Stderr, "==> saved run %s to %s\n", meta.ID, meta.Path)
@@ -137,14 +137,18 @@ func runCloudScan(cmd *cobra.Command, _ []string) error {
 // (locked decision 9). The store is the same runstore machinery code scans
 // use — deltas, list, load all work unchanged; the resource-slot fingerprint
 // makes cloud deltas meaningful across runs.
-func saveCloudRun(provider, profile string, findings []model.Finding) (runstore.RunMeta, error) {
+func saveCloudRun(provider, profile string, findings []model.Finding, toolVersion string) (runstore.RunMeta, error) {
 	base, err := os.Getwd()
 	if err != nil {
 		return runstore.RunMeta{}, err
 	}
 	id := cloudTargetDir(provider, profile)
 	store := runstore.Store{Dir: filepath.Join(base, ".appsec", "cloud", id, "runs")}
-	return store.Save(findings, time.Now())
+	var tools map[string]string
+	if toolVersion != "" {
+		tools = map[string]string{"prowler": toolVersion}
+	}
+	return store.SaveWithTools(findings, tools, time.Now())
 }
 
 // cloudTargetDir is the filesystem-safe per-target directory name. The

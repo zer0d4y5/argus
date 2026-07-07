@@ -21,6 +21,10 @@ type Document struct {
 	// stdout reports are unchanged. Absent in older documents and in
 	// non-saved output; readers feature-detect.
 	Coverage *coverage.Accounting `json:"coverage,omitempty"`
+	// ToolVersions records external scanner provenance for the run (e.g.
+	// {"prowler": "Prowler 5.31.0"}): which tool version produced the raw
+	// findings, for auditability. Absent when not captured.
+	ToolVersions map[string]string `json:"toolVersions,omitempty"`
 }
 
 // BuildDocument assembles a Document from findings. It sorts findings

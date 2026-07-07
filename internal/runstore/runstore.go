@@ -61,6 +61,17 @@ func (s Store) Save(findings []model.Finding, t time.Time) (RunMeta, error) {
 // which the console surfaces on the run detail. nil means "not accounted"
 // (older callers, tests) and is stored as an absent field, never zeros.
 func (s Store) SaveWithCoverage(findings []model.Finding, cov *coverage.Accounting, t time.Time) (RunMeta, error) {
+	return s.save(findings, cov, nil, t)
+}
+
+// SaveWithTools is Save plus external-tool provenance: which scanner version
+// produced the raw findings (e.g. the prowler release behind a cloud run).
+// An empty map is stored as an absent field.
+func (s Store) SaveWithTools(findings []model.Finding, tools map[string]string, t time.Time) (RunMeta, error) {
+	return s.save(findings, nil, tools, t)
+}
+
+func (s Store) save(findings []model.Finding, cov *coverage.Accounting, tools map[string]string, t time.Time) (RunMeta, error) {
 	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
 		return RunMeta{}, fmt.Errorf("runstore: mkdir %s: %w", s.Dir, err)
 	}
@@ -69,6 +80,9 @@ func (s Store) SaveWithCoverage(findings []model.Finding, cov *coverage.Accounti
 
 	doc := report.BuildDocument(findings)
 	doc.Coverage = cov
+	if len(tools) > 0 {
+		doc.ToolVersions = tools
+	}
 	data, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return RunMeta{}, fmt.Errorf("runstore: marshal report: %w", err)

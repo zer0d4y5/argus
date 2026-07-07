@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/leaky-hub/appsec/internal/model"
 )
@@ -56,6 +57,10 @@ type Result struct {
 	Failed int // FAIL records → findings
 	Passed int // PASS records → counted, not findings
 	Manual int // MANUAL records → counted, not findings (human verification)
+	// ToolVersion is the prowler release that produced this run ("Prowler
+	// 5.31.0"), captured for the run document's provenance. Empty when the
+	// version probe fails; never fatal.
+	ToolVersion string
 }
 
 // regionPattern bounds region values passed to the prowler argv. Regions are
@@ -67,6 +72,44 @@ var regionPattern = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
 func Available() bool {
 	_, err := exec.LookPath("prowler")
 	return err == nil
+}
+
+// ToolVersion asks the installed prowler for its version, for run-document
+// provenance. Best-effort: empty on any failure, bounded, printable-only.
+func ToolVersion(ctx context.Context) string {
+	vctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(vctx, "prowler", "--version").Output()
+	if err != nil {
+		return ""
+	}
+	return parseToolVersion(string(out))
+}
+
+// parseToolVersion extracts the version line from `prowler --version` output:
+// the first non-empty line, stripped of non-printables and any trailing
+// parenthetical ("Prowler 5.31.0 (You are running the latest…)"), capped.
+func parseToolVersion(out string) string {
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if i := strings.Index(line, "("); i > 0 {
+			line = strings.TrimSpace(line[:i])
+		}
+		var b strings.Builder
+		for _, r := range line {
+			if r >= 0x20 && r != 0x7f {
+				b.WriteRune(r)
+			}
+			if b.Len() >= 60 {
+				break
+			}
+		}
+		return b.String()
+	}
+	return ""
 }
 
 // Validate checks the options against the closed lists: known provider,
@@ -149,6 +192,7 @@ func Scan(ctx context.Context, opts Options, progress func(string)) (Result, err
 	if err != nil {
 		return Result{}, err
 	}
+	res.ToolVersion = ToolVersion(ctx)
 	progress(fmt.Sprintf("prowler: %d raw findings (%d fail / %d pass / %d manual)\n",
 		len(res.Raw), res.Failed, res.Passed, res.Manual))
 	return res, nil

@@ -158,9 +158,14 @@ func execCloudScan(ctx context.Context, reg *targets.Registry, t targets.Target,
 	progress(fmt.Sprintf("==> posture: %d failed, %d passed, %d manual\n", res.Failed, res.Passed, res.Manual))
 
 	// Cloud findings have no source tree: no snippet capture, no filesystem
-	// coverage accounting. Save to the per-target cloud store.
+	// coverage accounting. Save to the per-target cloud store, recording the
+	// prowler release for provenance.
 	store := runstore.Store{Dir: reg.CloudRunStore(t)}
-	meta, err := store.Save(res.Findings, time.Now())
+	var tools map[string]string
+	if res.ToolVersion != "" {
+		tools = map[string]string{"prowler": res.ToolVersion}
+	}
+	meta, err := store.SaveWithTools(res.Findings, tools, time.Now())
 	if err != nil {
 		return out, fmt.Errorf("save cloud run: %w", err)
 	}
