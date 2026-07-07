@@ -234,26 +234,36 @@ export function App() {
 
   // Runs (and the Findings latest run) need a concrete store. Under the
   // portfolio scope there is none, so the list is empty and the tabs prompt.
+  // runsTarget records which target `runs` was loaded for: on a target switch
+  // `runs` is briefly the previous target's list, and a run id from it is a 404
+  // against the new target — so consumers must wait until runsTarget matches.
+  const [runsTarget, setRunsTarget] = useState<string | null>(null);
   useEffect(() => {
     if (!authed) return;
     if (concreteTarget === null) {
       setRuns({ runs: [] });
+      setRunsTarget(null);
       setSelectedRunTarget(undefined);
       return;
     }
     setSelectedRunTarget(concreteTarget || undefined);
-    api.runs(concreteTarget || undefined).then(setRuns).catch(onApiError);
+    api.runs(concreteTarget || undefined)
+      .then((r) => { setRuns(r); setRunsTarget(concreteTarget); })
+      .catch(onApiError);
   }, [authed, concreteTarget, reloadKey, onApiError]);
 
   // The Findings tab shows the concrete target's LATEST run — every current
-  // finding, no run to pick. Per-run history lives in the Runs tab.
+  // finding, no run to pick. Per-run history lives in the Runs tab. Gate on
+  // runsTarget === concreteTarget so a stale run id from the previous target is
+  // never fetched against the new one.
   const [latestDetail, setLatestDetail] = useState<RunDetail | null>(null);
   useEffect(() => {
     if (!authed || concreteTarget === null) { setLatestDetail(null); return; }
+    if (runsTarget !== concreteTarget) return; // runs list not yet for this target
     const lid = runs?.runs?.[0]?.id;
     if (!lid) { setLatestDetail(null); return; }
     api.run(lid, concreteTarget || undefined).then(setLatestDetail).catch(onApiError);
-  }, [authed, concreteTarget, runs, reloadKey, onApiError]);
+  }, [authed, concreteTarget, runsTarget, runs, reloadKey, onApiError]);
 
   // Fetch targets when ops is enabled
   useEffect(() => {
@@ -362,6 +372,18 @@ export function App() {
   };
   const openFramework = (id: string) => drillTo("framework", id);
 
+  // Switch the active scope from the UI (nav dropdown, target pickers, command
+  // palette). A run selection is target-scoped — a run of target A is a 404
+  // against target B — so clearing it here stops a stale api.run(oldRun,
+  // newTarget) fetch on switch. openRun and the URL restore set target+run
+  // together and must NOT go through here.
+  const switchTarget = (targetId: string) => {
+    setActiveTarget(targetId);
+    setSelectedRun(null);
+    setSelectedRunTarget(undefined);
+    setSelectedRunCommit(undefined);
+  };
+
   // Open one run's detail in the Runs tab (from a row, a deep link, or Operate).
   const openRun = (runId: string, targetId?: string, commit?: string) => {
     setActiveTarget(targetId ?? "");
@@ -422,7 +444,7 @@ export function App() {
       label: "All targets (portfolio)",
       keywords: "scope overview aggregate",
       run: () => {
-        setActiveTarget(ALL_TARGETS);
+        switchTarget(ALL_TARGETS);
         setTab("overview");
       },
     },
@@ -432,7 +454,7 @@ export function App() {
       label: "This repo",
       keywords: "scope served",
       run: () => {
-        setActiveTarget("");
+        switchTarget("");
         setTab("findings");
       },
     },
@@ -442,7 +464,7 @@ export function App() {
       label: `${t.name}${t.type === "cloud" ? " (cloud)" : t.type === "git" ? " (git)" : ""}`,
       keywords: "scope",
       run: () => {
-        setActiveTarget(t.id);
+        switchTarget(t.id);
         setTab("findings");
       },
     })),
@@ -523,7 +545,7 @@ export function App() {
                 Target
                 <select
                   value={activeTarget}
-                  onChange={(e) => setActiveTarget(e.target.value)}
+                  onChange={(e) => switchTarget(e.target.value)}
                   className="max-w-[200px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
                   title="Scope. All targets = portfolio Overview; pick one to drill into its Findings and Runs"
                 >
@@ -582,7 +604,7 @@ export function App() {
         )}
         {activeTab === "findings" &&
           (concreteTarget === null ? (
-            <PickTarget what="findings" targets={targets} onPick={setActiveTarget} />
+            <PickTarget what="findings" targets={targets} onPick={switchTarget} />
           ) : latestDetail ? (
             <Findings
               detail={latestDetail}
@@ -605,7 +627,7 @@ export function App() {
           ))}
         {activeTab === "runs" &&
           (concreteTarget === null ? (
-            <PickTarget what="runs" targets={targets} onPick={setActiveTarget} />
+            <PickTarget what="runs" targets={targets} onPick={switchTarget} />
           ) : selectedRun && detail ? (
             <RunDetailView
               detail={detail}
