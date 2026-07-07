@@ -13,6 +13,9 @@ updates:
     labels: ["dependencies", "go"]
     commit-message:
       prefix: "deps(go)"
+    groups:
+      go-modules:
+        patterns: ["*"]
 
   # The React/Vite console.
   - package-ecosystem: npm
@@ -23,6 +26,9 @@ updates:
     labels: ["dependencies", "javascript"]
     commit-message:
       prefix: "deps(ui)"
+    groups:
+      ui-dependencies:
+        patterns: ["*"]
     ignore:
       # Major-version bumps for the console toolchain (Tailwind, TypeScript,
       # Vite, React, and friends) each need a deliberate migration with a build
@@ -39,3 +45,6 @@ updates:
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "deps(actions)"
+    groups:
+      github-actions:
+        patterns: ["*"]
