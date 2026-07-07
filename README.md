@@ -29,7 +29,7 @@ JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin, Rust, Scala; C via
 security-audit), secrets, dependencies (SCA), **IaC misconfiguration**
 (Terraform, CloudFormation, Kubernetes, Dockerfile, Helm, plus Bicep/ARM and
 Pulumi for architecture detection), and **cloud security posture** (prowler —
-AWS today) all flow through the same banded severity, risk signals, and
+AWS, Azure, GCP) all flow through the same banded severity, risk signals, and
 compliance mapping. DAST is on the [roadmap](docs/roadmap.md).
 
 **Findings become audit evidence.** Every finding is mapped — deterministically,
@@ -192,10 +192,15 @@ aws iam attach-user-policy --user-name argus-audit \
 # can do — least privilege is your control, honesty about it is ours.
 ```
 
-Azure (`Reader`) and GCP (`Viewer`) are the same shape and are the documented
-next beat. In the console, an admin registers a cloud target by picking a
-discovered profile name (never a key); cloud runs appear in the aggregated Runs
-tab with a resource-aware finding drawer and an optional on-demand,
+**Azure and GCP** work the same way. Register an Azure target by its
+subscription id (auth via a `Reader` service principal in the serve
+environment) or a GCP target by its project id (auth via `Viewer` Application
+Default Credentials) — the account id is a reference, never a key, and the
+credential lives only in the environment prowler inherits. AWS uses a named
+`~/.aws` profile as before. In the console, an admin registers a cloud target
+by provider and account reference (never a key); cloud runs appear in the
+aggregated Runs tab with a resource-aware finding drawer and an optional
+on-demand,
 never-persisted **AI posture summary**.
 
 Every cloud finding also carries prowler's own **per-finding compliance
