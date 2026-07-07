@@ -354,3 +354,32 @@ func TestComponentGeometry(t *testing.T) {
 		t.Errorf("cross-model geometry = %v, want ErrNotFound", err)
 	}
 }
+
+// TestUpdateComponent: edits name/kind/tech; scoped to the model; threats and
+// geometry survive.
+func TestUpdateComponent(t *testing.T) {
+	s := newStore(t)
+	m, _ := s.CreateModel("", "M", "", "a", t0)
+	c, _ := s.AddComponent(m.ID, "component", "old", "web-app", "", "manual", 10, 20, t0)
+	s.EnumerateComponent(c.ID, t0) // give it threats
+	beforeThreats, _ := s.Threats(m.ID)
+
+	up, err := s.UpdateComponent(m.ID, c.ID, "asset", "new name", "database", "note", t0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if up.Name != "new name" || up.Kind != "asset" || up.Tech != "database" || up.X != 10 || up.Y != 20 {
+		t.Errorf("update wrong (geometry must survive): %+v", up)
+	}
+	if after, _ := s.Threats(m.ID); len(after) != len(beforeThreats) {
+		t.Errorf("update changed threats: %d → %d", len(beforeThreats), len(after))
+	}
+	// Validation + scope.
+	if _, err := s.UpdateComponent(m.ID, c.ID, "component", "  ", "", "", t0); err == nil {
+		t.Error("empty name accepted")
+	}
+	mB, _ := s.CreateModel("", "B", "", "a", t0)
+	if _, err := s.UpdateComponent(mB.ID, c.ID, "component", "x", "", "", t0); err != ErrNotFound {
+		t.Errorf("cross-model update = %v, want ErrNotFound", err)
+	}
+}

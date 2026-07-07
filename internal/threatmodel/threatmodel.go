@@ -229,6 +229,44 @@ func (s *Store) Components(modelID string) ([]Component, error) {
 	return out, rows.Err()
 }
 
+// UpdateComponent edits a component's name, kind, tech, and notes, scoped to
+// the model. Geometry, source, and the component's threats are untouched — a
+// re-tech does not re-enumerate; that stays an explicit action. Returns the
+// updated component.
+func (s *Store) UpdateComponent(modelID, id, kind, name, tech, notes string, now time.Time) (Component, error) {
+	if kind == "" {
+		kind = "component"
+	}
+	if !componentKinds[kind] {
+		return Component{}, fmt.Errorf("invalid component kind %q", kind)
+	}
+	if strings.TrimSpace(name) == "" {
+		return Component{}, errors.New("component name is required")
+	}
+	res, err := s.db.Exec(`UPDATE threat_components SET kind=?, name=?, tech=?, notes=? WHERE id=? AND model_id=?`,
+		kind, bound(name, nameMax), strings.ToLower(strings.TrimSpace(tech)), bound(notes, textMax), id, modelID)
+	if err != nil {
+		return Component{}, fmt.Errorf("threatmodel: update component: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return Component{}, ErrNotFound
+	}
+	touchModel(s.db, modelID, now)
+	for _, c := range mustComponents(s, modelID) {
+		if c.ID == id {
+			return c, nil
+		}
+	}
+	return Component{}, ErrNotFound
+}
+
+// mustComponents is Components ignoring the error (used where the row is known
+// to exist right after a write).
+func mustComponents(s *Store, modelID string) []Component {
+	c, _ := s.Components(modelID)
+	return c
+}
+
 // DeleteComponent removes a component of modelID and every threat attached to
 // it (threat links cascade with their threats). Scoped like the other
 // mutators; one transaction so a failure can't half-delete.

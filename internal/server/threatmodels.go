@@ -139,6 +139,18 @@ func (s *Server) handleThreatModelByID(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 			return
 		}
+		// An existing component id (without remove) is an edit: rename / re-kind
+		// / re-tech from the canvas or list.
+		if req.ComponentID != "" {
+			c, err := s.threats.UpdateComponent(id, req.ComponentID, req.Kind, req.Name, req.Tech, req.Notes, now)
+			if err != nil {
+				s.writeThreatErr(w, err)
+				return
+			}
+			s.audit(audit.EventThreatUpdate, actor, map[string]string{"model": id, "action": "update-component"})
+			writeJSON(w, http.StatusOK, c)
+			return
+		}
 		// API callers add by hand or confirm an LLM proposal; "detected" is
 		// reserved for the server's own IaC scan.
 		source := "manual"

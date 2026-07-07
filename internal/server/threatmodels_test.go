@@ -334,3 +334,51 @@ func TestRepoOutlineBounded(t *testing.T) {
 		t.Error("outline walked a skip dir")
 	}
 }
+
+// TestCanvasComponentEditing: create a component at a canvas position, update
+// it (rename/re-tech), and save geometry (position + boundary size) — all via
+// the components/positions endpoints the canvas uses.
+func TestCanvasComponentEditing(t *testing.T) {
+	f := newConsole(t, nil)
+	oper := f.mustLogin("oscar")
+	rec := f.do("POST", "/api/threat-models", `{"name":"Arch"}`, oper)
+	var m struct{ ID string }
+	json.Unmarshal(rec.Body.Bytes(), &m)
+
+	// Placed on creation via the canvas (x/y).
+	rec = f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"name":"API","tech":"api-service","kind":"component","x":120,"y":80}`, oper)
+	if rec.Code != 201 {
+		t.Fatalf("create placed: %d %s", rec.Code, rec.Body.String())
+	}
+	var c struct {
+		ID      string
+		X, Y    float64
+	}
+	json.Unmarshal(rec.Body.Bytes(), &c)
+	if c.X != 120 || c.Y != 80 {
+		t.Errorf("placement not kept: %+v", c)
+	}
+
+	// Update (rename + re-tech + re-kind) via the same endpoint with componentId.
+	rec = f.do("POST", "/api/threat-models/"+m.ID+"/components", `{"componentId":"`+c.ID+`","name":"Gateway","tech":"web-app","kind":"boundary"}`, oper)
+	if rec.Code != 200 {
+		t.Fatalf("update: %d %s", rec.Code, rec.Body.String())
+	}
+	var up struct{ Name, Kind, Tech string; X, Y float64 }
+	json.Unmarshal(rec.Body.Bytes(), &up)
+	if up.Name != "Gateway" || up.Kind != "boundary" || up.Tech != "web-app" || up.X != 120 {
+		t.Errorf("update wrong (geometry must survive): %+v", up)
+	}
+
+	// Save geometry with a boundary size.
+	rec = f.do("POST", "/api/threat-models/"+m.ID+"/positions", `{"positions":[{"componentId":"`+c.ID+`","x":200,"y":100,"w":340,"h":260}]}`, oper)
+	if rec.Code != 200 {
+		t.Fatalf("positions: %d %s", rec.Code, rec.Body.String())
+	}
+	det := f.do("GET", "/api/threat-models/"+m.ID, "", oper)
+	var d struct{ Components []struct{ X, Y, W, H float64 } }
+	json.Unmarshal(det.Body.Bytes(), &d)
+	if len(d.Components) != 1 || d.Components[0].W != 340 || d.Components[0].H != 260 || d.Components[0].X != 200 {
+		t.Errorf("geometry not persisted: %+v", d.Components)
+	}
+}
