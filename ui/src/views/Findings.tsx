@@ -12,14 +12,14 @@ const SEV_RANK: Record<Severity, number> = { critical: 4, high: 3, medium: 2, lo
 
 // One neutral style for every drawer action button — the theme, not a rainbow.
 const ACTION_BTN =
-  "rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800";
+  "rounded-md border border-gray-300 px-2.5 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800";
 
 // Section is a labeled block in the finding drawer, so the detail reads as
 // Details / Compliance / Fix / Triage instead of one wall of text.
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border-t border-gray-200 pt-3 dark:border-gray-800">
-      <h4 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{title}</h4>
+      <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{title}</h4>
       <div className="space-y-2">{children}</div>
     </section>
   );
@@ -54,7 +54,7 @@ function CoverageStrip({ cov }: { cov: CoverageAccounting }) {
   ];
   return (
     <Panel title="Scan coverage">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         {cells.map((c) =>
           c.value === 0 && c.warn ? null : (
             <span key={c.label} title={c.title} className="inline-flex items-center gap-1">
@@ -65,7 +65,7 @@ function CoverageStrip({ cov }: { cov: CoverageAccounting }) {
         )}
         {cov.gitRepo && (
           <span
-            className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300"
             title={cov.gitShallow ? "Shallow clone: secret history coverage is the single fetched commit" : "Git repository: the secret scanner also scanned commit history"}
           >
             git history{cov.gitShallow ? " (shallow)" : ""}
@@ -73,7 +73,7 @@ function CoverageStrip({ cov }: { cov: CoverageAccounting }) {
         )}
       </div>
       {skipped > 0 && samples.length > 0 && (
-        <p className="mt-2 break-all text-[11px] text-gray-500 dark:text-gray-400">
+        <p className="mt-2 break-all text-[12px] text-gray-500 dark:text-gray-400">
           e.g. {samples.slice(0, 6).join(" · ")}
         </p>
       )}
@@ -89,7 +89,7 @@ function listColumns(canDispose: boolean): string {
 
 // FINDING_ROW_H is the fixed row height react-window positions against; it must
 // fit the two text lines (title + location) plus padding.
-const FINDING_ROW_H = 48;
+const FINDING_ROW_H = 56;
 
 type RowData = {
   items: Finding[];
@@ -138,34 +138,34 @@ function FindingRow({ index, style, data }: ListChildComponentProps<RowData>) {
       <span className="min-w-0">
         <span className="flex min-w-0 items-center gap-2">
           {data.newSet.has(f.id) && (
-            <span className="shrink-0 rounded bg-emerald-100 px-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+            <span className="shrink-0 rounded bg-emerald-100 px-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
               NEW
             </span>
           )}
           {disp?.status === "fixed" && (
-            <span className="shrink-0 rounded bg-red-100 px-1 text-[10px] font-bold text-red-700 dark:bg-red-900/50 dark:text-red-300" title="Marked fixed but still detected — a regression">
+            <span className="shrink-0 rounded bg-red-100 px-1 text-[11px] font-bold text-red-700 dark:bg-red-900/50 dark:text-red-300" title="Marked fixed but still detected — a regression">
               REGRESSED
             </span>
           )}
           {disp && disp.status !== "fixed" && (
-            <span className={`shrink-0 rounded px-1 text-[10px] font-semibold ${DISPOSITION_CHIP[disp.status]}`}>
+            <span className={`shrink-0 rounded px-1 text-[11px] font-semibold ${DISPOSITION_CHIP[disp.status]}`}>
               {DISPOSITION_LABEL[disp.status]}
             </span>
           )}
-          <span className="truncate text-xs font-medium">{f.displayName ?? f.title}</span>
+          <span className="truncate text-sm font-medium">{f.displayName ?? f.title}</span>
         </span>
-        <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-gray-400">
+        <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-gray-400">
           <CategoryBadge category={f.category} compact />
           <span className="truncate">{locationLabel(f.location)}</span>
         </span>
       </span>
       <span>
         {f.triage ? (
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${VERDICT_CHIP[f.triage.verdict]}`}>
+          <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${VERDICT_CHIP[f.triage.verdict]}`}>
             {VERDICT_LABEL[f.triage.verdict]}
           </span>
         ) : (
-          <span className="text-[11px] text-gray-400">—</span>
+          <span className="text-[12px] text-gray-400">—</span>
         )}
       </span>
     </div>
@@ -504,7 +504,7 @@ export function Findings({
               // finding mapped to it, so a deep-link never shows a blank Select.
               options={["all", ...(framework !== "all" && !frameworks.includes(framework) ? [framework] : []), ...frameworks]}
             />
-            <label className="inline-flex items-center gap-1 text-xs text-gray-500">
+            <label className="inline-flex items-center gap-1 text-sm text-gray-500">
               Min risk {minRisk.toFixed(0)}
               <input
                 type="range"
@@ -519,13 +519,13 @@ export function Findings({
             {filtersActive && (
               <button
                 onClick={clearFilters}
-                className="inline-flex items-center gap-1 self-center rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="inline-flex items-center gap-1 self-center rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 title="Reset all filters"
               >
                 ✕ Clear filters ({activeCount})
               </button>
             )}
-            <span className="ml-auto flex items-center gap-1 self-center text-xs">
+            <span className="ml-auto flex items-center gap-1 self-center text-sm">
               <span className="text-gray-400">Export {filtered.length}</span>
               <button onClick={() => exportFindingsCSV(filtered)} className="rounded-md border border-gray-300 px-1.5 py-1 font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800" title="Export the filtered findings as CSV">CSV</button>
               <button onClick={() => exportFindingsJSON(filtered)} className="rounded-md border border-gray-300 px-1.5 py-1 font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800" title="Export the filtered findings as JSON">JSON</button>
@@ -543,7 +543,7 @@ export function Findings({
 
           {/* Bulk action bar: one locked write across the selection. */}
           {canDispose && selectedIds.size > 0 && (
-            <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-md bg-accent-50 px-3 py-2 text-xs dark:bg-accent-500/10">
+            <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-md bg-accent-50 px-3 py-2 text-sm dark:bg-accent-500/10">
               <span className="font-semibold text-accent-800 dark:text-accent-200">{selectedIds.size} selected</span>
               <span className="ml-1 text-gray-500">set</span>
               {(["in-progress", "accepted-risk", "false-positive", "fixed"] as DispositionStatus[]).map((s) => (
@@ -576,7 +576,7 @@ export function Findings({
               long title/ARN truncates inside its cell instead of widening the
               list into the detail pane. */}
           <div
-            className="grid items-center gap-x-2 border-b border-gray-200 px-3 py-2 text-xs uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400"
+            className="grid items-center gap-x-2 border-b border-gray-200 px-3 py-2 text-sm uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400"
             style={{ gridTemplateColumns: listColumns(canDispose) }}
           >
             {canDispose && (
@@ -655,7 +655,7 @@ export function Findings({
           return () => { setSelectedId(filtered[idx + 1].id); listRef.current?.scrollToItem(idx + 1, "smart"); };
         })()}
         actions={selected ? (
-          <span className="flex items-center gap-1 text-[11px]">
+          <span className="flex items-center gap-1 text-[12px]">
             <span className="text-gray-400">Export</span>
             <button onClick={() => exportFindingsCSV([selected])} className="rounded border border-gray-300 px-1.5 py-0.5 font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800">CSV</button>
             <button onClick={() => exportFindingsJSON([selected])} className="rounded border border-gray-300 px-1.5 py-0.5 font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800">JSON</button>
@@ -750,14 +750,14 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
           href={`https://cwe.mitre.org/data/definitions/${match[1]}.html`}
           target="_blank"
           rel="noreferrer"
-          className="rounded bg-gray-100 px-1.5 py-0.5 text-xs hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 cursor-pointer"
+          className="rounded bg-gray-100 px-1.5 py-0.5 text-sm hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 cursor-pointer"
         >
           {cwe}
         </a>
       );
     }
     return (
-      <span key={cwe} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800">
+      <span key={cwe} className="rounded bg-gray-100 px-1.5 py-0.5 text-sm dark:bg-gray-800">
         {cwe}
       </span>
     );
@@ -769,26 +769,26 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
         {/* Header: what you're viewing and where it sits in severity. */}
         <div>
           <h3 className="break-words text-base font-semibold">{f.displayName ?? f.title}</h3>
-          <p className="break-words font-mono text-[11px] text-gray-400">{f.displayName ? f.title : f.ruleId}{f.displayName && f.ruleId ? ` · ${f.ruleId}` : ""}</p>
+          <p className="break-words font-mono text-[12px] text-gray-400">{f.displayName ? f.title : f.ruleId}{f.displayName && f.ruleId ? ` · ${f.ruleId}` : ""}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <SeverityBadge severity={f.severity} />
             <CategoryBadge category={f.category} />
             <RiskPill score={f.riskScore} />
             {f.toolSeverity && f.toolSeverity !== f.severity && (
-              <span className="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400" title="Severity is banded from the deterministic risk score; this is what the tool itself reported.">tool said: {f.toolSeverity}</span>
+              <span className="rounded border border-gray-300 px-1.5 py-0.5 text-[11px] uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400" title="Severity is banded from the deterministic risk score; this is what the tool itself reported.">tool said: {f.toolSeverity}</span>
             )}
             {f.meta?.gitHistory === "true" && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" title="Found in git history, not the current worktree — rotate the credential; deleting the file does not revoke it.">GIT HISTORY{f.meta?.gitShallow === "true" ? " (shallow)" : ""}</span>
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" title="Found in git history, not the current worktree — rotate the credential; deleting the file does not revoke it.">GIT HISTORY{f.meta?.gitShallow === "true" ? " (shallow)" : ""}</span>
             )}
-            {isNew && <span className="rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">NEW</span>}
-            <span className="text-xs text-gray-400">{(f.tools ?? [f.tool]).join(", ")}</span>
+            {isNew && <span className="rounded bg-emerald-100 px-1.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">NEW</span>}
+            <span className="text-sm text-gray-400">{(f.tools ?? [f.tool]).join(", ")}</span>
           </div>
         </div>
 
         <Section title="Details">
           {f.description && <p className="whitespace-pre-wrap break-words text-gray-600 dark:text-gray-300">{f.description}</p>}
           {f.location.snippet && (
-            <div className="scroll-thin overflow-x-auto whitespace-pre rounded border border-gray-200 bg-gray-50 p-2 font-mono text-xs dark:border-gray-800 dark:bg-gray-900">
+            <div className="scroll-thin overflow-x-auto whitespace-pre rounded border border-gray-200 bg-gray-50 p-2 font-mono text-sm dark:border-gray-800 dark:bg-gray-900">
               {f.location.snippet.lines.map((line, i) => {
                 const lineNum = f.location.snippet!.startLine + i;
                 const start = f.location.startLine ?? 0;
@@ -804,20 +804,20 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
               })}
             </div>
           )}
-          <Row label={f.location.resource && !f.location.file ? "Resource" : "Location"}><code className="break-all text-xs">{locationLabel(f.location)}</code></Row>
-          {f.meta?.commit && <Row label="Commit"><code className="break-all text-xs">{f.meta.commit}</code></Row>}
-          <Row label="Rule"><code className="break-all text-xs">{f.ruleId}</code></Row>
+          <Row label={f.location.resource && !f.location.file ? "Resource" : "Location"}><code className="break-all text-sm">{locationLabel(f.location)}</code></Row>
+          {f.meta?.commit && <Row label="Commit"><code className="break-all text-sm">{f.meta.commit}</code></Row>}
+          <Row label="Rule"><code className="break-all text-sm">{f.ruleId}</code></Row>
           {f.cwes && f.cwes.length > 0 && <Row label="CWE"><span className="flex flex-wrap gap-1">{f.cwes.map(renderCwe)}</span></Row>}
-          {f.package && <Row label="Package"><code className="text-xs">{f.package}</code></Row>}
-          {f.cve && <Row label="CVE"><code className="text-xs">{f.cve}</code></Row>}
-          {forgeLink && <Row label="Source"><a href={forgeLink.href} target="_blank" rel="noreferrer" className="text-xs text-accent-600 hover:underline dark:text-accent-400">view at {forgeLink.shortSha} →</a></Row>}
+          {f.package && <Row label="Package"><code className="text-sm">{f.package}</code></Row>}
+          {f.cve && <Row label="CVE"><code className="text-sm">{f.cve}</code></Row>}
+          {forgeLink && <Row label="Source"><a href={forgeLink.href} target="_blank" rel="noreferrer" className="text-sm text-accent-600 hover:underline dark:text-accent-400">view at {forgeLink.shortSha} →</a></Row>}
           <RiskSignals signals={f.riskSignals} />
         </Section>
 
         {Object.keys(groupedControls).length > 0 && (
           <Section title="Compliance">
             {Object.entries(groupedControls).map(([fw, controls]) => (
-              <Row key={fw} label={fw}><span className="flex flex-wrap gap-1">{controls.map((c) => (<span key={c} className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-xs text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300" title="Framework control this finding violates (see `argus comply`)">{c}</span>))}</span></Row>
+              <Row key={fw} label={fw}><span className="flex flex-wrap gap-1">{controls.map((c) => (<span key={c} className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-sm text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300" title="Framework control this finding violates (see `argus comply`)">{c}</span>))}</span></Row>
             ))}
           </Section>
         )}
@@ -833,12 +833,12 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
             )}
             {explainState && (
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/40">
-                {explainState.loading ? <p className="text-xs text-gray-500">Explaining…</p> : explainState.error ? (<div className="space-y-1"><p className="text-xs text-red-600 dark:text-red-400">{explainState.error}</p><button onClick={onExplain} className="text-xs text-gray-500 hover:underline">retry</button></div>) : explainState.data ? (<><p className="whitespace-pre-wrap break-words text-xs text-gray-800 dark:text-gray-200">{explainState.data.explanation}</p>{explainState.data.remediation && (<p className="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600 dark:text-gray-300"><span className="font-semibold text-gray-500">Fix: </span>{explainState.data.remediation}</p>)}<p className="mt-1 text-[10px] text-gray-400">{explainState.data.model}{explainState.data.cached ? " (cached)" : ""}</p></>) : null}
+                {explainState.loading ? <p className="text-sm text-gray-500">Explaining…</p> : explainState.error ? (<div className="space-y-1"><p className="text-sm text-red-600 dark:text-red-400">{explainState.error}</p><button onClick={onExplain} className="text-sm text-gray-500 hover:underline">retry</button></div>) : explainState.data ? (<><p className="whitespace-pre-wrap break-words text-sm text-gray-800 dark:text-gray-200">{explainState.data.explanation}</p>{explainState.data.remediation && (<p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300"><span className="font-semibold text-gray-500">Fix: </span>{explainState.data.remediation}</p>)}<p className="mt-1 text-[11px] text-gray-400">{explainState.data.model}{explainState.data.cached ? " (cached)" : ""}</p></>) : null}
               </div>
             )}
-            {remediateState && (remediateState.loading ? <p className="text-xs text-gray-500">Generating fix…</p> : remediateState.error ? (<div className="space-y-1"><p className="text-xs text-red-600 dark:text-red-400">{remediateState.error}</p><button onClick={onRemediate} className="text-xs text-gray-500 hover:underline">retry</button></div>) : remediateState.data ? (<RemediationPanel r={remediateState.data} category={f.category} location={f.location.file ? `${f.location.file}:${f.location.startLine ?? ""}` : locationLabel(f.location)} source={f.location.snippet && f.location.snippet.lines.length > 0 ? { lines: f.location.snippet.lines, startLine: f.location.snippet.startLine, flaggedStart: f.location.startLine ?? f.location.snippet.startLine, flaggedEnd: f.location.endLine ?? f.location.startLine ?? f.location.snippet.startLine } : undefined} onRegenerate={onRemediate} />) : null)}
+            {remediateState && (remediateState.loading ? <p className="text-sm text-gray-500">Generating fix…</p> : remediateState.error ? (<div className="space-y-1"><p className="text-sm text-red-600 dark:text-red-400">{remediateState.error}</p><button onClick={onRemediate} className="text-sm text-gray-500 hover:underline">retry</button></div>) : remediateState.data ? (<RemediationPanel r={remediateState.data} category={f.category} location={f.location.file ? `${f.location.file}:${f.location.startLine ?? ""}` : locationLabel(f.location)} source={f.location.snippet && f.location.snippet.lines.length > 0 ? { lines: f.location.snippet.lines, startLine: f.location.snippet.startLine, flaggedStart: f.location.startLine ?? f.location.snippet.startLine, flaggedEnd: f.location.endLine ?? f.location.startLine ?? f.location.snippet.startLine } : undefined} onRegenerate={onRemediate} />) : null)}
             <MitigationPanel finding={f} />
-            {f.remediation && <p className="whitespace-pre-wrap break-words text-xs text-gray-600 dark:text-gray-300"><span className="font-semibold text-gray-500">Scanner note: </span>{f.remediation}</p>}
+            {f.remediation && <p className="whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300"><span className="font-semibold text-gray-500">Scanner note: </span>{f.remediation}</p>}
           </Section>
         )}
 
@@ -852,18 +852,18 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
           {canExplain && (
             <div className="space-y-2">
               {!validateState && <button onClick={onValidate} className={ACTION_BTN}>Validate severity</button>}
-              {validateState && (validateState.loading ? <p className="text-xs text-gray-500">Validating severity…</p> : validateState.error ? (<div className="space-y-1"><p className="text-xs text-red-600 dark:text-red-400">{validateState.error}</p><button onClick={onValidate} className="text-xs text-gray-500 hover:underline">retry</button></div>) : validateState.data ? (<ValidationPanel v={validateState.data} bandedSeverity={f.severity} onRevalidate={onValidate} />) : null)}
+              {validateState && (validateState.loading ? <p className="text-sm text-gray-500">Validating severity…</p> : validateState.error ? (<div className="space-y-1"><p className="text-sm text-red-600 dark:text-red-400">{validateState.error}</p><button onClick={onValidate} className="text-sm text-gray-500 hover:underline">retry</button></div>) : validateState.data ? (<ValidationPanel v={validateState.data} bandedSeverity={f.severity} onRevalidate={onValidate} />) : null)}
             </div>
           )}
           <DispositionControl disposition={disposition} canDispose={canDispose} onDispose={onDispose} onClear={onClearDispose} />
           {f.triage && (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
               <div className="mb-1 flex items-center gap-2">
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${VERDICT_CHIP[f.triage.verdict]}`}>{VERDICT_LABEL[f.triage.verdict]}</span>
-                {typeof f.triage.confidence === "number" && <span className="text-xs text-gray-500">confidence {(f.triage.confidence * 100).toFixed(0)}%</span>}
-                {f.triage.model && <span className="ml-auto text-[10px] text-gray-400">{f.triage.model}</span>}
+                <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${VERDICT_CHIP[f.triage.verdict]}`}>{VERDICT_LABEL[f.triage.verdict]}</span>
+                {typeof f.triage.confidence === "number" && <span className="text-sm text-gray-500">confidence {(f.triage.confidence * 100).toFixed(0)}%</span>}
+                {f.triage.model && <span className="ml-auto text-[11px] text-gray-400">{f.triage.model}</span>}
               </div>
-              {f.triage.rationale && <p className="whitespace-pre-wrap break-words text-xs text-gray-600 dark:text-gray-300">{f.triage.rationale}</p>}
+              {f.triage.rationale && <p className="whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300">{f.triage.rationale}</p>}
             </div>
           )}
         </Section>
@@ -894,11 +894,11 @@ function DispositionControl({ disposition, canDispose, onDispose, onClear }: {
     // Viewer: read-only status.
     if (!disposition) return null;
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-gray-800 dark:bg-gray-800/50">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-800/50">
         <span className="text-gray-500">Status: </span>
         <span className={`rounded px-1.5 py-0.5 font-semibold ${DISPOSITION_CHIP[disposition.status]}`}>{DISPOSITION_LABEL[disposition.status]}</span>
         {disposition.note && <p className="mt-1 whitespace-pre-wrap break-words text-gray-600 dark:text-gray-300">{disposition.note}</p>}
-        <p className="mt-1 text-[10px] text-gray-400">{disposition.actor}</p>
+        <p className="mt-1 text-[11px] text-gray-400">{disposition.actor}</p>
       </div>
     );
   }
@@ -906,11 +906,11 @@ function DispositionControl({ disposition, canDispose, onDispose, onClear }: {
   return (
     <div className={`rounded-lg border px-3 py-2 ${regressed ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/20" : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50"}`}>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-xs font-semibold text-gray-500">Status</span>
+        <span className="mr-1 text-sm font-semibold text-gray-500">Status</span>
         <button
           onClick={() => act(onClear)}
           disabled={busy}
-          className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${current === "open" ? "bg-accent-600 text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"}`}
+          className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${current === "open" ? "bg-accent-600 text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"}`}
         >
           Open
         </button>
@@ -919,12 +919,12 @@ function DispositionControl({ disposition, canDispose, onDispose, onClear }: {
             key={s}
             onClick={() => act(() => onDispose(s, note))}
             disabled={busy}
-            className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${current === s ? DISPOSITION_CHIP[s] + " ring-1 ring-current" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"}`}
+            className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${current === s ? DISPOSITION_CHIP[s] + " ring-1 ring-current" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"}`}
           >
             {DISPOSITION_LABEL[s]}
           </button>
         ))}
-        {regressed && <span className="ml-auto text-[10px] font-bold text-red-600 dark:text-red-400" title="Marked fixed but still detected in this run">⟳ REGRESSION</span>}
+        {regressed && <span className="ml-auto text-[11px] font-bold text-red-600 dark:text-red-400" title="Marked fixed but still detected in this run">⟳ REGRESSION</span>}
       </div>
       <div className="mt-2 flex items-start gap-2">
         <textarea
@@ -932,19 +932,19 @@ function DispositionControl({ disposition, canDispose, onDispose, onClear }: {
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note / justification (saved with the status)"
           rows={2}
-          className="w-full resize-y rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+          className="w-full resize-y rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
         />
         {disposition && note !== (disposition.note ?? "") && (
           <button
             onClick={() => act(() => onDispose(disposition.status, note))}
             disabled={busy}
-            className="shrink-0 rounded bg-accent-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-accent-700 disabled:opacity-50"
+            className="shrink-0 rounded bg-accent-600 px-2 py-1 text-[12px] font-semibold text-white hover:bg-accent-700 disabled:opacity-50"
           >
             Save note
           </button>
         )}
       </div>
-      {disposition && <p className="mt-1 text-[10px] text-gray-400">by {disposition.actor}</p>}
+      {disposition && <p className="mt-1 text-[11px] text-gray-400">by {disposition.actor}</p>}
     </div>
   );
 }
@@ -969,11 +969,11 @@ function CodeBlock({ code, tone }: { code: string; tone: "bad" | "good" }) {
     <div className={`relative overflow-hidden rounded border ${border}`}>
       <button
         onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
-        className="absolute right-1 top-1 rounded bg-white/80 px-1.5 py-0.5 text-[10px] text-gray-600 hover:bg-white dark:bg-gray-800/80 dark:text-gray-300"
+        className="absolute right-1 top-1 rounded bg-white/80 px-1.5 py-0.5 text-[11px] text-gray-600 hover:bg-white dark:bg-gray-800/80 dark:text-gray-300"
       >
         {copied ? "copied" : "copy"}
       </button>
-      <pre className="scroll-thin overflow-x-auto bg-gray-50 p-2 font-mono text-[11px] text-gray-800 dark:bg-gray-900 dark:text-gray-200">{code}</pre>
+      <pre className="scroll-thin overflow-x-auto bg-gray-50 p-2 font-mono text-[12px] text-gray-800 dark:bg-gray-900 dark:text-gray-200">{code}</pre>
     </div>
   );
 }
@@ -1013,9 +1013,9 @@ function MitigationPanel({ finding }: { finding: Finding }) {
     <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-3 dark:border-indigo-900 dark:bg-indigo-950/20">
       <div className="mb-1 flex items-center justify-between gap-2">
         <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">Secure code fix: {m.title}</h4>
-        <span className="text-[10px] uppercase tracking-wide text-gray-400">curated · human-vetted</span>
+        <span className="text-[11px] uppercase tracking-wide text-gray-400">curated · human-vetted</span>
       </div>
-      <p className="mb-2 text-xs text-gray-700 dark:text-gray-300">{m.principle}</p>
+      <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">{m.principle}</p>
 
       {m.snippets.length > 1 && (
         <div className="mb-2 flex flex-wrap gap-1">
@@ -1023,7 +1023,7 @@ function MitigationPanel({ finding }: { finding: Finding }) {
             <button
               key={s.language}
               onClick={() => setLang(s.language)}
-              className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${s.language === snippet.language ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300"}`}
+              className={`rounded px-1.5 py-0.5 text-[12px] font-medium ${s.language === snippet.language ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300"}`}
             >
               {s.language}
             </button>
@@ -1033,17 +1033,17 @@ function MitigationPanel({ finding }: { finding: Finding }) {
 
       {snippet && (
         <div className="space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Vulnerable</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Vulnerable</div>
           <CodeBlock code={snippet.vulnerable} tone="bad" />
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Secure</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Secure</div>
           <CodeBlock code={snippet.secure} tone="good" />
-          {snippet.library && <p className="text-xs text-gray-600 dark:text-gray-300"><span className="font-semibold">Use:</span> {snippet.library}</p>}
-          {snippet.note && <p className="text-xs text-gray-500 dark:text-gray-400">{snippet.note}</p>}
+          {snippet.library && <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-semibold">Use:</span> {snippet.library}</p>}
+          {snippet.note && <p className="text-sm text-gray-500 dark:text-gray-400">{snippet.note}</p>}
         </div>
       )}
 
       {m.references.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
           {m.references.map((r) => (
             <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline dark:text-indigo-400">
               {r.title} ↗
@@ -1063,30 +1063,30 @@ function ValidationPanel({ v, bandedSeverity, onRevalidate }: { v: ValidationRes
   return (
     <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/40">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Severity validation</span>
-        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${VERDICT_CHIP[v.verdict]}`}>{VERDICT_LABEL[v.verdict] ?? v.verdict}</span>
-        <button onClick={onRevalidate} className="ml-auto text-[10px] text-gray-500 hover:underline">re-validate</button>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Severity validation</span>
+        <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${VERDICT_CHIP[v.verdict]}`}>{VERDICT_LABEL[v.verdict] ?? v.verdict}</span>
+        <button onClick={onRevalidate} className="ml-auto text-[11px] text-gray-500 hover:underline">re-validate</button>
       </div>
 
       {rated ? (
         <>
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="text-2xl font-bold tabular-nums" style={{ color: riskColor(v.cvssScore) }}>{v.cvssScore.toFixed(1)}</span>
-            <span className="text-xs font-semibold uppercase" style={{ color: riskColor(v.cvssScore) }}>{v.cvssSeverity}</span>
-            <span className="text-[10px] text-gray-400">CVSS 3.1 base · this scan's banded severity: {bandedSeverity}</span>
+            <span className="text-sm font-semibold uppercase" style={{ color: riskColor(v.cvssScore) }}>{v.cvssSeverity}</span>
+            <span className="text-[11px] text-gray-400">CVSS 3.1 base · this scan's banded severity: {bandedSeverity}</span>
           </div>
-          <div className="break-all font-mono text-[10px] text-gray-500 dark:text-gray-400">{v.cvssVector}</div>
+          <div className="break-all font-mono text-[11px] text-gray-500 dark:text-gray-400">{v.cvssVector}</div>
         </>
       ) : (
-        <p className="text-xs text-gray-500">No valid CVSS vector returned — showing the model's assessment only.</p>
+        <p className="text-sm text-gray-500">No valid CVSS vector returned — showing the model's assessment only.</p>
       )}
 
-      <div className="grid grid-cols-[74px_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs">
+      <div className="grid grid-cols-[74px_minmax(0,1fr)] gap-x-2 gap-y-1 text-sm">
         {v.impact && (<><span className="text-gray-400">Impact</span><span className="break-words text-gray-700 dark:text-gray-300">{v.impact}</span></>)}
         {v.likelihood && (<><span className="text-gray-400">Likelihood</span><span className="break-words text-gray-700 dark:text-gray-300">{v.likelihood}</span></>)}
       </div>
-      {v.rationale && <p className="break-words text-[11px] text-gray-500 dark:text-gray-400">{v.rationale}</p>}
-      <p className="text-[10px] text-gray-400">{v.model} · advisory; does not change the stored severity</p>
+      {v.rationale && <p className="break-words text-[12px] text-gray-500 dark:text-gray-400">{v.rationale}</p>}
+      <p className="text-[11px] text-gray-400">{v.model} · advisory; does not change the stored severity</p>
     </div>
   );
 }
@@ -1113,29 +1113,29 @@ function RemediationPanel({ r, category, location, source, onRegenerate }: { r: 
   return (
     <div className="space-y-2.5 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/40">
       <div className="flex items-center gap-2">
-        <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-700 dark:text-gray-300">
           {KIND_LABEL[r.kind] ?? r.kind}
         </span>
-        <span className="text-[10px] uppercase tracking-wide text-gray-400">AI-generated</span>
-        <button onClick={onRegenerate} className="ml-auto text-[10px] text-gray-500 hover:text-gray-700 hover:underline dark:hover:text-gray-300">regenerate</button>
+        <span className="text-[11px] uppercase tracking-wide text-gray-400">AI-generated</span>
+        <button onClick={onRegenerate} className="ml-auto text-[11px] text-gray-500 hover:text-gray-700 hover:underline dark:hover:text-gray-300">regenerate</button>
       </div>
 
-      <p className="break-words text-xs font-medium text-gray-800 dark:text-gray-200">{r.summary}</p>
+      <p className="break-words text-sm font-medium text-gray-800 dark:text-gray-200">{r.summary}</p>
 
       {/* One caution accent: you run it yourself, and a re-scan confirms it. */}
-      <div className="flex gap-1.5 rounded border-l-2 border-amber-400 bg-amber-50/60 px-2 py-1.5 text-[11px] text-amber-800 dark:bg-amber-900/15 dark:text-amber-300">
+      <div className="flex gap-1.5 rounded border-l-2 border-amber-400 bg-amber-50/60 px-2 py-1.5 text-[12px] text-amber-800 dark:bg-amber-900/15 dark:text-amber-300">
         <span>Review before running. You apply this with your own credentials{infra ? "; it modifies live infrastructure" : ""}. The finding clears only on re-scan.</span>
       </div>
 
       {r.safetyIssues && r.safetyIssues.length > 0 && (
-        <div className="rounded border-l-2 border-red-400 bg-red-50/60 px-2 py-1.5 text-[11px] text-red-800 dark:bg-red-950/20 dark:text-red-300">
+        <div className="rounded border-l-2 border-red-400 bg-red-50/60 px-2 py-1.5 text-[12px] text-red-800 dark:bg-red-950/20 dark:text-red-300">
           <span className="font-semibold">Safety linter defanged this suggestion:</span>
           <ul className="ml-4 list-disc">{r.safetyIssues.map((s, i) => <li key={i}>{s}</li>)}</ul>
         </div>
       )}
 
       {r.steps && r.steps.length > 0 && (
-        <ol className="ml-4 list-decimal space-y-1 text-xs text-gray-700 dark:text-gray-300 marker:text-gray-400">
+        <ol className="ml-4 list-decimal space-y-1 text-sm text-gray-700 dark:text-gray-300 marker:text-gray-400">
           {r.steps.map((s, i) => <li key={i} className="break-words pl-1">{stripStepNumber(s)}</li>)}
         </ol>
       )}
@@ -1143,15 +1143,15 @@ function RemediationPanel({ r, category, location, source, onRegenerate }: { r: 
       {r.artifacts?.map((a, i) => (a.language === "diff" ? <DiffView key={i} content={a.content} title={a.title} location={location} source={source} /> : <ArtifactBlock key={i} a={a} />))}
 
       {r.warnings && r.warnings.length > 0 && (
-        <ul className="ml-4 list-disc space-y-0.5 text-[11px] text-gray-600 dark:text-gray-400">
+        <ul className="ml-4 list-disc space-y-0.5 text-[12px] text-gray-600 dark:text-gray-400">
           {r.warnings.map((w, i) => <li key={i}>{w}</li>)}
         </ul>
       )}
 
       {r.verification && (
-        <p className="text-[11px] text-gray-600 dark:text-gray-400"><span className="font-semibold">Verify:</span> {r.verification}</p>
+        <p className="text-[12px] text-gray-600 dark:text-gray-400"><span className="font-semibold">Verify:</span> {r.verification}</p>
       )}
-      <p className="text-[10px] text-gray-400">{r.model}</p>
+      <p className="text-[11px] text-gray-400">{r.model}</p>
     </div>
   );
 }
@@ -1162,7 +1162,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {}); }}
-      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+      className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
     >
       {copied ? "copied" : "copy"}
     </button>
@@ -1172,13 +1172,13 @@ function CopyButton({ text }: { text: string }) {
 function ArtifactBlock({ a }: { a: RemediationArtifact }) {
   return (
     <div className="overflow-hidden rounded border border-gray-200 dark:border-gray-800">
-      <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 text-[10px] text-gray-500 dark:bg-gray-800">
+      <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 text-[11px] text-gray-500 dark:bg-gray-800">
         <span className="font-mono uppercase">{a.language}</span>
         {a.title && <span className="truncate">{a.title}</span>}
         <span className="ml-auto"><CopyButton text={a.content} /></span>
       </div>
       {/* Escaped text only — never dangerouslySetInnerHTML. */}
-      <pre className="scroll-thin overflow-x-auto whitespace-pre bg-gray-50 p-2 font-mono text-[11px] text-gray-800 dark:bg-gray-900 dark:text-gray-200">{a.content}</pre>
+      <pre className="scroll-thin overflow-x-auto whitespace-pre bg-gray-50 p-2 font-mono text-[12px] text-gray-800 dark:bg-gray-900 dark:text-gray-200">{a.content}</pre>
     </div>
   );
 }
@@ -1269,16 +1269,16 @@ function DiffView({ content, title, location, source }: { content: string; title
   // diff row is one grid row, so the two cells stay top-aligned even when one
   // side wraps taller than the other.
   const cell = "min-w-0 whitespace-pre-wrap break-all px-2 py-px";
-  const label = "sticky top-0 z-10 border-b border-gray-200 bg-gray-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-800 dark:bg-gray-800";
+  const label = "sticky top-0 z-10 border-b border-gray-200 bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-800 dark:bg-gray-800";
   return (
     <div className="overflow-hidden rounded border border-gray-200 dark:border-gray-800">
-      <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 text-[10px] text-gray-500 dark:bg-gray-800">
+      <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 text-[11px] text-gray-500 dark:bg-gray-800">
         <span className="font-mono uppercase">patch</span>
         {location && <span className="truncate font-mono">{location}</span>}
         <span className="ml-auto"><CopyButton text={content} /></span>
       </div>
       <div className="scroll-thin max-h-96 overflow-y-auto">
-        <div className="grid grid-cols-2 font-mono text-[11px] leading-relaxed">
+        <div className="grid grid-cols-2 font-mono text-[12px] leading-relaxed">
           <div className={`${label} border-r`}>Before</div>
           <div className={label}>After</div>
           {rows.map((row, i) => (
@@ -1320,7 +1320,7 @@ function RiskSignals({ signals }: { signals?: RiskSignal[] }) {
           return (
             <span
               key={s.code}
-              className={`rounded px-1.5 py-0.5 font-mono text-xs ${colorClass}`}
+              className={`rounded px-1.5 py-0.5 font-mono text-sm ${colorClass}`}
               title={s.note}
             >
               {s.code}{" "}
@@ -1339,17 +1339,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   // than the pane; min-w-0 lets the value wrap/scroll inside its own box.
   return (
     <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-2">
-      <span className="text-xs font-medium uppercase text-gray-400">{label}</span>
+      <span className="text-sm font-medium uppercase text-gray-400">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
 }
 
 function RiskPill({ score }: { score?: number }) {
-  if (score === undefined || score === null) return <span className="text-xs text-gray-400">—</span>;
+  if (score === undefined || score === null) return <span className="text-sm text-gray-400">—</span>;
   return (
     <span
-      className="inline-block rounded px-1.5 py-0.5 text-xs font-bold tabular-nums text-white"
+      className="inline-block rounded px-1.5 py-0.5 text-sm font-bold tabular-nums text-white"
       style={{ background: riskColor(score) }}
     >
       {score.toFixed(1)}
@@ -1369,12 +1369,12 @@ function Select({
   options: string[];
 }) {
   return (
-    <label className="inline-flex items-center gap-1 text-xs text-gray-500">
+    <label className="inline-flex items-center gap-1 text-sm text-gray-500">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+        className="rounded-md border border-gray-300 bg-white px-1.5 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
       >
         {options.map((o) => (
           <option key={o} value={o}>
