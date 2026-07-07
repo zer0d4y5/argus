@@ -243,6 +243,11 @@ func TestAuthzMatrix(t *testing.T) {
 		{"GET", "/api/admin/settings", 401, 403, 403, pass},
 		{"PUT", "/api/admin/settings", 401, 403, 403, pass},
 		{"POST", "/api/admin/settings/validate-rulesets", 401, 403, 403, pass}, // check custom rules: admin
+		{"GET", "/api/admin/rules", 401, 403, 403, pass},                       // list saved custom rules: admin
+		{"POST", "/api/admin/rules", 401, 403, 403, pass},                      // save a custom rule: admin
+		{"POST", "/api/admin/rules/draft", 401, 403, 403, pass},                // AI draft: admin
+		{"POST", "/api/admin/rules/test", 401, 403, 403, pass},                 // validate/test: admin
+		{"DELETE", "/api/admin/rules/somename", 401, 403, 403, pass},           // delete a rule: admin
 		{"GET", "/api/audit", 401, 403, 403, pass},
 
 		// Unlisted routes fail closed: mutating verbs need admin.

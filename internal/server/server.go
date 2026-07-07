@@ -175,6 +175,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/admin/oidc", s.handleAdminOIDC)                              // GET/PUT SSO config (admin)
 	mux.HandleFunc("/api/admin/settings", s.handleAdminSettings)                      // GET/PUT integrations + scanning config (admin)
 	mux.HandleFunc("/api/admin/settings/validate-rulesets", s.handleValidateRulesets) // POST: check custom rules without saving (admin)
+	mux.HandleFunc("/api/admin/rules", s.handleRules)                                 // GET list, POST save custom rules (admin)
+	mux.HandleFunc("/api/admin/rules/", s.handleRulesSub)                             // POST /draft, /test; DELETE /{name} (admin)
 	mux.HandleFunc("/api/audit", s.handleAudit)                                       // GET (admin)
 	mux.HandleFunc("/", s.handleStatic)
 	return securityHeaders(s.authGate(mux))

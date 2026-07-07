@@ -5,6 +5,7 @@ import { useConfirm } from "../toast";
 import { fmtTime } from "../theme";
 import { SSOConfigPanel } from "./SSOConfigPanel";
 import { ConsoleSettingsPanel } from "./ConsoleSettingsPanel";
+import { RuleAuthorPanel } from "./RuleAuthorPanel";
 
 export function Admin({ selfUsername }: { selfUsername: string }) {
   const confirm = useConfirm();
@@ -159,6 +160,9 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
 
       {/* Section 2b: integrations & scanning config */}
       <ConsoleSettingsPanel />
+
+      {/* Section 2c: AI-assisted custom rule authoring */}
+      <RuleAuthorPanel />
 
       {/* Section 3: Targets */}
       <Panel title="Targets">

@@ -65,7 +65,7 @@ closes it. Tests referenced in §9 pin every row.
 | S2 | Scan scope (subpath/file) | Path traversal (`../`, absolute paths), symlink escape out of the target root, scoping into `.git/` or `.appsec/` bookkeeping | Scope is a **relative** path in the launch request, rejected at the API if absolute or containing `..` after `filepath.Clean`. It is joined server-side to the registered root and verified inside that root **after `EvalSymlinks`**, must exist, and must not enter `.git/` or `.appsec/`. Validated at enqueue AND re-validated at execution (the tree may change in between, always, for git targets, where the tree is refreshed per scan). The scanners receive the joined path exactly as the CLI's `[path]` argument works; no new argv shapes. |
 | S3 | Console-managed scan config | Config fields ARE code execution: rulesets reach scanner argv, triage endpoints are SSRF, `ignore_paths`/`ignore_rules` silently suppress findings, timeout/concurrency are resource abuse | The console edits a **structured, closed subset** stored on the registry entry (never written into the target repo): allowed scanners (known set), default profile (enum), per-scanner timeout (bounded 10–3600 s), triage on/off, and ignore rules/paths (admin-only; every change is an audit event carrying the pattern/rule text, because suppression is the finding-killing knob). Triage provider/model/endpoint/API keys are **never** console-editable; they come from the target repo's `appsec.yml` and the environment only. **Custom `semgrep_rulesets` ARE admin-editable** (§12.9) but through a validator gate: an entry is a registry pack, the `argus/curated` sentinel, or a **local** rule file/dir; a remote URL is refused outright (rules that run are local and reviewable, never fetched); a local path is resolved and run through `semgrep --validate` before it is saved, so a missing or malformed rule is a clear 400 at save time, not a silently broken scan; the list is length-bounded and every change is audited. Custom rulesets default to **additive** (the profile packs plus your rules) so a custom list never silently drops the curated breadth; an explicit "replace" mode is available. Precedence is fixed and table-tested: repo `appsec.yml` < registry overrides < per-launch options (§12.3). |
 | S4 | Code snippets in run files | Secret material persisted into `runs/*.json` (the gitleaks payload scrub exists precisely to prevent this); unbounded snippet size; hostile file content | Snippets are captured server-side at scan time by `internal/snippet` (the same symlink-confined reader triage uses, extracted, not re-derived), bounded per finding (≤10 lines, ≤2 KB) and per run (≤1 MiB total). **SECRET-category findings get NO snippet, ever**: metadata only, the same rule triage applies to prompts. Files that look binary (NUL in window) or minified (extreme line length) are skipped. A snippet is hostile data like any finding text: rendered as escaped text only, never HTML. |
-| S5 | On-demand AI explain | Prompt injection from hostile code; token/compute abuse from the browser; secret material sent to a cloud provider | Reuses the triage boundary machinery verbatim: CSPRNG boundary markers, sanitized length-capped inputs, strict output validation, snippet confinement, and the SECRET-never-to-cloud gate (metadata-only prompt for secrets; cloud providers refused unless the repo config opted in). Operator+ role, single-flight per finding, in-memory LRU cache, hard `MaxTokens` cap. Explanations are ephemeral enrichment returned to the browser: **never written into run files or the audit log** (the audit line records that an explanation was requested, not its content). Provider/model/endpoint come from the target repo's `appsec.yml` only. |
+| S5 | On-demand AI seams (explain, threat/rule authoring) | Prompt injection from hostile code; token/compute abuse from the browser; secret material sent to a cloud provider; an AI-authored artifact (remediation, semgrep rule) that runs and does harm | Reuses the triage boundary machinery verbatim: CSPRNG boundary markers, sanitized length-capped inputs, strict output validation, snippet confinement, and the SECRET-never-to-cloud gate (metadata-only prompt for secrets; cloud providers refused unless the repo config opted in). Operator+ role, single-flight per finding, in-memory LRU cache, hard `MaxTokens` cap. Explanations are ephemeral enrichment returned to the browser: **never written into run files or the audit log** (the audit line records that an request was made, not its content). Provider/model/endpoint come from the target repo's `appsec.yml` only. **AI-authored semgrep rules** (§12.10, admin-only) add the rule variant of this row: the model DRAFTS a rule but a deterministic linter (`internal/ruleauthor/safety.go`, no LLM) REJECTS ReDoS and over-broad rules at draft AND save time, `semgrep --validate` gates every save, and nothing is saved or activated without explicit human confirmation. |
 | S6 | Compliance-scoped scans | Pretending a framework filter is an audit ("we scanned for PCI") when mapping is enrichment over whatever the scanners found | Frameworks are a **closed enum from the embedded compliance data**. Selecting them (a) filters reporting emphasis in the run detail view and (b) narrows scanner selection through a hand-curated framework→scanner-relevance table (§12.5); it never changes mapping logic, and an empty intersection with the chosen scanners is a 400, not a silent no-op. The frameworks requested are recorded on the job and in the audit line; the run file shape is unchanged, and nothing anywhere claims "PCI-certified": a framework-scoped scan is the same scan with relevant scanners and a filtered lens. |
 | C1 | Cloud target registration | **Credential exfiltration**: an admin (or a compromised admin session) submits a raw access key / secret, which the platform then stores in `targets.json`, logs, or a run file: turning the tool into a credential store to be looted | **Credentials are referenced, never collected** (the locked decision). The registration API accepts a `{provider, profileName, regions}` shape with NO key field. `profileName` is validated against the **closed list discovered from the console host's own cloud config** (`cloudscan.ListAWSProfiles`, which reads section headers ONLY, credential values are never parsed). A name outside that list → 400. Nothing key-shaped is accepted, so nothing key-shaped can be stored; the platform runs with whatever the host is already authenticated as. Residual: the console host must be pre-authenticated to the cloud (fine for local-first; a hosted deployment needs a real secrets design, explicitly deferred). |
 | C2 | Profile name → child env | **Injection into `AWS_PROFILE`**: a crafted profile name (`default; rm -rf /`, `$(whoami)`, a newline injecting a second env var) reaching the prowler child environment | The chosen name is re-validated at scan time against the same discovered closed list (`cloudscan.Validate`); a value that is not literally a section of `~/.aws` never reaches an env var, whatever surface supplied it (console form OR CLI flag). It is passed as a single `AWS_PROFILE=<name>` entry in the child's env slice (never a shell, never string-concatenated), and dies with the process. Regions match a closed `^[a-z0-9-]{1,32}$` grammar and are exec args, never shell. |
@@ -541,6 +541,48 @@ The console exposes the same choice as an "Add to the profile packs" checkbox
 Custom rulesets set in the console apply to scans of the served repo; per-target
 `appsec.yml` files still win for their own targets (the §12.3 layering is
 unchanged).
+
+### 12.10 AI-assisted rule authoring (assisted, human-confirmed)
+
+Writing a semgrep rule by hand is the hard part of §12.9. The console adds a
+local-LLM assistant that DRAFTS one for you, following the same seam contract
+as AI triage and threat suggestion (threat row S5): the model assists, a human
+confirms, and a deterministic gate stands between the model and anything that
+runs.
+
+The loop (admin-only, every step audited):
+
+1. **Describe** a detection in plain language and pick a language. The local
+   model (Ollama by default; the request never picks the provider) drafts one
+   semgrep rule. Prompt assembly is a security boundary: the description, any
+   rule being edited, and any pasted snippet enter the prompt only between
+   per-request CSPRNG boundary markers, and the system prompt is version-pinned
+   data (the embedded semgrep grammar plus vetted few-shot examples,
+   `internal/ruleauthor/knowledge/`), not model free-improv.
+2. **Edit** the drafted YAML directly. It is your rule; the model only proposed
+   a starting point. An "Ask AI to revise" action sends the current rule plus a
+   one-line instruction back through the same boundary for a revision.
+3. **Test** it against a pasted example: the rule is run through
+   `semgrep --validate` and then over the snippet, and the panel says whether it
+   matched (green) or not (red), so you can see it does what you described.
+4. **Save** it as a custom local rule under `.appsec/rules/<name>.yml`. Saving
+   activates it (adds its path to the console rulesets from §12.9), so it takes
+   part in the next scan. Delete removes both the file and the ruleset entry.
+
+Safety (threat row S5, rule variant). The generated rule is DATA, but semgrep
+executes it against source, so it is treated as untrusted:
+
+- A **deterministic safety linter** (`internal/ruleauthor/safety.go`, unit-tested
+  with no LLM) runs at draft time AND again server-side at save time. It REJECTS
+  (not defangs) a rule with a catastrophic-backtracking regex shape (a quantified
+  group nested inside another quantifier, the classic ReDoS form), an over-broad
+  pattern that matches all code (a bare metavariable or ellipsis, `.*` as a
+  regex), a missing required field, or a file over the size/rule-count caps. The
+  model's opinion that a rule is fine never counts; this gate does.
+- **Nothing is auto-saved or auto-applied.** The flow is always draft, human
+  edits and confirms, save. A saved rule additionally passes `semgrep --validate`
+  before it touches disk, so it can never break a scan. The draft is never
+  persisted until the human saves it, and the panel labels AI-generated content.
 
 ## 13. Cloud posture targets (schema 2.1.0)
 

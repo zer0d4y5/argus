@@ -46,6 +46,7 @@ const (
 	EventThreatUpdate   = "threat.update"   // add/enumerate/status/link a threat or component
 	EventConfigChange   = "config.change"   // admin edited console configuration (e.g. SSO)
 	EventCloudRemediate = "cloud.remediate" // admin dry-ran or applied a curated cloud fix
+	EventRuleAuthor     = "rule.author"     // admin drafted/tested/saved/deleted a custom semgrep rule
 )
 
 // Entry is one audit line.

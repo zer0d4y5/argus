@@ -413,6 +413,37 @@ export interface RulesetStatus {
   message?: string;
 }
 
+// AI-assisted rule authoring.
+export interface RuleSafetyIssue {
+  rule?: string;
+  message: string;
+  blocking: boolean;
+}
+export interface RuleDraft {
+  rule: string; // the drafted/edited rule YAML
+  issues: RuleSafetyIssue[];
+  ready: boolean; // parsed + no blocking safety issue
+  model: string; // provider/model that produced it (for the AI-generated label)
+}
+export interface RuleTestMatch {
+  check: string;
+  startLine: number;
+  endLine: number;
+}
+export interface RuleTestResult {
+  issues: RuleSafetyIssue[];
+  safe: boolean;
+  valid: boolean;
+  validationError: string;
+  matched: boolean;
+  matches: RuleTestMatch[];
+}
+export interface SavedRule {
+  name: string;
+  path: string;
+  active: boolean;
+}
+
 export interface MeResponse { authRequired: boolean; authenticated: boolean; user?: UserInfo; csrfToken?: string; githubRepo?: string; ssoEnabled?: boolean; }
 
 // SSO (OIDC) admin configuration. The client secret is never here — the UI
@@ -649,6 +680,17 @@ export const opsApi = {
     send<SettingsView>("PUT", "api/admin/settings", req),
   validateRulesets: (semgrepRulesets: string[]): Promise<{ results: RulesetStatus[] }> =>
     send<{ results: RulesetStatus[] }>("POST", "api/admin/settings/validate-rulesets", { semgrepRulesets }),
+
+  draftRule: (req: { description: string; language: string; existingRule?: string; instruction?: string }): Promise<RuleDraft> =>
+    send<RuleDraft>("POST", "api/admin/rules/draft", req),
+  testRule: (req: { rule: string; snippet?: string; language?: string }): Promise<RuleTestResult> =>
+    send<RuleTestResult>("POST", "api/admin/rules/test", req),
+  listRules: (): Promise<{ rules: SavedRule[] }> =>
+    send<{ rules: SavedRule[] }>("GET", "api/admin/rules"),
+  saveRule: (req: { name: string; rule: string; activate?: boolean }): Promise<{ name: string; path: string; activated: boolean }> =>
+    send<{ name: string; path: string; activated: boolean }>("POST", "api/admin/rules", req),
+  deleteRule: (name: string): Promise<{ deleted: string }> =>
+    send<{ deleted: string }>("DELETE", `api/admin/rules/${encodeURIComponent(name)}`),
 
   getOIDCConfig: (): Promise<OIDCConfigView> =>
     send<OIDCConfigView>("GET", "api/admin/oidc"),

@@ -93,6 +93,10 @@ var authzTable = []authzRule{
 	{http.MethodGet, "/api/admin/settings", auth.RoleAdmin, false},
 	{http.MethodPut, "/api/admin/settings", auth.RoleAdmin, false},
 	{http.MethodPost, "/api/admin/settings/validate-rulesets", auth.RoleAdmin, false},
+	{http.MethodGet, "/api/admin/rules", auth.RoleAdmin, false},
+	{http.MethodPost, "/api/admin/rules", auth.RoleAdmin, false},
+	{http.MethodPost, "/api/admin/rules/", auth.RoleAdmin, false},   // /draft, /test
+	{http.MethodDelete, "/api/admin/rules/", auth.RoleAdmin, false}, // delete a saved rule
 	{http.MethodGet, "/api/audit", auth.RoleAdmin, false},
 }
 
