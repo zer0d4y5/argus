@@ -495,7 +495,7 @@ export function App() {
       <header className="sticky top-0 z-10 -mx-4 mb-4 border-b border-gray-200 bg-gray-50/90 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-950/90">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Wordmark size={26} className="text-xl" />
+            <Wordmark size={30} className="text-xl" />
             <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[11px] font-semibold uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300">
               console
             </span>
