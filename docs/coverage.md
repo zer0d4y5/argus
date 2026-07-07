@@ -1,4 +1,4 @@
-# Coverage — the eagle-eye matrix
+# Coverage: the eagle-eye matrix
 
 > **Generated, not authored.** This file is produced by
 > `internal/coverage` from a live scan of the labeled fixtures under
@@ -19,7 +19,7 @@ and are overridable per repo via `semgrep_rulesets:`.
 | Profile | semgrep packs | Intended use | Relative cost |
 |---|---|---|---|
 | `fast` | `p/ci` | tight PR gates, low noise | fastest |
-| `standard` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/rust`, `p/scala` | default — broad multi-language audit | ~1 pack-set, moderate |
+| `standard` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/rust`, `p/scala` | default: broad multi-language audit | ~1 pack-set, moderate |
 | `max` | `p/security-audit`, `p/owasp-top-ten`, `p/python`, `p/javascript`, `p/typescript`, `p/golang`, `p/java`, `p/csharp`, `p/ruby`, `p/php`, `p/kotlin`, `p/rust`, `p/scala`, `p/default`, `p/secrets`, `p/gosec`, `p/nodejsscan`, `p/react`, `p/command-injection`, `p/sql-injection`, `p/xss`, `p/jwt`, `p/insecure-transport`, `p/bandit`, `p/findsecbugs`, `p/security-code-scan`, `p/mobsfscan`, `p/phpcs-security-audit` | deep audit; recall over noise (triage handles FPs) | highest (adds p/default) |
 
 ## Language × weakness coverage
@@ -45,26 +45,26 @@ and are overridable per repo via `semgrep_rulesets:`.
 
 Each is asserted detected under `standard` by `TestPolyglotCoverage`:
 
-- **Python** — OS command injection (CWE-78); Weak hash (MD5) (CWE-327)
-- **JavaScript** — OS command injection (CWE-78); Cross-site scripting (CWE-79); Code injection (eval) (CWE-95)
-- **TypeScript** — OS command injection (CWE-78)
-- **Go** — SQL injection (CWE-89); Weak hash (MD5) (CWE-328)
-- **Java** — SQL injection (CWE-89); Insecure deserialization (CWE-502)
-- **C#** — SQL injection (CWE-89)
-- **Ruby** — SQL injection (CWE-89); Cross-site scripting (CWE-79); Code injection (CWE-94); Insecure deserialization (CWE-502)
-- **PHP** — OS command injection (CWE-78); Cross-site scripting (CWE-79); SQL injection (CWE-89); Code injection (CWE-94)
-- **Kotlin** — Weak hash (MD5) (CWE-328)
-- **Rust** — Reliance on untrusted input in a security decision (CWE-807); Use of inherently dangerous function (unsafe) (CWE-242)
-- **Scala** — SQL injection (tainted interpolation) (CWE-89)
-- **C** — Use of dangerous function (gets) (CWE-676)
+- **Python**: OS command injection (CWE-78); Weak hash (MD5) (CWE-327)
+- **JavaScript**: OS command injection (CWE-78); Cross-site scripting (CWE-79); Code injection (eval) (CWE-95)
+- **TypeScript**: OS command injection (CWE-78)
+- **Go**: SQL injection (CWE-89); Weak hash (MD5) (CWE-328)
+- **Java**: SQL injection (CWE-89); Insecure deserialization (CWE-502)
+- **C#**: SQL injection (CWE-89)
+- **Ruby**: SQL injection (CWE-89); Cross-site scripting (CWE-79); Code injection (CWE-94); Insecure deserialization (CWE-502)
+- **PHP**: OS command injection (CWE-78); Cross-site scripting (CWE-79); SQL injection (CWE-89); Code injection (CWE-94)
+- **Kotlin**: Weak hash (MD5) (CWE-328)
+- **Rust**: Reliance on untrusted input in a security decision (CWE-807); Use of inherently dangerous function (unsafe) (CWE-242)
+- **Scala**: SQL injection (tainted interpolation) (CWE-89)
+- **C**: Use of dangerous function (gets) (CWE-676)
 
 ## Known gaps (honest accounting)
 
-None among the labeled classes — every weakness class shown is caught by at least one profile.
+None among the labeled classes: every weakness class shown is caught by at least one profile.
 
 ## Per-scanner review
 
-- **semgrep (SAST)** — the breadth engine. `standard` runs a security-audit +
+- **semgrep (SAST)**: the breadth engine. `standard` runs a security-audit +
   OWASP-Top-Ten base plus a per-language pack for Python, JS, TS, Go, Java, C#,
   Ruby, PHP, Kotlin, **Rust** (`p/rust`), and **Scala** (`p/scala`). `max` adds
   `p/default`, `p/secrets`, `p/gosec`, and framework/category packs, which is
@@ -75,23 +75,23 @@ None among the labeled classes — every weakness class shown is caught by at le
   plant it detects). **Rust** and **Scala** landed with dedicated packs
   (`p/rust`: untrusted-input CWE-807, unsafe-usage CWE-242; `p/scala`:
   tainted-sql-string CWE-89). **C** landed too, but through
-  `p/security-audit`'s own C rules (`insecure-use-gets-fn`, CWE-676) — a
+  `p/security-audit`'s own C rules (`insecure-use-gets-fn`, CWE-676); a
   dedicated `p/c` added nothing over it on the plants, so it was NOT added.
   **Swift** and **Elixir** did NOT land: `p/swift` and `p/elixir` (thin
   registry packs) caught none of their fixture plants even with `p/default`;
   their fixtures remain as `PLANT-GAP` documentation and `.swift`/`.ex` stay
   "unsupported source" in skip accounting. Nothing is claimed that a scan
   did not prove.
-- **gitleaks (SECRET)** — default ruleset (100+ credential patterns) is
+- **gitleaks (SECRET)**: default ruleset (100+ credential patterns) is
   sufficient; secret material is redacted before it ever reaches a report or an
-  LLM. No per-language tuning needed — secrets are language-agnostic.
+  LLM. No per-language tuning needed: secrets are language-agnostic.
   **Git history mode** (schema 2.0.0): when the scan target is a git
   repository, a second pass scans the commit history, so a credential that
-  was committed and later deleted — but never rotated — still surfaces,
+  was committed and later deleted, but never rotated, still surfaces,
   labeled `meta.gitHistory` with the introducing commit. Shallow console
   workspaces (depth-1 clones) cover a single commit of history and say so
   (`meta.gitShallow`). Cost: roughly one extra gitleaks pass per scan.
-- **trivy (SCA)** — vulnerability scanning of dependency manifests and lockfiles
+- **trivy (SCA)**: vulnerability scanning of dependency manifests and lockfiles
   across ecosystems; `--profile` does not change SCA behavior (semgrep-only).
   Trivy's built-in misconfiguration scanner is the Phase 4 IaC teaser.
 
@@ -113,14 +113,14 @@ are labeled `PLANT-GAP` in the fixtures and listed under Known gaps.
 Every saved run carries a `coverage` block (schema 2.0.0): files bucketed
 as SAST-covered, IaC/config, secrets-only text, **unsupported source**
 (recognizable code in a language no profile analyzes), **binary**, and
-**oversize** (> 5 MB), plus git-repo/shallow facts — with sample paths.
+**oversize** (> 5 MB), plus git-repo/shallow facts, with sample paths.
 The console renders it on the run detail. "No findings" in a tree full
 of unscanned binaries is a different claim than "no findings" in a fully
 analyzable tree; the accounting keeps the difference visible.
 
 ## Why breadth is safe here
 
-Wide rulesets raise false-positive volume — that is the intended tradeoff. The
+Wide rulesets raise false-positive volume; that is the intended tradeoff. The
 Phase 2 AI triage layer is the answer: every finding gets a local-LLM verdict and
 a 0–10 risk score, so `standard`/`max` breadth stays actionable instead of
 drowning the reviewer. Breadth + triage is the pairing the demo shows.
@@ -144,14 +144,14 @@ every profile. Counts below are from the live scan that generated this file.
 number of labeled `PLANT-FP` safe-code plants (parameterized SQL, constant
 shell args, strong hashes, vendor example keys in tests) a profile wrongly
 flagged for the class they resemble. It is MEASURED, not asserted, and not
-suppressed — a deterministic rule never drops a finding for looking like an
+suppressed: a deterministic rule never drops a finding for looking like an
 FP; triage (the LLM oracle) and `--exclude-fp` are the only removal paths.
 
 
 ## Infrastructure-as-Code coverage
 
 IaC misconfiguration scanning (category `IAC`) runs **checkov** and
-**trivy-config** (the trivy misconfiguration pass — no extra binary) against
+**trivy-config** (the trivy misconfiguration pass, no extra binary) against
 Terraform, CloudFormation, Kubernetes manifests, Dockerfiles, and Helm charts.
 IaC engines run whenever available; `--profile` governs semgrep only. Planted
 misconfigurations under `testdata/iac/` are asserted detected by

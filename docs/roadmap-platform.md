@@ -1,7 +1,7 @@
 # Platform evolution: for everyone
 
 Argus today is a single local binary: a student scans a class project on a
-laptop with no account, no cloud, no telemetry. That stays true forever — it's
+laptop with no account, no cloud, no telemetry. That stays true forever: it's
 the floor, not a trial. This document plans the ceiling: the opt-in layers that
 let the same tool serve an IT shop, a startup, and an enterprise without
 forking the product or betraying its invariants.
@@ -23,7 +23,7 @@ genuinely yours to make before code starts.
 
 **Why:** the file-based user store (`argus user add`) is right for one person
 or a small team, but an enterprise wants people to sign in with the identity
-they already have — Google Workspace, Microsoft Entra ID (Microsoft 365), Okta,
+they already have: Google Workspace, Microsoft Entra ID (Microsoft 365), Okta,
 Auth0. All four speak **OpenID Connect**, so one OIDC implementation covers them.
 SAML is the legacy holdout; it can come later if a specific enterprise blocks on
 it, but it earns nothing the named providers don't.
@@ -32,7 +32,7 @@ it, but it earns nothing the named providers don't.
 is: users in a file with an argon2id hash, in-memory sessions keyed by the
 SHA-256 of an opaque cookie, roles `viewer`/`operator`/`admin`, and one authz
 table (`authz.go`) that every route is matched against. SSO changes exactly one
-thing — *how a session gets minted* — and nothing about *what a session may do*.
+thing, *how a session gets minted*, and nothing about *what a session may do*.
 The authz table, the audit log, the matrix test, and the CSP all stand.
 
 Concretely:
@@ -42,7 +42,7 @@ Concretely:
   verifies the ID token against the provider's JWKS (`iss`, `aud`, `exp`,
   `nonce`) and reads the stable `sub` and email. A verified token mints a
   session exactly like a password login does from that point on.
-- **The client secret is referenced, never stored** — env-var name in config,
+- **The client secret is referenced, never stored:** env-var name in config,
   read at flow time, the same pattern the GitHub-sync token already uses.
 - **User record grows two fields:** `Provider` (`local` | `oidc`) and `Subject`
   (the IdP `sub`). Local users keep their `Hash`; OIDC users have none.
@@ -88,7 +88,7 @@ auth:
 
 ---
 
-## 2. Approved cloud remediation — SHIPPED
+## 2. Approved cloud remediation: SHIPPED
 
 > Shipped as designed below: a curated catalog (`internal/cloudremediate`), an
 > injectable profile-scoped runner, admin-only execution gated by
@@ -97,7 +97,7 @@ auth:
 
 
 **Why:** finding a public S3 bucket and handing back a script the user pastes
-themselves is honest, but at scale people want the fix *applied* — with a human
+themselves is honest, but at scale people want the fix *applied*, with a human
 saying yes. The catch: the product's spine is that it **never executes anything
 and never holds a write credential** (`internal/triage/remediate_safety.go`).
 Auto-apply can't erase that; it has to *evolve* it without becoming "the AI
@@ -105,7 +105,7 @@ changed prod while you were at lunch."
 
 **The design that keeps the soul.** The LLM does **not** author commands that
 then run. Execution is limited to a **curated catalog of vetted, parameterized,
-reversible remediations** — the same philosophy as the STRIDE library and the
+reversible remediations:** the same philosophy as the STRIDE library and the
 mitigation library: deterministic where it matters, assistive where it's safe.
 The model's only job is to *suggest which catalog entry fits a finding and
 explain it*; the command that runs comes from a reviewed template with the
@@ -115,7 +115,7 @@ credential.
 Layered guardrails, all of which must hold:
 
 - **The safety linter stays a hard gate.** Destructive verbs (`delete`,
-  `terminate`, `drop`, `rm -rf`, allow-all) are refused *even with approval* —
+  `terminate`, `drop`, `rm -rf`, allow-all) are refused *even with approval*;
   they are never in the catalog and never executable. You cannot approve your
   way to an irreversible action; those stay manual, forever.
 - **Curated + reversible only, to start:** block S3 public access, enable
@@ -127,19 +127,19 @@ Layered guardrails, all of which must hold:
   finding, one approval, before anything runs.
 - **A separate, opt-in write credential.** The read path stays read-only
   (`SecurityAudit` + `ViewOnlyAccess`). Applying uses a *distinct*,
-  least-privilege remediation profile the operator provisions and names — off by
+  least-privilege remediation profile the operator provisions and names, off by
   default, referenced not stored, resolved inside the child process exactly like
   `cloudscan` resolves the audit profile. No write credential ever enters
   Argus's memory, config, or logs.
 - **Approval is a privileged action:** gated to a role (admin, or a new
   `remediator`), CSRF-protected, and every apply is audited with the finding,
   actor, resource, command, dry-run result, and outcome.
-- **A fix never marks itself fixed.** Only a re-scan clears a finding — the
+- **A fix never marks itself fixed.** Only a re-scan clears a finding; the
   existing rule holds, so every applied remediation ends with a verification
   scan, not a trust-me.
 
 This makes "auto-apply with approval" a controlled, reviewable, reversible
-action over a vetted catalog — not an agent with a shell.
+action over a vetted catalog, not an agent with a shell.
 
 **Decisions for you:**
 
@@ -156,17 +156,17 @@ action over a vetted catalog — not an agent with a shell.
 
 ## 3. Brand: one tool, every scale
 
-Argus isn't a small-business tool or an enterprise tool — it's **one tool that
+Argus isn't a small-business tool or an enterprise tool; it's **one tool that
 grows with you**. The same binary serves:
 
-- **Students & learners** — scan a project on a laptop, free, local, no account,
+- **Students & learners:** scan a project on a laptop, free, local, no account,
   see real findings mapped to real weakness classes. A way to learn AppSec by
   doing.
-- **IT shops & solo builders** — one command in CI, a severity gate, a console
+- **IT shops & solo builders:** one command in CI, a severity gate, a console
   anyone can read. No platform to run, no per-seat bill.
-- **Startups** — code and cloud in one view, compliance evidence for the first
+- **Startups:** code and cloud in one view, compliance evidence for the first
   SOC 2 conversation, triage that keeps the noise survivable.
-- **Enterprises** — SSO, role-based access, an audit trail, approved
+- **Enterprises:** SSO, role-based access, an audit trail, approved
   remediation, and gap reports a GRC lead hands to an auditor.
 
 The promise underneath all four: **local-first and free at the core; the
@@ -180,10 +180,10 @@ presented as opt-in capabilities rather than a separate tier.
 
 ## Sequencing
 
-1. **SSO (OIDC)** — highest enterprise unlock, self-contained, evolves the auth
+1. **SSO (OIDC):** highest enterprise unlock, self-contained, evolves the auth
    package cleanly (the `AuthEpoch` generalization is worth doing regardless).
-2. **Approved cloud remediation** — depends on nothing above, but is the most
+2. **Approved cloud remediation:** depends on nothing above, but is the most
    sensitive design; build the curated catalog + approval + audit before any
    execution path exists.
-3. **Brand** — the reposition ships continuously; the concrete README change
+3. **Brand:** the reposition ships continuously; the concrete README change
    lands now, the rest follows the features it describes.

@@ -5,7 +5,7 @@
 
 <p align="center"><strong>The all-seeing watch over your code and the cloud it runs in.</strong></p>
 
-<p align="center">From a student scanning a class project to an enterprise with SSO and an audit trail —<br/>the same binary, local-first and free at the core.</p>
+<p align="center">From a student scanning a class project to an enterprise with SSO and an audit trail,<br/>the same binary, local-first and free at the core.</p>
 
 <p align="center">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
@@ -28,12 +28,12 @@ into a single findings model.
 JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin, Rust, Scala; C via
 security-audit), secrets, dependencies (SCA), **IaC misconfiguration**
 (Terraform, CloudFormation, Kubernetes, Dockerfile, Helm, plus Bicep/ARM and
-Pulumi for architecture detection), and **cloud security posture** (prowler —
+Pulumi for architecture detection), and **cloud security posture** (prowler:
 AWS, Azure, GCP) all flow through the same banded severity, risk signals, and
 compliance mapping. DAST is on the [roadmap](docs/roadmap.md).
 
-**Findings become audit evidence.** Every finding is mapped — deterministically,
-no LLM — to the framework controls it violates (**OWASP ASVS 4.0**,
+**Findings become audit evidence.** Every finding is mapped (deterministically,
+no LLM) to the framework controls it violates (**OWASP ASVS 4.0**,
 **PCI DSS 4.0**, and **CIS** AWS/Docker/Kubernetes benchmarks), and
 `argus comply` turns any scan into a per-framework gap report a GRC lead can
 hand to an auditor: controls violated with evidence, controls with no
@@ -83,13 +83,13 @@ Free and private aren't the compromise. They're the whole idea.
 
 The same binary meets you where you are, and grows as you do:
 
-- **Students & learners** — scan a project on your laptop, free and local, no
+- **Students & learners**: scan a project on your laptop, free and local, no
   account, and see real findings mapped to real weakness classes.
-- **IT shops & solo builders** — one command in CI, a severity gate, and a
+- **IT shops & solo builders**: one command in CI, a severity gate, and a
   console anyone can read. Nothing to host, no per-seat bill.
-- **Startups** — code and cloud in one view, compliance evidence for the first
+- **Startups**: code and cloud in one view, compliance evidence for the first
   audit conversation, and triage that keeps the noise survivable.
-- **Enterprises** — SSO, role-based access, an audit trail, approved
+- **Enterprises**: SSO, role-based access, an audit trail, approved
   remediation, and gap reports a GRC lead can hand to an auditor.
 
 Local-first and free at the core; the controls a larger team needs are layers
@@ -122,7 +122,7 @@ gate outcomes for operations.
 ## From findings to work: tickets and threat models
 
 Scanning tells you what's wrong. Two pillars, both backed by an embedded SQLite
-database (`argus.db`, opened on `serve`), turn that into tracked work — and
+database (`argus.db`, opened on `serve`), turn that into tracked work, and
 neither ever touches the gate.
 
 <p align="center"><img src="docs/diagrams/pillars.svg" alt="Argus architecture: a console over a deterministic core and two SQLite-backed work pillars, with invariants that hold across all of it" width="860"/></p>
@@ -132,23 +132,23 @@ findings by stable fingerprint), carries a comment-and-event timeline, and
 computes a severity rollup at read time so it never goes stale. Filter by
 status, assignee, or priority; see how long a ticket has been open and whether
 it's overdue; assign from a roster with autocomplete. Closing a ticket "done"
-can write a `fixed` disposition for its linked findings — the one, explicit,
+can write a `fixed` disposition for its linked findings: the one, explicit,
 audited bridge to the gate, and it refuses to overwrite a human's accepted-risk
 or false-positive call. Opt-in [GitHub Issues sync](docs/console-ops.md)
 (config-gated, off by default) creates or links an issue, storing only the URL
 and number; the token is referenced by env-var name, never stored.
 
 **Threat modeling** is STRIDE over your architecture. Add components (or
-generate a baseline from the repo's IaC — Terraform, CloudFormation,
+generate a baseline from the repo's IaC: Terraform, CloudFormation,
 Kubernetes, Bicep, ARM, Pulumi, Helm), and Argus enumerates curated STRIDE
-threats from a version-pinned library per component tech — deterministic, no
+threats from a version-pinned library per component tech: deterministic, no
 model in the loop. A local LLM can additionally *suggest* components and
 threats from the repo layout, each labeled `assisted` and confirmed by a human
 before it counts. Threats link to real findings, compliance controls, and
 mitigations. A full-width **canvas editor** lets you map the architecture
-directly: add components, assets, external entities, and trust boundaries —
+directly: add components, assets, external entities, and trust boundaries,
 each boundary typed by zone (DMZ, VPC, subnet, on-prem, internet, cloud
-account, Kubernetes) — rename or re-type them, resize a boundary to hold what
+account, Kubernetes), rename or re-type them, resize a boundary to hold what
 it contains, and draw data flows between nodes; positions and geometry persist
 per model. Export a model's threats to CSV or JSON.
 
@@ -164,7 +164,7 @@ state, not the CI decision.
 # One command builds the binary and reports which scanners you have:
 ./scripts/setup.sh
 
-# Or by hand — prereqs: Go 1.22+, plus whichever scanners you want on PATH:
+# Or by hand, prereqs: Go 1.22+, plus whichever scanners you want on PATH:
 #   pipx install semgrep     (or: pip install semgrep)
 #   brew install gitleaks trivy   # trivy covers SCA *and* IaC misconfigs
 #   pipx install checkov          # optional: the broad IaC engine
@@ -190,7 +190,7 @@ go build -o argus ./cmd/argus        # embeds the console; no Node needed to run
 ## Cloud security posture (prowler)
 
 Point the platform at an AWS account and get a posture assessment through the
-**same** pipeline as code — unified findings (category `CLOUD`), banded
+**same** pipeline as code: unified findings (category `CLOUD`), banded
 severity, deterministic risk signals, and CIS-AWS compliance mapping, skimmable
 in the console.
 
@@ -203,7 +203,7 @@ in the console.
 **Credentials are referenced, never collected.** `--profile` names a profile
 from your local cloud config (`~/.aws`); the platform passes only that NAME to
 prowler as `AWS_PROFILE` and never sees, stores, or logs a key. Least-privilege
-setup — create a read-only security-audit principal and point `--profile` at it:
+setup: create a read-only security-audit principal and point `--profile` at it:
 
 ```bash
 # AWS: attach the two AWS-managed read-only policies to a dedicated principal.
@@ -214,13 +214,13 @@ aws iam attach-user-policy --user-name argus-audit \
   --policy-arn arn:aws:iam::aws:policy/job-function/ViewOnlyAccess
 # Put its keys in a named profile in ~/.aws/credentials, e.g. [security-audit],
 # then reference that NAME. The platform runs with exactly what that profile
-# can do — least privilege is your control, honesty about it is ours.
+# can do: least privilege is your control, honesty about it is ours.
 ```
 
 **Azure and GCP** work the same way. Register an Azure target by its
 subscription id (auth via a `Reader` service principal in the serve
 environment) or a GCP target by its project id (auth via `Viewer` Application
-Default Credentials) — the account id is a reference, never a key, and the
+Default Credentials); the account id is a reference, never a key, and the
 credential lives only in the environment prowler inherits. AWS uses a named
 `~/.aws` profile as before. In the console, an admin registers a cloud target
 by provider and account reference (never a key); cloud runs appear in the
@@ -229,8 +229,8 @@ on-demand,
 never-persisted **AI posture summary**.
 
 Every cloud finding also carries prowler's own **per-finding compliance
-mapping** — the exact controls it violates across NIST-CSF, ISO-27001, PCI,
-SOC2, HIPAA, GDPR, MITRE ATT&CK, FedRAMP and more — passed through verbatim
+mapping** (the exact controls it violates across NIST-CSF, ISO-27001, PCI,
+SOC2, HIPAA, GDPR, MITRE ATT&CK, FedRAMP and more) passed through verbatim
 and version-pinned, on top of the gap-reportable CIS-AWS mapping.
 
 ## AI-assisted remediation
@@ -241,45 +241,45 @@ concrete, category-aware fix to review and run. Cloud findings get a scoped
 before→after patch; dependencies the upgrade command; secrets rotation steps.
 
 It is **assisted, never automated**: Argus generates a script the *you* run
-with your own credentials — it never executes anything, never holds a write
+with your own credentials; it never executes anything, never holds a write
 credential, and never marks a finding "fixed" (only a re-scan clears it, so
 every remediation ends with a verification step). A **deterministic safety
 linter** runs before anything reaches the browser: a destructive command
 (delete/terminate, `drop table`, `rm -rf`, allow-all) or an embedded
-credential is withheld, the human steps kept, with a warning — safe by
+credential is withheld, the human steps kept, with a warning. Safe by
 degradation. It's an on-demand, never-persisted local-LLM seam, labeled
 AI-generated in the UI.
 
-Missing scanners are skipped with a note — the CLI degrades gracefully and
+Missing scanners are skipped with a note; the CLI degrades gracefully and
 runs whatever the environment provides. The same applies to triage: no LLM
 reachable means the scan simply runs without verdicts.
 
 ## Scan profiles & coverage
 
 `--profile fast|standard|max` (config: `profile:`) selects the curated semgrep
-ruleset. `standard` is the default — a security-audit + OWASP base plus a
+ruleset. `standard` is the default: a security-audit + OWASP base plus a
 per-language pack for all nine languages. Coverage is **proven, not claimed**: a
 labeled fixture per language (`testdata/polyglot/`) and a network-dependent test
 assert every canary is detected under `standard`, and
 [docs/coverage.md](docs/coverage.md) is a generated language × weakness matrix.
-Breadth raises false-positive volume on purpose — local AI triage is the answer.
+Breadth raises false-positive volume on purpose: local AI triage is the answer.
 
 The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
 Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every
 planted misconfiguration is detected. IaC engines run whenever they are on
 PATH (`--profile` tunes semgrep only); every IaC finding lands in the same
-model — triaged, risk-scored, gated, and rolled up to OWASP A05 — and wears a
+model (triaged, risk-scored, gated, and rolled up to OWASP A05) and wears a
 category badge in the console.
 
 ## Compliance mapping & gap assessment
 
-Every scan maps every finding to the security controls it violates —
+Every scan maps every finding to the security controls it violates:
 hand-curated, version-pinned data (`internal/compliance/data/`), zero LLM
 involvement, unmapped-is-visible, totals reconcile. `argus comply` renders the
 per-framework gap assessment (Markdown or JSON): **violated** controls with
 evidence pointers, **no violations detected** (deliberately not "compliant"),
 and an explicit **not assessable by static scanning** bucket. Adding a
-framework (SOC 2, NIST 800-53, ISO 27001 are next) is a data-only change —
+framework (SOC 2, NIST 800-53, ISO 27001 are next) is a data-only change:
 philosophy, honest-scope statement, and a how-to in
 [docs/compliance.md](docs/compliance.md).
 
@@ -288,12 +288,12 @@ philosophy, honest-scope statement, and a how-to in
 Every finding always gets a deterministic **risk score** (0–10; formula in
 [docs/risk-scoring.md](docs/risk-scoring.md)), and since schema 2.0.0 its
 **severity is banded from the deterministic part of that score** (canonical
-bands in the same doc) — so "high" means the same thing on every finding from
+bands in the same doc), so "high" means the same thing on every finding from
 every tool, context signals included, LLM excluded. The tool's own opinion is
 preserved as `toolSeverity`. With `--triage` (or
 `triage.enabled: true`), an LLM additionally reviews each finding with a
-bounded source snippet and records a verdict — `true-positive`,
-`false-positive`, or `uncertain` — plus a rationale, which reporters surface
+bounded source snippet and records a verdict (`true-positive`,
+`false-positive`, or `uncertain`) plus a rationale, which reporters surface
 alongside the score. Verdicts are additive metadata: severity and the CI gate
 never move on LLM output, and `--exclude-fp` is the only (explicit, counted)
 way a verdict removes a finding from the report and gate.
@@ -304,14 +304,14 @@ as hostile input: snippets enter prompts only inside per-request random
 boundary markers, model output is schema-validated, and SECRET findings never
 leave the machine unless `allow_secret_cloud: true` is set.
 
-## Configuration — `appsec.yml`
+## Configuration: `appsec.yml`
 
 Looked up in the working directory (override with `--config`); flags beat file
 values.
 
 ```yaml
 scanners: []            # subset to run, e.g. [semgrep, gitleaks]; empty = all
-profile: standard       # fast | standard | max — the curated semgrep ruleset
+profile: standard       # fast | standard | max: the curated semgrep ruleset
 semgrep_rulesets: []    # optional: override the profile with your own pack list
 fail_severity: high     # critical | high | medium | low | info | none
 format: markdown        # sarif | markdown | json
@@ -321,7 +321,7 @@ ignore_paths:           # glob patterns; `dir/**` ignores a subtree
 ignore_rules:           # exact rule IDs to suppress
   - generic-api-key
 timeout: 600            # per-scanner timeout, seconds
-triage:                 # AI triage (Phase 2) — off unless enabled here or via --triage
+triage:                 # AI triage (Phase 2): off unless enabled here or via --triage
   enabled: false
   provider: ollama      # ollama | anthropic (API key via ANTHROPIC_API_KEY env)
   model: qwen3.6:35b-a3b
@@ -331,21 +331,21 @@ triage:                 # AI triage (Phase 2) — off unless enabled here or via
   max_findings: 200     # triage the N most severe findings; 0 = all
   exclude_fp: false     # opt-in: drop LLM-marked false positives from report + gate
   allow_secret_cloud: false  # opt-in: allow SECRET findings to non-local providers
-auth:                   # console single sign-on (OIDC) — off unless configured; password login always works
+auth:                   # console single sign-on (OIDC): off unless configured; password login always works
   oidc:
     issuer: https://accounts.google.com   # Google Workspace, Microsoft Entra, Okta, Auth0…
     client_id: <public client id>
-    client_secret_env: ARGUS_OIDC_SECRET  # referenced, read at flow time — never stored
+    client_secret_env: ARGUS_OIDC_SECRET  # referenced, read at flow time, never stored
     redirect_url: http://127.0.0.1:8080/api/auth/oidc/callback
     allowed_domains: [example.com]        # only these email domains auto-provision (empty = none)
     default_role: viewer                  # role for a just-in-time user; admins promote from there
     group_claim: groups                   # optional: IdP claim carrying group names
     role_map: { argus-admins: admin }     # optional: group → console role
-remediation:            # approved cloud remediation — off by default
+remediation:            # approved cloud remediation: off by default
   enabled: false        # allow admins to dry-run/apply the curated catalog against a cloud account
 ```
 
-Suppressed findings are counted on stderr — suppression is never silent. SSO
+Suppressed findings are counted on stderr: suppression is never silent. SSO
 is additive: configuring it adds a "Sign in with SSO" button; password login
 and `argus user add` keep working. Both SSO and remediation are also editable
 from the console Admin tab. The design is in
@@ -353,9 +353,9 @@ from the console Admin tab. The design is in
 
 ## Approved cloud remediation
 
-A cloud finding's detail pane offers the curated fixes that apply to it —
-block S3 public access, enable default encryption, turn on EBS
-encryption-by-default — each shown as the **exact command that will run**, with
+A cloud finding's detail pane offers the curated fixes that apply to it
+(block S3 public access, enable default encryption, turn on EBS
+encryption-by-default), each shown as the **exact command that will run**, with
 the IAM permissions it needs and whether it's reversible. Nothing here is
 LLM-authored: execution is limited to a vetted catalog whose only variables are
 resource attributes pulled from the finding and validated against a strict
@@ -363,7 +363,7 @@ grammar, run as argv (never a shell).
 
 It's off until `remediation.enabled` is set, and even then every apply is an
 explicit **admin** action: pick a write profile (separate from the read-only
-audit profile, referenced by name and resolved inside a child process — no key
+audit profile, referenced by name and resolved inside a child process; no key
 material enters Argus), preview with a dry-run, then apply. A destructive verb
 can't reach the catalog, a fix never marks a finding fixed (only a re-scan
 clears it), and every dry-run and apply is audited.
@@ -376,29 +376,29 @@ repo and adjust the gate.
 
 ## Output formats
 
-- **SARIF 2.1.0** — validates against the official schema; ingested by GitHub
+- **SARIF 2.1.0**: validates against the official schema; ingested by GitHub
   code scanning (severity mapped to `security-severity` so alerts bucket
   correctly; stable fingerprints so alerts track across commits).
-- **Markdown** — human-readable summary + findings grouped by severity.
-- **JSON** — the full unified findings model (`docs/findings-model.md`),
+- **Markdown**: human-readable summary + findings grouped by severity.
+- **JSON**: the full unified findings model (`docs/findings-model.md`),
   including per-tool raw payload passthrough.
 
 ## Docs
 
-- [Pitch](docs/pitch.md) — the one-page why: problem, wedge, differentiators
-- [Coverage](docs/coverage.md) — generated language × weakness matrix + profiles
-- [Architecture](docs/architecture.md) — orchestrator design, package layout, design rules
-- [Findings model](docs/findings-model.md) — the unified schema (versioned)
-- [Risk scoring](docs/risk-scoring.md) — the 0–10 formula and the bounded LLM adjustment
-- [Compliance](docs/compliance.md) — frameworks, mapping philosophy, adding a framework
-- [Console & pillars](docs/console-ops.md) — authz model, ticketing, threat modeling, audit
-- [Roadmap](docs/roadmap.md) — what's next: DAST, more cloud providers, IAST
-- [Platform evolution](docs/roadmap-platform.md) — SSO, approved cloud remediation, and the "for everyone" thesis
+- [Pitch](docs/pitch.md): the one-page why: problem, wedge, differentiators
+- [Coverage](docs/coverage.md): generated language × weakness matrix + profiles
+- [Architecture](docs/architecture.md): orchestrator design, package layout, design rules
+- [Findings model](docs/findings-model.md): the unified schema (versioned)
+- [Risk scoring](docs/risk-scoring.md): the 0–10 formula and the bounded LLM adjustment
+- [Compliance](docs/compliance.md): frameworks, mapping philosophy, adding a framework
+- [Console & pillars](docs/console-ops.md): authz model, ticketing, threat modeling, audit
+- [Roadmap](docs/roadmap.md): what's next: DAST, more cloud providers, IAST
+- [Platform evolution](docs/roadmap-platform.md): SSO, approved cloud remediation, and the "for everyone" thesis
 
 ## Development
 
 ```bash
-go build ./... && go test ./...     # `go build` alone works — the UI bundle is committed
+go build ./... && go test ./...     # `go build` alone works; the UI bundle is committed
 make ui                              # rebuild the React console into ui/dist (Node 22)
 make coverage                        # regenerate docs/coverage.md from a live scan
 ./demo/demo.sh                       # the full 10-minute investor story, end to end
