@@ -16,6 +16,10 @@ import (
 // the adapter is always safe to construct directly.
 type Semgrep struct {
 	Rulesets []string
+	// Offline guarantees no network access: the caller has already rewritten
+	// Rulesets to local sources only (see ResolveOffline), and Scan additionally
+	// passes --disable-version-check so semgrep's own update ping is suppressed.
+	Offline bool
 }
 
 func (s *Semgrep) Name() string     { return "semgrep" } //nolint // findings are always attributed to semgrep, even under Opengrep (a compatible fork)
@@ -39,6 +43,11 @@ func (s *Semgrep) Scan(ctx context.Context, target string) ([]model.RawFinding, 
 		"--quiet",
 		"--metrics=off",
 		"--timeout", "0",
+	}
+	if s.Offline {
+		// No registry resolution (Rulesets are all local by now) and no update
+		// ping: a fully network-free run.
+		args = append(args, "--disable-version-check")
 	}
 	for _, p := range packs {
 		if p == CuratedRuleset {

@@ -640,7 +640,7 @@ func (r *Registry) save() error {
 // adapter registry so it cannot drift from the scan pipeline.
 func KnownScanners() []string {
 	var names []string
-	for _, a := range scanner.All(nil) {
+	for _, a := range scanner.All(nil, false) {
 		names = append(names, a.Name())
 	}
 	return names

@@ -256,10 +256,20 @@ func ExcludeFalsePositives(findings []model.Finding) ([]model.Finding, int) {
 }
 
 // SelectAdapters filters the registry by config and availability. The resolved
-// semgrep ruleset packs configure the semgrep adapter's coverage.
+// semgrep ruleset packs configure the semgrep adapter's coverage. In offline
+// mode the packs are rewritten to their cached local files (registry refs not
+// in the cache are dropped with a warning) so the semgrep run never touches the
+// network; this happens here so both the scan and comply paths behave the same.
 func SelectAdapters(cfg config.Config, semgrepRulesets []string, progress Progress) ([]scanner.Adapter, error) {
+	offline := cfg.Offline.On()
+	if offline {
+		cacheDir := scanner.RulesCacheDir(cfg.Offline.CacheDir)
+		semgrepRulesets = scanner.ResolveOffline(semgrepRulesets, cacheDir, func(m string) {
+			progress("  ! " + m + "\n")
+		})
+	}
 	var active []scanner.Adapter
-	for _, a := range scanner.All(semgrepRulesets) {
+	for _, a := range scanner.All(semgrepRulesets, offline) {
 		if len(cfg.Scanners) > 0 && !nameIn(a.Name(), cfg.Scanners) {
 			continue
 		}

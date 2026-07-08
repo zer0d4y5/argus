@@ -25,7 +25,22 @@ type Config struct {
 	Auth         AuthConfig        `yaml:"auth"`             // console authentication (SSO; off unless configured)
 	Remediation  RemediationConfig `yaml:"remediation"`      // approved cloud remediation (off unless enabled)
 	Exploit      ExploitConfig     `yaml:"exploit"`          // KEV/EPSS exploitation enrichment of risk scores
+	Offline      OfflineConfig     `yaml:"offline"`          // air-gapped mode: use only local rules (see `argus rules sync`)
 }
+
+// OfflineConfig makes a scan use only local rule sources: the embedded curated
+// rules, packs cached by `argus rules sync`, and any local BYO rules, and
+// never fetch a registry pack or touch the network. Opt-in (default off): the
+// default behaviour still resolves registry packs at scan time. A scan is
+// air-gapped from the very first run even with an empty cache, because the
+// curated rules are embedded in the binary.
+type OfflineConfig struct {
+	Enabled  *bool  `yaml:"enabled" json:"enabled"`     // nil/false = normal; true = offline
+	CacheDir string `yaml:"cache_dir" json:"cacheDir"` // pack cache dir; default <user-cache>/argus/rules
+}
+
+// On reports whether offline mode is active (default: no).
+func (o OfflineConfig) On() bool { return o.Enabled != nil && *o.Enabled }
 
 // ExploitConfig controls exploitation-evidence enrichment of the risk score.
 // The CISA KEV catalog is embedded and version-pinned, so enrichment is on by

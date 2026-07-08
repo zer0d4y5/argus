@@ -158,6 +158,26 @@ tier, it is a drop-in: same CLI, same rule format. Install it and Argus uses it
 automatically when Semgrep is absent, or set `ARGUS_SEMGREP_BINARY=opengrep` to
 prefer it. Findings are still attributed to "semgrep" in the model.
 
+### Air-gapped scanning
+
+Argus is local-first, but the `standard` and `max` profiles resolve semgrep
+*registry* packs over the network on first use. For a truly air-gapped run, cache
+them once while online, then scan offline:
+
+```bash
+argus rules sync --profile standard        # fetch the profile's packs into a local cache
+argus scan . --offline --profile standard  # use the cache + embedded rules; never touch the network
+```
+
+`--offline` (or `offline: true` in `argus.yml`) makes a scan use only local rule
+sources: the curated rules embedded in the binary, the packs `argus rules sync`
+cached, and any local BYO rules. Registry packs missing from the cache are
+skipped with a warning rather than fetched, and semgrep's own update ping is
+disabled. Even with an empty cache a scan still runs the embedded curated rules,
+so it is air-gapped from the very first run. The cache directory
+(`offline.cache_dir`, default `<user-cache>/argus/rules`) can be copied to a
+disconnected host.
+
 ## In CI
 
 The repo ships a GitHub Actions workflow that scans on every pull request,

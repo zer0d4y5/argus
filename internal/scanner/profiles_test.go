@@ -132,7 +132,7 @@ func TestSemgrepAdapterUsesRulesets(t *testing.T) {
 	if len(a.Rulesets) != 2 {
 		t.Fatalf("adapter did not retain rulesets")
 	}
-	all := All([]string{"p/z"})
+	all := All([]string{"p/z"}, false)
 	sg, ok := all[0].(*Semgrep)
 	if !ok || len(sg.Rulesets) != 1 || sg.Rulesets[0] != "p/z" {
 		t.Errorf("All() did not thread rulesets into semgrep adapter: %+v", all[0])

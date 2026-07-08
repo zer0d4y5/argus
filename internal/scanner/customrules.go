@@ -169,6 +169,13 @@ func FirstInvalid(statuses []RulesetStatus) *RulesetStatus {
 	return nil
 }
 
+// ValidateLocalRuleFile validates that a local file is a loadable semgrep
+// config (`semgrep --validate`). Exported for `argus rules sync`, which uses it
+// to reject a fetched pack that is truncated or an error page before caching it.
+func ValidateLocalRuleFile(ctx context.Context, path string) error {
+	return semgrepValidate(ctx, path)
+}
+
 // semgrepValidate runs `semgrep --validate --config <path>` and turns a failure
 // into a concise error. It parses rule DATA, never the scanned code, so it is
 // safe to run over a user-supplied path. semgrep missing from PATH is itself a

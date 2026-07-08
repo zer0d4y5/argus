@@ -41,6 +41,7 @@ func init() {
 	scanCmd.Flags().Bool("exclude-fp", false, "Exclude LLM-marked false positives from the report and severity gate (opt-in)")
 	scanCmd.Flags().Bool("strict-gate", false, "Gate on ALL findings, ignoring accepted-risk/false-positive dispositions (default: dispositioned findings don't fail the gate)")
 	scanCmd.Flags().String("frameworks", "", "Comma-separated compliance frameworks to focus on (narrows scanners to the relevant set; see `argus comply`)")
+	scanCmd.Flags().Bool("offline", false, "Use only local rules (embedded curated + `argus rules sync` cache + local BYO); never fetch registry packs")
 	scanCmd.Flags().String("baseline", "", "Gate only on findings NEW since this baseline file; known findings stay in the report")
 	scanCmd.Flags().String("write-baseline", "", "Write the current findings' fingerprints to this baseline file and exit without gating")
 }
@@ -240,6 +241,10 @@ func loadConfig(cmd *cobra.Command) (config.Config, error) {
 	}
 	if cmd.Flags().Changed("triage") {
 		cfg.Triage.Enabled, _ = cmd.Flags().GetBool("triage")
+	}
+	if cmd.Flags().Changed("offline") {
+		v, _ := cmd.Flags().GetBool("offline")
+		cfg.Offline.Enabled = &v
 	}
 	if cmd.Flags().Changed("exclude-fp") {
 		cfg.Triage.ExcludeFP, _ = cmd.Flags().GetBool("exclude-fp")

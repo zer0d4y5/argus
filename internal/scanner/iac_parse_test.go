@@ -266,7 +266,7 @@ func TestIaCAdapterIdentity(t *testing.T) {
 	}
 	// Both IaC adapters must be in the default registry.
 	names := map[string]bool{}
-	for _, a := range All(nil) {
+	for _, a := range All(nil, false) {
 		names[a.Name()] = true
 	}
 	for _, want := range []string{"semgrep", "gitleaks", "trivy", "checkov", "trivy-config"} {
