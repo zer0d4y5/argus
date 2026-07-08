@@ -595,6 +595,30 @@ executes it against source, so it is treated as untrusted:
   before it touches disk, so it can never break a scan. The draft is never
   persisted until the human saves it, and the panel labels AI-generated content.
 
+### 12.11 Baseline comparison in the run detail view
+
+A run's detail page tags each finding NEW and shows a `+N new · -M resolved`
+counter. By default the comparison is against the immediately-previous run; a
+**baseline picker** lets the reader choose any earlier run as the reference
+instead. This is the console surface of the CLI's `--baseline` gating (`argus
+scan --baseline`): the same fingerprint-set diff, made interactive for a human
+reviewing rather than a CI gate.
+
+- **Server.** `GET /api/runs/<id>?baseline=<runId>` computes the delta against
+  the named run; the response reports the resolved `baselineId` it actually
+  compared to. Empty/absent `baseline` falls back to the previous run (the
+  historical default); a `baseline` equal to the run itself falls back too
+  (comparing a run to itself is always "zero new"); a `baseline` naming a
+  missing run yields an empty base, so every finding reads as new rather than
+  silently comparing against the wrong run. The diff reuses the existing
+  `ComputeDelta` machinery over stable finding fingerprints; no new state is
+  stored, and the run files are untouched.
+- **Console.** Changing the picker refetches the run, so every NEW badge and
+  the delta counter recompute against the chosen baseline. A **"New only"**
+  filter (shown only when a comparison exists) narrows the findings list to what
+  the run added since the baseline. This is a read-time lens: it never moves the
+  gate, a disposition, or a stored severity.
+
 ## 13. Cloud posture targets (schema 2.1.0)
 
 The cloud-posture session adds a third target kind, `cloud`, and a new finding

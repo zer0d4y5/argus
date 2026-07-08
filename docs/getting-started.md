@@ -44,6 +44,12 @@ a plain JSON list of fingerprints, safe to commit. It composes with dispositions
 and `--strict-gate`, and pairs naturally with a PR workflow: baseline `main`,
 gate the PR on what it adds.
 
+The same idea is interactive in the console: a run's detail page tags each
+finding NEW and shows a `+N new · -M resolved` counter, with a **baseline
+picker** to choose which earlier run that diff is measured against and a "New
+only" filter to see just what the run added. Details in
+[docs/console-ops.md](console-ops.md) §12.11.
+
 ## Add local AI triage
 
 Breadth raises false-positive volume on purpose. The answer is an LLM verdict on

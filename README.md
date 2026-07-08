@@ -117,8 +117,9 @@ AI-author custom rules), and an append-only audit log. Threat model and design:
 
 Risk posture, severity/OWASP rollups, per-framework compliance posture, and a
 cross-run trend for leadership; a filterable explorer with per-finding triage
-rationale and violated-control chips for engineers; new-vs-resolved deltas and
-gate outcomes for operations.
+rationale and violated-control chips for engineers; new-vs-resolved deltas,
+a **baseline picker** (compare a run against any earlier one, with a "new only"
+filter), and gate outcomes for operations.
 
 ## From findings to work: tickets and threat models
 
@@ -294,7 +295,9 @@ embedded curated rules.
 **Adoptable in CI:** a repo with a backlog can gate on only what a change
 *adds*. `argus scan --write-baseline .argus-baseline.json` records today's
 findings; `argus scan --baseline .argus-baseline.json` then reports everything
-but fails the build only on findings new since the baseline.
+but fails the build only on findings new since the baseline. The console makes
+the same diff interactive: pick any earlier run as the baseline and filter to
+just the new findings.
 
 The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
 Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every
