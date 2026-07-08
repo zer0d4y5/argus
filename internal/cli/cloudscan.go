@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/argus/internal/cloudscan"
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/pipeline"
-	"github.com/leaky-hub/argus/internal/runstore"
+	"github.com/zer0d4y5/argus/internal/cloudscan"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/pipeline"
+	"github.com/zer0d4y5/argus/internal/runstore"
 )
 
 func init() {

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/correlate"
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/correlate"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // paths derives repo-relative paths from this test file's location, so the

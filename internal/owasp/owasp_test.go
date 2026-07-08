@@ -3,7 +3,7 @@ package owasp
 import (
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 func f(cat string, cwes ...string) model.Finding {

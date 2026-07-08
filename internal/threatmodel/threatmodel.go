@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/store"
-	"github.com/leaky-hub/argus/internal/threatlib"
+	"github.com/zer0d4y5/argus/internal/store"
+	"github.com/zer0d4y5/argus/internal/threatlib"
 )
 
 const (

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/leaky-hub/argus/internal/cloudscan"
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/cloudscan"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // CloudOptions configure one cloud posture run.

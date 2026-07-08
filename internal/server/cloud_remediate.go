@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/cloudremediate"
-	"github.com/leaky-hub/argus/internal/cloudscan"
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/runstore"
-	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/cloudremediate"
+	"github.com/zer0d4y5/argus/internal/cloudscan"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/runstore"
+	"github.com/zer0d4y5/argus/internal/targets"
 )
 
 // Approved cloud remediation endpoints.

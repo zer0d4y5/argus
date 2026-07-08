@@ -9,14 +9,14 @@ import (
 	"io"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 const (
 	sarifSchemaURI = "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json"
 	sarifVersion   = "2.1.0"
 	toolName       = "appsec"
-	toolInfoURI    = "https://github.com/leaky-hub/argus"
+	toolInfoURI    = "https://github.com/zer0d4y5/argus"
 	toolVersion    = "0.1.0"
 )
 

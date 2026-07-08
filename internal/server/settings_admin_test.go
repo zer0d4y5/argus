@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // TestAdminSettingsRoundTrip: an admin saves GitHub + triage + scan defaults;

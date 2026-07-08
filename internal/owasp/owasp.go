@@ -12,7 +12,7 @@ package owasp
 import (
 	"sort"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Category is one OWASP Top 10 (2021) entry.

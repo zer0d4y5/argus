@@ -5,8 +5,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/server/auth"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/server/auth"
 )
 
 // sessionCookieName holds the opaque session token. HttpOnly + SameSite

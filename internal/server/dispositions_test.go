@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/disposition"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/disposition"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 func TestDispositionSetClearAndOverlay(t *testing.T) {

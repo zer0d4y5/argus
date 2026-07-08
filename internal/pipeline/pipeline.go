@@ -22,14 +22,14 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/leaky-hub/argus/internal/compliance"
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/correlate"
-	"github.com/leaky-hub/argus/internal/llm"
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/risk"
-	"github.com/leaky-hub/argus/internal/scanner"
-	"github.com/leaky-hub/argus/internal/triage"
+	"github.com/zer0d4y5/argus/internal/compliance"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/correlate"
+	"github.com/zer0d4y5/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/risk"
+	"github.com/zer0d4y5/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/triage"
 )
 
 // Progress receives one pre-formatted, newline-terminated status line per

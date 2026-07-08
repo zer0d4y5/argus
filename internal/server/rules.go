@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/llm"
-	"github.com/leaky-hub/argus/internal/pipeline"
-	"github.com/leaky-hub/argus/internal/ruleauthor"
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/pipeline"
+	"github.com/zer0d4y5/argus/internal/ruleauthor"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // AI-assisted custom rule authoring (admin-only, audited). The local LLM DRAFTS

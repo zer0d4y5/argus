@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Supported cloud providers. Each references an account without collecting a

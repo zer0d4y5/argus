@@ -3,7 +3,7 @@ package scanner
 import (
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Payloads mirror real checkov 3.3.2 / trivy 0.71.2 output shapes (trimmed).

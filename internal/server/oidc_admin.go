@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/server/auth"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/server/auth"
 )
 
 // Admin OIDC configuration endpoint. Admin-only. GET returns the effective

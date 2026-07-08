@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // TestValidateCustomRulesetsDropsInvalid: a missing local rule is dropped with

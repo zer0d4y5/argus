@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/disposition"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/disposition"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // TestExcludeDispositioned locks in the default-on gate behavior: accepted-risk

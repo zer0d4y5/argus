@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/correlate"
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/correlate"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // profileOrder gives the superset chain: fast ⊂ standard ⊂ max (pack lists

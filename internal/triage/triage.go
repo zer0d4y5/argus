@@ -6,7 +6,7 @@ package triage
 import (
 	"context"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Triager enriches findings in place with a triage verdict (and later a risk

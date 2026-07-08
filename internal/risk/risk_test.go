@@ -3,7 +3,7 @@ package risk
 import (
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 func fp(v float64) *float64 { return &v }

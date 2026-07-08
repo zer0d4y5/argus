@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // A representative mixed run: mapped SAST, unmapped SAST, mapped IaC,

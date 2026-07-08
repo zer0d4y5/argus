@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/cloudscan"
-	"github.com/leaky-hub/argus/internal/scanner"
-	"github.com/leaky-hub/argus/internal/snippet"
+	"github.com/zer0d4y5/argus/internal/cloudscan"
+	"github.com/zer0d4y5/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/snippet"
 )
 
 const targetsFileName = "targets.json"

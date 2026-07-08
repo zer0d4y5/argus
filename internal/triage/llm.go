@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/llm"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Options tunes the LLM triager. Zero values get safe defaults in NewLLM.

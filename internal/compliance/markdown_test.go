@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // The renderer must emit every section and neutralize hostile finding text.

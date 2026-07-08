@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/jobs"
-	"github.com/leaky-hub/argus/internal/runstore"
-	"github.com/leaky-hub/argus/internal/server/auth"
-	"github.com/leaky-hub/argus/internal/store"
-	"github.com/leaky-hub/argus/internal/targets"
-	"github.com/leaky-hub/argus/internal/threatmodel"
-	"github.com/leaky-hub/argus/internal/ticket"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/jobs"
+	"github.com/zer0d4y5/argus/internal/runstore"
+	"github.com/zer0d4y5/argus/internal/server/auth"
+	"github.com/zer0d4y5/argus/internal/store"
+	"github.com/zer0d4y5/argus/internal/targets"
+	"github.com/zer0d4y5/argus/internal/threatmodel"
+	"github.com/zer0d4y5/argus/internal/ticket"
 )
 
 // Console-ops security tests. These pin docs/console-ops.md §9: the authz

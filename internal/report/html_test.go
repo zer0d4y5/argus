@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 func riskPtr(f float64) *float64 { return &f }

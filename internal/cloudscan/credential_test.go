@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // plantedSecret is a distinctive fake credential value written into the test

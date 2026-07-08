@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // Console-managed settings. The admin panel edits these and they persist to

@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Remediation is one curated fix. Matching and command building are data-

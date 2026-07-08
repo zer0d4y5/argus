@@ -19,10 +19,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/coverage"
+	"github.com/zer0d4y5/argus/internal/coverage"
 
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/report"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/report"
 )
 
 // runsSubdir is the directory, under a scanned repo, where runs are stored.

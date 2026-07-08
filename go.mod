@@ -1,4 +1,4 @@
-module github.com/leaky-hub/argus
+module github.com/zer0d4y5/argus
 
 go 1.26.4
 

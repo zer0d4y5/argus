@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/cvss"
-	"github.com/leaky-hub/argus/internal/llm"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/cvss"
+	"github.com/zer0d4y5/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 const validateMaxTokens = 700

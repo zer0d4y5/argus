@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // fixture loads the recorded, sanitized prowler json-ocsf slice — a real

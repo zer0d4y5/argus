@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/argus/internal/store"
-	"github.com/leaky-hub/argus/internal/ticket"
+	"github.com/zer0d4y5/argus/internal/store"
+	"github.com/zer0d4y5/argus/internal/ticket"
 )
 
 // Ticket management from the CLI, over the same SQLite store the console uses

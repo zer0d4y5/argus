@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // Admin console-settings endpoint (admin-only, audited). GET returns the

@@ -1,8 +1,8 @@
 site_name: Argus
 site_description: One free, local-first security tool for your code and the cloud it runs in.
-site_url: https://leaky-hub.github.io/argus/
-repo_url: https://github.com/leaky-hub/argus
-repo_name: leaky-hub/argus
+site_url: https://zer0d4y5.github.io/argus/
+repo_url: https://github.com/zer0d4y5/argus
+repo_name: zer0d4y5/argus
 copyright: Apache-2.0. Free and local-first at the core.
 docs_dir: docs
 
@@ -91,4 +91,4 @@ extra_css:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/leaky-hub/argus
+      link: https://github.com/zer0d4y5/argus

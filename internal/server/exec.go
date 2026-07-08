@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/compliance"
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/coverage"
-	"github.com/leaky-hub/argus/internal/gitws"
-	"github.com/leaky-hub/argus/internal/jobs"
-	"github.com/leaky-hub/argus/internal/pipeline"
-	"github.com/leaky-hub/argus/internal/runstore"
-	"github.com/leaky-hub/argus/internal/snippet"
-	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/compliance"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/coverage"
+	"github.com/zer0d4y5/argus/internal/gitws"
+	"github.com/zer0d4y5/argus/internal/jobs"
+	"github.com/zer0d4y5/argus/internal/pipeline"
+	"github.com/zer0d4y5/argus/internal/runstore"
+	"github.com/zer0d4y5/argus/internal/snippet"
+	"github.com/zer0d4y5/argus/internal/targets"
 )
 
 // ScanExecutor builds the queue's ExecFunc: resolve the registered target

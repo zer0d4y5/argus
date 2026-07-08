@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/server/auth"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/server/auth"
 )
 
 // Single sign-on (OIDC) endpoints. Both are pre-auth (the user isn't signed in

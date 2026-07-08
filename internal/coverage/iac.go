@@ -16,8 +16,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/scanner"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/scanner"
 )
 
 // IaCCanary is a single planted misconfiguration that must be detected by at

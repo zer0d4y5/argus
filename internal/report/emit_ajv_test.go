@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // TestEmitSARIFForAJV writes a representative SARIF document (code + SCA +

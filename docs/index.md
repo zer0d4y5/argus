@@ -14,7 +14,7 @@ hide:
 
 [Install :material-download:](install.md){ .md-button .md-button--primary }
 [Getting started :material-rocket-launch:](getting-started.md){ .md-button }
-[GitHub :fontawesome-brands-github:](https://github.com/leaky-hub/argus){ .md-button }
+[GitHub :fontawesome-brands-github:](https://github.com/zer0d4y5/argus){ .md-button }
 
 </div>
 

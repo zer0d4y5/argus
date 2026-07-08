@@ -92,7 +92,7 @@ start with one.
 === ":material-apple: macOS / :material-linux: Linux"
 
     ```bash
-    git clone https://github.com/leaky-hub/argus.git
+    git clone https://github.com/zer0d4y5/argus.git
     cd argus
     ./scripts/setup.sh          # builds the binary and reports which scanners it found
     # or by hand:
@@ -105,7 +105,7 @@ start with one.
 === ":material-microsoft-windows: Windows"
 
     ```powershell
-    git clone https://github.com/leaky-hub/argus.git
+    git clone https://github.com/zer0d4y5/argus.git
     cd argus
     go build -o argus.exe ./cmd/argus
 
@@ -121,7 +121,7 @@ start with one.
 If you have a Go toolchain and just want the CLI, this works on every platform:
 
 ```bash
-go install github.com/leaky-hub/argus/cmd/argus@latest
+go install github.com/zer0d4y5/argus/cmd/argus@latest
 ```
 
 ## 4. Verify it works

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 //go:embed data/*.json

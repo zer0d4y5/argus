@@ -11,16 +11,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/argus/internal/compliance"
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/coverage"
-	"github.com/leaky-hub/argus/internal/disposition"
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/pipeline"
-	"github.com/leaky-hub/argus/internal/report"
-	"github.com/leaky-hub/argus/internal/runstore"
-	"github.com/leaky-hub/argus/internal/snippet"
-	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/zer0d4y5/argus/internal/compliance"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/coverage"
+	"github.com/zer0d4y5/argus/internal/disposition"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/pipeline"
+	"github.com/zer0d4y5/argus/internal/report"
+	"github.com/zer0d4y5/argus/internal/runstore"
+	"github.com/zer0d4y5/argus/internal/snippet"
+	"github.com/zer0d4y5/argus/internal/targets"
 )
 
 // errGateFailed is the sentinel for "scan succeeded, findings exceed the

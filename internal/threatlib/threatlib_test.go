@@ -3,7 +3,7 @@ package threatlib
 import (
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/mitigation"
+	"github.com/zer0d4y5/argus/internal/mitigation"
 )
 
 func TestLibraryLoadsAndIsWellFormed(t *testing.T) {

@@ -8,18 +8,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/argus/internal/audit"
-	"github.com/leaky-hub/argus/internal/gitws"
-	"github.com/leaky-hub/argus/internal/jobs"
-	"github.com/leaky-hub/argus/internal/model"
-	"github.com/leaky-hub/argus/internal/runstore"
-	"github.com/leaky-hub/argus/internal/server"
-	"github.com/leaky-hub/argus/internal/server/auth"
-	"github.com/leaky-hub/argus/internal/store"
-	"github.com/leaky-hub/argus/internal/targets"
-	"github.com/leaky-hub/argus/internal/threatmodel"
-	"github.com/leaky-hub/argus/internal/ticket"
-	"github.com/leaky-hub/argus/ui"
+	"github.com/zer0d4y5/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/gitws"
+	"github.com/zer0d4y5/argus/internal/jobs"
+	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/runstore"
+	"github.com/zer0d4y5/argus/internal/server"
+	"github.com/zer0d4y5/argus/internal/server/auth"
+	"github.com/zer0d4y5/argus/internal/store"
+	"github.com/zer0d4y5/argus/internal/targets"
+	"github.com/zer0d4y5/argus/internal/threatmodel"
+	"github.com/zer0d4y5/argus/internal/ticket"
+	"github.com/zer0d4y5/argus/ui"
 )
 
 func init() {

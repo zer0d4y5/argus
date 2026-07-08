@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/llm"
 )
 
 // Draft is a candidate rule plus the safety issues found in it. Ready is true

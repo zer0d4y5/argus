@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Smoke test: run the real scanners against the planted fixture repo and make

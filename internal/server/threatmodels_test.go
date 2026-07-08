@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/llm"
 )
 
 // TestThreatModelLifecycle drives the threat-model endpoints: create a model,

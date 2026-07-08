@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/targets"
+	"github.com/zer0d4y5/argus/internal/targets"
 )
 
 // TestRegisterAzureGCPTargets: an admin registers Azure (subscription) and GCP

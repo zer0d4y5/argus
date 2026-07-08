@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Semgrep implements the Adapter interface for the semgrep CLI (SAST).

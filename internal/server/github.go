@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/audit"
+	"github.com/zer0d4y5/argus/internal/audit"
 )
 
 // GitHub issue sync for tickets: create an issue from a ticket, or link an

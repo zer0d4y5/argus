@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/leaky-hub/argus/internal/store"
-	"github.com/leaky-hub/argus/internal/threatlib"
-	"github.com/leaky-hub/argus/internal/threatmodel"
+	"github.com/zer0d4y5/argus/internal/store"
+	"github.com/zer0d4y5/argus/internal/threatlib"
+	"github.com/zer0d4y5/argus/internal/threatmodel"
 )
 
 // Threat-model management from the CLI, over the same SQLite store the console

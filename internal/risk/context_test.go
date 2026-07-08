@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // The stage-2 flagship scenario from docs/risk-scoring.md: one Dockerfile

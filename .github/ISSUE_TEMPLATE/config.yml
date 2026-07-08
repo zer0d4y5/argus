@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/leaky-hub/argus/security/advisories/new
+    url: https://github.com/zer0d4y5/argus/security/advisories/new
     about: Report security issues privately, never in a public issue. See SECURITY.md.

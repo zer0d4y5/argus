@@ -3,7 +3,7 @@ package correlate
 import (
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 func TestCorrelateSCASameCVE(t *testing.T) {

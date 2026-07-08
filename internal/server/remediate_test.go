@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leaky-hub/argus/internal/config"
-	"github.com/leaky-hub/argus/internal/llm"
-	"github.com/leaky-hub/argus/internal/triage"
+	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/triage"
 )
 
 func TestRemediateEndpoint(t *testing.T) {

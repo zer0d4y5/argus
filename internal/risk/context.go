@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // Bounds. The summed context delta is clamped to ±contextCap so no heuristic

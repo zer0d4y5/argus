@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leaky-hub/argus/internal/llm"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/llm"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // TestRemediateEval is the LLM-in-the-loop remediation eval (guarded on

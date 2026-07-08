@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/leaky-hub/argus/internal/compliance"
-	"github.com/leaky-hub/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/compliance"
+	"github.com/zer0d4y5/argus/internal/model"
 )
 
 // HTMLMeta is the optional presentation context for a professional report.
