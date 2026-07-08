@@ -44,11 +44,24 @@ var highImpactCWEs = map[string]bool{
 // RiskScore is the full stage-3 value; the two differ exactly when a triage
 // verdict adjusted the score. Callers that band severity do so from the
 // return value, never from RiskScore, so no LLM output can move a severity.
-func Apply(findings []model.Finding) []float64 {
+func Apply(findings []model.Finding) []float64 { return ApplyWith(findings, nil) }
+
+// ExploitLookup returns the deterministic exploitation signals (KEV/EPSS) a
+// finding earns, or nil. It is injected rather than imported so the risk
+// package stays dependency-free and fully unit-testable; the pipeline supplies
+// an internal/exploit catalog's Signals method. A nil lookup means "no exploit
+// enrichment", which is exactly the pre-existing behaviour.
+type ExploitLookup func(model.Finding) []model.RiskSignal
+
+// ApplyWith is Apply with optional exploit enrichment. The exploit signals join
+// the per-category context signals and are summed under the same ±3.0 context
+// cap, so exploitation evidence informs the deterministic score like any other
+// signal and can never, alone, dominate a severity band.
+func ApplyWith(findings []model.Finding, exploit ExploitLookup) []float64 {
 	rc := buildRunContext(findings)
 	det := make([]float64, len(findings))
 	for i := range findings {
-		s, d, signals := score(findings[i], rc)
+		s, d, signals := score(findings[i], rc, exploit)
 		findings[i].RiskScore = &s
 		findings[i].RiskSignals = signals
 		det[i] = d
@@ -60,21 +73,28 @@ func Apply(findings []model.Finding) []float64 {
 // its deterministic (stage-2) score — the schema 2.0.0 pipeline step. It
 // lives beside Apply so no caller can accidentally band from the stored
 // stage-3 riskScore, which a triage verdict may have moved.
-func ApplyAndBand(findings []model.Finding) {
-	det := Apply(findings)
+func ApplyAndBand(findings []model.Finding) { ApplyAndBandWith(findings, nil) }
+
+// ApplyAndBandWith is ApplyAndBand with optional exploit enrichment.
+func ApplyAndBandWith(findings []model.Finding, exploit ExploitLookup) {
+	det := ApplyWith(findings, exploit)
 	for i := range findings {
 		findings[i].Severity = model.SeverityForScore(det[i])
 	}
 }
 
-func score(f model.Finding, rc runContext) (final, deterministic float64, _ []model.RiskSignal) {
+func score(f model.Finding, rc runContext, exploit ExploitLookup) (final, deterministic float64, _ []model.RiskSignal) {
 	s := Baseline(f)
 
-	// Stage 2: per-category context modifier (context.go). The summed delta
-	// is capped at ±3.0 so no heuristic stack can dominate severity; a
-	// synthetic row records the clamp so exported deltas sum exactly to the
-	// applied change.
+	// Stage 2: per-category context modifier (context.go), plus exploitation
+	// evidence (KEV/EPSS) for CVE findings when enrichment is enabled. The
+	// summed delta is capped at ±3.0 so no heuristic stack can dominate
+	// severity; a synthetic row records the clamp so exported deltas sum
+	// exactly to the applied change.
 	signals := contextSignals(f, rc)
+	if exploit != nil {
+		signals = append(signals, exploit(f)...)
+	}
 	raw := 0.0
 	for _, sg := range signals {
 		raw += sg.Delta

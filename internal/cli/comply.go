@@ -133,7 +133,7 @@ func complyFindings(cmd *cobra.Command, target string) ([]model.Finding, string,
 	// Band severity from the deterministic risk score, exactly like a scan
 	// (schema 2.0.0). Saved-run assessment above keeps stored severities:
 	// old documents are never re-banded.
-	risk.ApplyAndBand(findings)
+	risk.ApplyAndBandWith(findings, pipeline.ExploitLookup(cfg, stderrProgress))
 	return findings, "scan", nil
 }
 

@@ -24,7 +24,20 @@ type Config struct {
 	Ticketing    TicketingConfig   `yaml:"ticketing"`        // external issue-tracker sync (off unless configured)
 	Auth         AuthConfig        `yaml:"auth"`             // console authentication (SSO; off unless configured)
 	Remediation  RemediationConfig `yaml:"remediation"`      // approved cloud remediation (off unless enabled)
+	Exploit      ExploitConfig     `yaml:"exploit"`          // KEV/EPSS exploitation enrichment of risk scores
 }
+
+// ExploitConfig controls exploitation-evidence enrichment of the risk score.
+// The CISA KEV catalog is embedded and version-pinned, so enrichment is on by
+// default and works fully offline; EPSS is a large daily dataset supplied as an
+// optional local file (network-free either way).
+type ExploitConfig struct {
+	Enabled  *bool  `yaml:"enabled" json:"enabled"`     // nil = on; set false to disable KEV/EPSS enrichment
+	EPSSFile string `yaml:"epss_file" json:"epssFile"` // optional path to a FIRST EPSS scores CSV
+}
+
+// On reports whether exploitation enrichment should run (default: yes).
+func (e ExploitConfig) On() bool { return e.Enabled == nil || *e.Enabled }
 
 // RemediationConfig gates approved cloud remediation. Off by default: a
 // deliberate opt-in, since applying runs changes against a cloud account. Even

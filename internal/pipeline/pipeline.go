@@ -25,6 +25,7 @@ import (
 	"github.com/zer0d4y5/argus/internal/compliance"
 	"github.com/zer0d4y5/argus/internal/config"
 	"github.com/zer0d4y5/argus/internal/correlate"
+	"github.com/zer0d4y5/argus/internal/exploit"
 	"github.com/zer0d4y5/argus/internal/llm"
 	"github.com/zer0d4y5/argus/internal/model"
 	"github.com/zer0d4y5/argus/internal/risk"
@@ -160,7 +161,7 @@ func Enrich(ctx context.Context, cfg config.Config, target string, rawFindings [
 	// stage-3 riskScore, so a triage verdict can move the score but never a
 	// severity, and never the gate. Re-sort afterwards: reporters rely on
 	// severity-descending order, and banding is what severity now means.
-	risk.ApplyAndBand(findings)
+	risk.ApplyAndBandWith(findings, ExploitLookup(cfg, progress))
 	model.Sort(findings)
 
 	// Compliance mapping is always on: deterministic, hand-curated, cheap.
@@ -187,6 +188,22 @@ func Enrich(ctx context.Context, cfg config.Config, target string, rawFindings [
 // buildTriager constructs the configured LLM triager, or Noop when triage is
 // disabled or the provider is unreachable — a scan must always complete
 // without an LLM. API keys come from the environment only, never appsec.yml.
+// ExploitLookup builds the KEV/EPSS enrichment lookup for the risk stage, or
+// nil when enrichment is disabled or its data fails to load. A load failure
+// warns and falls back to unenriched scoring: exploitation evidence is
+// additive, never load-bearing for a scan to succeed.
+func ExploitLookup(cfg config.Config, progress Progress) risk.ExploitLookup {
+	if !cfg.Exploit.On() {
+		return nil
+	}
+	cat, err := exploit.Load(cfg.Exploit.EPSSFile)
+	if err != nil {
+		progress(fmt.Sprintf("WARN: exploit enrichment disabled: %v\n", err))
+		return nil
+	}
+	return cat.Signals
+}
+
 func buildTriager(ctx context.Context, cfg config.Config, target string, progress Progress) triage.Triager {
 	if !cfg.Triage.Enabled {
 		return triage.Noop{}

@@ -108,9 +108,29 @@ signals that actually drive risk *for that category*. Design rules, in order:
 | SECRET | realness (entropy, test-path), sensitivity (rule identity), exposure (DS-0031 co-location, prod-path heuristic), `verified` hook | live-credential verification (needs the opt-in verifier, future phase); secret *value* analysis (scrubbed by design, must stay gone) |
 | IAC | DS-0031 secret-exposure handling (incl. env-var name table, SECRET co-location, `verified` hook); public-exposure rule table | data-bearing-resource classification (needs a careful resource-type mapping, future reviewed table); cross-resource reachability |
 | SAST | test-path deprioritization | reachability/taint: that is Phase 7/8 (IAST), not faked here |
-| SCA | none: **trivy's `fs` JSON emits no KEV / EPSS / exploit-maturity fields** (verified against trivy 0.6x output: `CVSS`, `Severity`, `FixedVersion`, dates, references, nothing exploit-related), so SCA stays on the stage-1 baseline rather than inventing a signal | exploit-maturity boost: add when a KEV/EPSS source is wired in as its own reviewed input |
+| SCA (and any CVE finding) | **exploitation evidence** joined by CVE from a reviewed, out-of-band source: CISA KEV membership (embedded, version-pinned) and FIRST EPSS probability (optional local file). See the exploit signal table below | vulnerable-symbol reachability (does the CVE's code actually get called): needs a call graph, Phase 8 |
 | DAST | none (no DAST adapter yet) | – |
 | CLOUD | exposure (prowler check categories: internet-exposed), identity blast radius (reviewed admin-policy check table + privilege-escalation category), data protection (encryption category), detection readiness (logging category), all from prowler check metadata only | resource criticality (needs a data-classification input we don't have); reachability graphs (Attack-path products fake this from topology; we don't); KEV/EPSS-style exploited-in-wild boosts (no source wired) |
+
+### Exploitation signals (KEV / EPSS)
+
+Any finding that carries a CVE (in practice SCA) is enriched with real-world
+exploitation evidence, joined by CVE id from sources kept deliberately separate
+from the scanner output. The CISA KEV catalog is embedded and version-pinned
+with the binary, so this works offline and never phones home; FIRST EPSS is a
+large daily dataset supplied as an optional local file (`exploit.epss_file`).
+These are ordinary stage-2 signals: they sum into the same ±3.0 context cap, so
+exploitation evidence informs the score like any other signal and can never,
+alone, dominate a severity band. Enrichment is on by default (`exploit.enabled`).
+
+| Code | Delta | Fires when |
+|---|---|---|
+| `exploit.kev` | **+2.0** | the CVE is on the CISA Known Exploited Vulnerabilities catalog (known exploited in the wild) |
+| `exploit.kev_ransomware` | **+0.5** | the KEV entry is linked to known ransomware campaigns |
+| `exploit.epss` | **+1.5 / +0.75 / +0.25** | EPSS probability ≥ 0.5 / ≥ 0.1 / ≥ 0.01 respectively (banded, so the daily EPSS refresh never jitters a severity); below 0.01 fires nothing |
+
+A CVE not present in either source earns no exploit signal and stays on its
+stage-1 baseline. Matching is case-insensitive on the CVE id.
 
 ### Secret-shaped findings
 
