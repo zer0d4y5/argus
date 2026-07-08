@@ -37,9 +37,9 @@ and are overridable per repo via `semgrep_rulesets:`.
 | Ruby | ✅ | · | ✅ | ✅ | ✅ | · |
 | PHP | ✅ | ✅ | ✅ | ✅ | · | · |
 | Kotlin | ✅ | ◐ | · | · | · | ✅ |
-| Rust | · | · | · | · | · | · |
+| Rust | · | ✅ | · | · | · | · |
 | Scala | ✅ | · | · | · | · | · |
-| C | · | · | · | · | · | · |
+| C | · | ✅ | · | · | · | · |
 | Swift | ✅ | ✅ | · | · | · | ✅ |
 
 ## Canaries (regression guard)
@@ -149,8 +149,8 @@ every profile. Counts below are from the live scan that generated this file.
 
 | Profile | Findings pre-correlate | Post-correlate | Duplicates collapsed | Findings per plant (post) | Safe-code false flags |
 |---|---:|---:|---:|---:|---:|
-| `standard` | 65 | 60 | 5 | 0.9 | 0/29 |
-| `max` | 129 | 93 | 36 | 1.4 | 2/29 |
+| `standard` | 81 | 76 | 5 | 1.0 | 0/41 |
+| `max` | 147 | 109 | 38 | 1.4 | 2/41 |
 
 **Safe-code false flags** is the precision metric (locked decision 2): the
 number of labeled `PLANT-FP` safe-code plants (parameterized SQL, constant

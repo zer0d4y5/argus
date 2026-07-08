@@ -522,3 +522,247 @@ rules:
           - pattern: ldap_search($CONN, $BASE, <... $_REQUEST[...] ...>)
           - pattern: ldap_search($CONN, $BASE, <... $_COOKIE[...] ...>)
       - pattern-not: ldap_search($CONN, $BASE, <... ldap_escape(...) ...>)
+
+  # ---- More languages: C#, Kotlin, Rust, C, Swift gap classes
+  # (subagent-authored, earn-your-slot + real-corpus FP tested). Anchored to
+  # specific constructors/functions - never a bare receiver metavariable.
+  - id: argus-curated-csharp-ssrf-web-request
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      A web request is made to a URL taken from a variable. If the URL is
+      influenced by user input this allows Server-Side Request Forgery (SSRF).
+      Validate the URL against an allowlist of trusted hosts before requesting.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: new System.Net.WebClient().DownloadString($URL)
+          - pattern: new WebClient().DownloadString($URL)
+          - pattern: System.Net.WebRequest.Create($URL)
+          - pattern: WebRequest.Create($URL)
+          - pattern: new System.Net.Http.HttpClient().GetStringAsync($URL)
+          - pattern: new HttpClient().GetStringAsync($URL)
+      - metavariable-pattern:
+          metavariable: $URL
+          patterns:
+            - pattern-not: '"..."'
+  - id: argus-curated-csharp-xxe-xmldocument
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      An XmlDocument loads XML without disabling external entity resolution,
+      exposing the application to XML External Entity (XXE) attacks. Set
+      XmlResolver = null on the XmlDocument before calling Load/LoadXml.
+    metadata:
+      cwe: "CWE-611: Improper Restriction of XML External Entity Reference (XXE)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: |
+              var $DOC = new XmlDocument();
+              ...
+              $DOC.Load($SRC);
+          - pattern: |
+              var $DOC = new XmlDocument();
+              ...
+              $DOC.LoadXml($SRC);
+          - pattern: |
+              XmlDocument $DOC = new XmlDocument();
+              ...
+              $DOC.Load($SRC);
+          - pattern: |
+              XmlDocument $DOC = new XmlDocument();
+              ...
+              $DOC.LoadXml($SRC);
+      - pattern-not: |
+          var $DOC = new XmlDocument();
+          ...
+          $DOC.XmlResolver = null;
+          ...
+      - pattern-not: |
+          XmlDocument $DOC = new XmlDocument();
+          ...
+          $DOC.XmlResolver = null;
+          ...
+  - id: argus-curated-kotlin-ssrf-url-openconnection
+    languages: [kotlin]
+    severity: ERROR
+    message: >-
+      URL is constructed from a non-constant value and then opened, allowing
+      Server-Side Request Forgery (SSRF). Validate and allow-list the destination
+      host/scheme before opening the connection.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: URL($VAR).openConnection()
+          - pattern: URL($VAR).openStream()
+          - pattern: URL($VAR).readText()
+      - pattern-not: URL("...").openConnection()
+      - pattern-not: URL("...").openStream()
+      - pattern-not: URL("...").readText()
+  - id: argus-curated-kotlin-path-traversal-file-read
+    languages: [kotlin]
+    severity: ERROR
+    message: >-
+      A File is read from a non-constant path. If the path (or child segment) is
+      attacker-influenced this is a path traversal: "../../etc/passwd" can escape
+      the intended directory. Canonicalize and verify the resolved path stays
+      within an allowed base directory.
+    metadata:
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: File($VAR).readText()
+          - pattern: File($VAR).readBytes()
+          - pattern: File($BASE, $VAR).readText()
+          - pattern: File($BASE, $VAR).readBytes()
+      - pattern-not: File("...").readText()
+      - pattern-not: File("...").readBytes()
+      - pattern-not: File($BASE, "...").readText()
+      - pattern-not: File($BASE, "...").readBytes()
+  - id: argus-curated-kotlin-webview-javascript-enabled
+    languages: [kotlin]
+    severity: WARNING
+    message: >-
+      JavaScript is explicitly enabled on a WebView, widening the XSS/attack
+      surface: any HTML rendered can execute script. Only enable JavaScript when
+      required and load exclusively trusted, validated content.
+    metadata:
+      cwe: "CWE-749: Exposed Dangerous Method or Function"
+      category: security
+      confidence: MEDIUM
+    pattern: $WV.settings.javaScriptEnabled = true
+  - id: argus-curated-rust-shell-command-injection
+    languages: [rust]
+    severity: ERROR
+    message: >-
+      Spawning a shell ("sh"/"bash") with "-c" and a dynamically built argument
+      allows command injection. Avoid the shell; pass arguments to Command
+      directly, or strictly validate/escape input.
+    metadata:
+      cwe: "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: Command::new("sh").arg("-c").arg($X)
+          - pattern: Command::new("bash").arg("-c").arg($X)
+      - pattern-not: Command::new("sh").arg("-c").arg("...")
+      - pattern-not: Command::new("bash").arg("-c").arg("...")
+  - id: argus-curated-rust-sql-injection-format
+    languages: [rust]
+    severity: ERROR
+    message: >-
+      SQL query built with format! and passed to a query API. String
+      interpolation into SQL allows SQL injection. Use parameterized queries /
+      bind parameters instead of format!.
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      category: security
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: sqlx::query(&format!($...ARGS))
+      - pattern: sqlx::query(format!($...ARGS))
+      - pattern: diesel::sql_query(&format!($...ARGS))
+      - pattern: diesel::sql_query(format!($...ARGS))
+  - id: argus-curated-rust-hardcoded-aws-key
+    languages: [rust]
+    severity: ERROR
+    message: >-
+      Hardcoded AWS access key ID literal. Credentials embedded in source can be
+      extracted from binaries or version control. Load secrets from the
+      environment or a secrets manager instead.
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: let $NAME = $VAL;
+          - pattern: "const $NAME: $T = $VAL;"
+          - pattern: "static $NAME: $T = $VAL;"
+      - metavariable-regex:
+          metavariable: $VAL
+          regex: '^"AKIA[0-9A-Z]{16}"$'
+  - id: argus-curated-c-format-string
+    languages: [c]
+    severity: ERROR
+    message: >-
+      printf-family function called with a non-literal format string. If the
+      format argument is attacker-influenced this is a format string
+      vulnerability. Use a constant format string, e.g. printf("%s", x).
+    metadata:
+      cwe: "CWE-134: Use of Externally-Controlled Format String"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: printf($FMT)
+          - pattern: fprintf($F, $FMT)
+          - pattern: sprintf($BUF, $FMT)
+          - pattern: syslog($PRI, $FMT)
+      - metavariable-pattern:
+          metavariable: $FMT
+          patterns:
+            - pattern-not: '"..."'
+  - id: argus-curated-c-command-injection
+    languages: [c]
+    severity: ERROR
+    message: >-
+      system()/popen() called with a non-constant command string. If any part
+      of the command is attacker-influenced this allows OS command injection.
+      Avoid the shell; use execve() with a fixed argument vector.
+    metadata:
+      cwe: "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: system($X)
+          - pattern: popen($X, $MODE)
+      - metavariable-pattern:
+          metavariable: $X
+          patterns:
+            - pattern-not: '"..."'
+  - id: argus-curated-swift-userdefaults-secret-storage
+    languages: [swift]
+    severity: WARNING
+    message: >-
+      A sensitive value (password/token/secret/apiKey) is written to
+      UserDefaults, which stores data unencrypted in a plist. Use the Keychain
+      for secrets.
+    metadata:
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+      category: security
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: 'UserDefaults.standard.set($SECRET, forKey: $KEY)'
+          - pattern: 'UserDefaults.standard.setValue($SECRET, forKey: $KEY)'
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: '(?i)"[^"]*(password|token|secret|apikey)[^"]*"'
+  - id: argus-curated-swift-weak-random
+    languages: [swift]
+    severity: WARNING
+    message: >-
+      drand48()/random()/rand() are not cryptographically secure PRNGs. For
+      security values (tokens, IVs, salts) use arc4random_uniform() or
+      SystemRandomNumberGenerator.
+    metadata:
+      cwe: "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)"
+      category: security
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: drand48()
+      - pattern: random()
+      - pattern: rand()
