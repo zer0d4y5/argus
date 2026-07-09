@@ -19,3 +19,6 @@ ui/vite.config.d.ts
 # MkDocs build output
 site/
 _site/
+
+# The compiled binary is BUILT, never committed (go build -o argus ./cmd/argus).
+/argus
