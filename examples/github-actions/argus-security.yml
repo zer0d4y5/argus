@@ -51,10 +51,14 @@ jobs:
           key: argus-baseline-${{ github.event.pull_request.base.sha }}
           restore-keys: argus-baseline-
 
+      # base_ref reaches the script through env, never template-interpolated
+      # into run: (that pattern is script injection; argus's own SAST pass
+      # flags it, and this file gets scanned too).
       - name: Scan the changed files, gate on new findings, post PR comments
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           BASELINE=""
           if [ -f .argus-baseline.json ]; then
@@ -62,7 +66,7 @@ jobs:
           else
             echo "::notice::no baseline cached yet (runs after the first push to main); gating on all findings in the changed files"
           fi
-          argus scan . --diff-base "origin/${{ github.base_ref }}" $BASELINE \
+          argus scan . --diff-base "origin/${BASE_REF}" $BASELINE \
             --fail-severity high --pr-comments
 
       # ---- pushes to main: full scan, refresh the baseline ----
