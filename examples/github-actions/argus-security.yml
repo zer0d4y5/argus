@@ -1,0 +1,82 @@
+# Argus security gate: copy this ONE file to .github/workflows/ and you get
+# the full CI loop documented at https://zer0d4y5.github.io/argus/ci/:
+#
+#   - every push to main runs a FULL scan and records the baseline (cache)
+#   - every pull request scans ONLY its changed files (--diff-base), gates
+#     only on findings NEW since the baseline (--baseline), and posts them
+#     as review comments on the changed lines (--pr-comments)
+#
+# Scanner versions are pinned on purpose: a workflow that installs "latest"
+# breaks nondeterministically. Bump them deliberately.
+
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write # --pr-comments posts a review on the PR
+
+jobs:
+  argus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history so --diff-base can find the merge-base
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Install Argus and scanners
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          go install github.com/zer0d4y5/argus/cmd/argus@latest
+          pipx install semgrep==1.169.0
+          curl -sSfL --retry 3 "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+
+      # ---- pull requests: scoped scan, gate on the new delta, comment ----
+
+      - name: Restore the baseline written on main
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: .argus-baseline.json
+          key: argus-baseline-${{ github.event.pull_request.base.sha }}
+          restore-keys: argus-baseline-
+
+      - name: Scan the changed files, gate on new findings, post PR comments
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASELINE=""
+          if [ -f .argus-baseline.json ]; then
+            BASELINE="--baseline .argus-baseline.json"
+          else
+            echo "::notice::no baseline cached yet (runs after the first push to main); gating on all findings in the changed files"
+          fi
+          argus scan . --diff-base "origin/${{ github.base_ref }}" $BASELINE \
+            --fail-severity high --pr-comments
+
+      # ---- pushes to main: full scan, refresh the baseline ----
+
+      # --write-baseline records the current backlog and never gates: the
+      # gate lives on the PR delta. Add a separate gating scan of main here
+      # if you also want the default branch to go red on its own findings.
+      - name: Full scan and baseline refresh
+        if: github.event_name == 'push'
+        run: argus scan . --write-baseline .argus-baseline.json
+
+      - name: Save the baseline for pull requests
+        if: github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: .argus-baseline.json
+          key: argus-baseline-${{ github.sha }}

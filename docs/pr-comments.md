@@ -66,6 +66,10 @@ token env var name honors `ticketing.github.token_env` (default
 
 ## GitHub Actions example
 
+For the complete turnkey loop (baseline refresh on main, diff-scoped PR
+scans, this feature wired in) copy the one-file workflow from
+[CI integration](ci.md). A minimal comment-only job looks like:
+
 ```yaml
 name: security
 on:

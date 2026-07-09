@@ -304,7 +304,9 @@ always advisory (the exit code belongs to the gate). See
 [docs/pr-comments.md](docs/pr-comments.md). And `--diff-base origin/main`
 scans only the files the PR changed (merge-base aware, identical
 fingerprints to a full scan, full-scan fallback on any git trouble), turning
-the PR loop from minutes into seconds.
+the PR loop from minutes into seconds. The whole loop is one copy-paste
+workflow file: [docs/ci.md](docs/ci.md) walks through
+[`examples/github-actions/argus-security.yml`](examples/github-actions/argus-security.yml).
 
 The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
 Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every
