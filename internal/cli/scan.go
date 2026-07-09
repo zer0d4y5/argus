@@ -44,6 +44,8 @@ func init() {
 	scanCmd.Flags().Bool("offline", false, "Use only local rules (embedded curated + `argus rules sync` cache + local BYO); never fetch registry packs")
 	scanCmd.Flags().String("baseline", "", "Gate only on findings NEW since this baseline file; known findings stay in the report")
 	scanCmd.Flags().String("write-baseline", "", "Write the current findings' fingerprints to this baseline file and exit without gating")
+	scanCmd.Flags().Bool("pr-comments", false, "Post the gated findings as review comments on the GitHub pull request (pairs with --baseline; advisory, never changes the exit code)")
+	scanCmd.Flags().Int("pr", 0, "Pull request number for --pr-comments (default: auto-detected in GitHub Actions)")
 }
 
 var scanCmd = &cobra.Command{
@@ -158,6 +160,12 @@ func runScan(cmd *cobra.Command, args []string) error {
 		if suppressed > 0 {
 			fmt.Fprintf(os.Stderr, "NOTE: %d finding(s) excluded from the gate by disposition (accepted-risk/false-positive); --strict-gate to include them\n", suppressed)
 		}
+	}
+	// PR comments see exactly the set the gate judges (new since baseline,
+	// disposition-filtered), so a comment and a red check always agree on
+	// what the pull request adds. Advisory: posting never moves the exit code.
+	if on, _ := cmd.Flags().GetBool("pr-comments"); on {
+		postPRComments(cmd, cfg, gated)
 	}
 	if model.GateExceeded(gated, gate) {
 		return errGateFailed

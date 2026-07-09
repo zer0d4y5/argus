@@ -42,7 +42,9 @@ stable fingerprint is not in the baseline) fail the gate; known findings are
 counted and shown (`N new, M known`) but never block the build. The baseline is
 a plain JSON list of fingerprints, safe to commit. It composes with dispositions
 and `--strict-gate`, and pairs naturally with a PR workflow: baseline `main`,
-gate the PR on what it adds.
+gate the PR on what it adds. Add `--pr-comments` and that delta is also posted
+on the pull request as inline review comments on the changed lines; see
+[PR review comments](pr-comments.md).
 
 The same idea is interactive in the console: a run's detail page tags each
 finding NEW and shows a `+N new · -M resolved` counter, with a **baseline

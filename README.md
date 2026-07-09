@@ -297,7 +297,11 @@ embedded curated rules.
 findings; `argus scan --baseline .argus-baseline.json` then reports everything
 but fails the build only on findings new since the baseline. The console makes
 the same diff interactive: pick any earlier run as the baseline and filter to
-just the new findings.
+just the new findings. Add `--pr-comments` and the same delta lands on the
+pull request as one batched review: inline on the changed lines where GitHub
+allows it, the rest in the review body, idempotent across re-pushes, and
+always advisory (the exit code belongs to the gate). See
+[docs/pr-comments.md](docs/pr-comments.md).
 
 The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
 Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every

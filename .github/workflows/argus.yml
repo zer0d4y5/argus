@@ -8,6 +8,8 @@ on:
 permissions:
   contents: read
   security-events: write
+  # For --pr-comments: post new findings as review comments on the PR.
+  pull-requests: write
 
 jobs:
   argus:
@@ -53,4 +55,9 @@ jobs:
 
       - name: Gate on high severity findings
         # Repo's argus.yml ignores testdata/**, so this gates the real code.
-        run: ./argus scan . --fail-severity high
+        # --pr-comments dogfoods the PR review loop: on pull_request runs it
+        # posts any gated findings on the PR (advisory; the gate still owns
+        # the exit code), and on push runs it detects no PR and does nothing.
+        run: ./argus scan . --fail-severity high --pr-comments
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
