@@ -52,6 +52,31 @@ picker** to choose which earlier run that diff is measured against and a "New
 only" filter to see just what the run added. Details in
 [docs/console-ops.md](console-ops.md) §12.11.
 
+## Scan only what changed (incremental)
+
+A pull-request scan does not need to re-scan the whole repository. With a git
+base ref, Argus scans only the files changed since the merge-base (committed,
+staged, unstaged, and untracked all count; deleted files do not):
+
+```bash
+argus scan . --diff-base origin/main --baseline .argus-baseline.json --pr-comments
+```
+
+This turns a multi-minute scan into seconds on a typical PR. Internally the
+changed files are mirrored into a temporary directory preserving relative
+paths, so file paths, line numbers, and **fingerprints are identical** to a
+full scan: baselines, dispositions, and PR comments compose unchanged. If the
+base ref cannot be resolved (for example a shallow CI clone without the
+merge-base), Argus warns and falls back to a **full** scan: the fail-safe
+direction is more coverage, never silently less.
+
+The honest trade-off: scanners see only the changed files, so findings that
+need cross-file context (an SCA manifest whose lockfile did not change, a
+rule that looks at a sibling file) can be missed. Keep the full scan of your
+default branch as the source of truth; use `--diff-base` for the fast PR
+loop. `--write-baseline` deliberately refuses to combine with `--diff-base`:
+a baseline must record the full backlog.
+
 ## Add local AI triage
 
 Breadth raises false-positive volume on purpose. The answer is an LLM verdict on

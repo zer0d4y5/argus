@@ -301,7 +301,10 @@ just the new findings. Add `--pr-comments` and the same delta lands on the
 pull request as one batched review: inline on the changed lines where GitHub
 allows it, the rest in the review body, idempotent across re-pushes, and
 always advisory (the exit code belongs to the gate). See
-[docs/pr-comments.md](docs/pr-comments.md).
+[docs/pr-comments.md](docs/pr-comments.md). And `--diff-base origin/main`
+scans only the files the PR changed (merge-base aware, identical
+fingerprints to a full scan, full-scan fallback on any git trouble), turning
+the PR loop from minutes into seconds.
 
 The same bar applies to IaC: labeled misconfigured Terraform / Kubernetes /
 Dockerfile fixtures (`testdata/iac/`) with a coverage test asserting every

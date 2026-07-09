@@ -15,6 +15,7 @@ import (
 	"github.com/zer0d4y5/argus/internal/compliance"
 	"github.com/zer0d4y5/argus/internal/config"
 	"github.com/zer0d4y5/argus/internal/coverage"
+	"github.com/zer0d4y5/argus/internal/diffscope"
 	"github.com/zer0d4y5/argus/internal/disposition"
 	"github.com/zer0d4y5/argus/internal/model"
 	"github.com/zer0d4y5/argus/internal/pipeline"
@@ -46,6 +47,7 @@ func init() {
 	scanCmd.Flags().String("write-baseline", "", "Write the current findings' fingerprints to this baseline file and exit without gating")
 	scanCmd.Flags().Bool("pr-comments", false, "Post the gated findings as review comments on the GitHub pull request (pairs with --baseline; advisory, never changes the exit code)")
 	scanCmd.Flags().Int("pr", 0, "Pull request number for --pr-comments (default: auto-detected in GitHub Actions)")
+	scanCmd.Flags().String("diff-base", "", "Scan only files changed since this git ref (merge-base aware, e.g. origin/main); falls back to a full scan with a warning if the ref cannot be resolved")
 }
 
 var scanCmd = &cobra.Command{
@@ -98,13 +100,57 @@ func runScan(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid fail-severity: %w", err)
 	}
 
-	res, err := pipeline.Run(cmd.Context(), pipeline.Options{Target: target, Config: cfg}, func(line string) {
-		fmt.Fprint(os.Stderr, line)
-	})
-	if err != nil {
-		return err
+	// Incremental scope: scan a temp mirror of just the files changed since
+	// the base ref. The mirror preserves relative paths, so file paths, line
+	// numbers, and therefore fingerprints match a full scan and baselines,
+	// dispositions, and PR comments compose unchanged. Every failure path
+	// falls back to the FULL scan with a warning: fail-safe is more
+	// coverage, never silently less.
+	scanTarget := target
+	skipScan := false
+	if base, _ := cmd.Flags().GetString("diff-base"); base != "" {
+		if wb, _ := cmd.Flags().GetString("write-baseline"); wb != "" {
+			return fmt.Errorf("--write-baseline records the full backlog; do not combine it with --diff-base")
+		}
+		if fi, err := os.Stat(target); err != nil || !fi.IsDir() {
+			return fmt.Errorf("--diff-base needs a directory target")
+		}
+		files, err := diffscope.ChangedFiles(cmd.Context(), target, base)
+		switch {
+		case err != nil:
+			fmt.Fprintf(os.Stderr, "WARN: %v; running a full scan instead\n", err)
+		case len(files) == 0:
+			fmt.Fprintf(os.Stderr, "NOTE: diff scope vs %s: no changed files, nothing to scan\n", base)
+			skipScan = true
+		default:
+			mirror, skipped, cleanup, err := diffscope.Mirror(target, files)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "WARN: %v; running a full scan instead\n", err)
+			} else {
+				defer cleanup()
+				scanTarget = mirror
+				fmt.Fprintf(os.Stderr, "NOTE: diff scope vs %s: scanning %d changed file(s)\n", base, len(files)-len(skipped))
+				for _, s := range skipped {
+					fmt.Fprintf(os.Stderr, "NOTE: diff scope skipped %s (deleted, symlink, or outside the scan root)\n", s)
+				}
+			}
+		}
 	}
-	findings := res.Findings
+
+	var findings []model.Finding
+	if !skipScan {
+		popts := pipeline.Options{Target: scanTarget, Config: cfg}
+		if scanTarget != target {
+			popts.ReportRoot = target
+		}
+		res, err := pipeline.Run(cmd.Context(), popts, func(line string) {
+			fmt.Fprint(os.Stderr, line)
+		})
+		if err != nil {
+			return err
+		}
+		findings = res.Findings
+	}
 
 	if err := writeReport(cmd, cfg.Format, findings); err != nil {
 		return err
@@ -113,7 +159,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	// Opt-in run history for the console. A save failure is a warning, never a
 	// scan failure — the report has already been written successfully.
 	if save, _ := cmd.Flags().GetBool("save"); save {
-		if meta, err := saveRun(target, findings); err != nil {
+		if meta, err := saveRun(target, scanTarget, findings); err != nil {
 			fmt.Fprintf(os.Stderr, "WARN: --save failed: %v\n", err)
 		} else {
 			fmt.Fprintf(os.Stderr, "==> saved run %s to %s\n", meta.ID, meta.Path)
@@ -266,7 +312,12 @@ func loadConfig(cmd *cobra.Command) (config.Config, error) {
 // repo root is the scan target directory (or the file's directory).
 // Snippets (schema 1.4.0) are captured only on the save path: the stdout
 // report is unchanged, run files gain the code frames the console renders.
-func saveRun(target string, findings []model.Finding) (runstore.RunMeta, error) {
+// scanned is the directory the scanners actually saw: the target itself, or
+// the diff-scope mirror. Coverage accounting walks scanned (a scoped run
+// must not claim it looked at the whole repo), while snippets and the run
+// store resolve against the real target (the mirror preserves relative
+// paths, so both name the same files).
+func saveRun(target, scanned string, findings []model.Finding) (runstore.RunMeta, error) {
 	snippet.Capture(target, findings)
 	root := target
 	if fi, err := os.Stat(target); err == nil && !fi.IsDir() {
@@ -275,7 +326,7 @@ func saveRun(target string, findings []model.Finding) (runstore.RunMeta, error) 
 	// Skip accounting (schema 2.0.0): what the scan did NOT look at, stored
 	// with the run and surfaced in the console. Save-path only, like
 	// snippets — stdout reports are unchanged.
-	cov := coverage.Account(target)
+	cov := coverage.Account(scanned)
 	return runstore.ForRepo(root).SaveWithCoverage(findings, &cov, time.Now())
 }
 

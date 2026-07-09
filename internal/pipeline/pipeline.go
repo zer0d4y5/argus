@@ -16,6 +16,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -44,6 +46,13 @@ type Progress func(line string)
 type Options struct {
 	Target string
 	Config config.Config
+	// ReportRoot, when set, means Target is a stand-in directory (the
+	// diff-scope mirror) whose files are a relative-path-preserving copy of
+	// ReportRoot. Findings' paths are rebased from Target onto ReportRoot
+	// BEFORE normalization, so fingerprints, ignore_paths, baselines, and
+	// dispositions are byte-identical to a scan of ReportRoot itself, and
+	// enrichment (triage snippets) reads the real files under ReportRoot.
+	ReportRoot string
 }
 
 // Result is a completed pipeline run.
@@ -73,8 +82,46 @@ func Run(ctx context.Context, opts Options, progress Progress) (Result, error) {
 
 	rawFindings := RunScanners(ctx, adapters, opts.Target, cfg.TimeoutSec, progress)
 
-	findings := Enrich(ctx, cfg, opts.Target, rawFindings, progress)
+	enrichRoot := opts.Target
+	if opts.ReportRoot != "" {
+		RebaseRawPaths(rawFindings, opts.Target, opts.ReportRoot)
+		enrichRoot = opts.ReportRoot
+	}
+	findings := Enrich(ctx, cfg, enrichRoot, rawFindings, progress)
 	return Result{Findings: findings}, nil
+}
+
+// RebaseRawPaths rewrites raw findings' file paths as if the scan target had
+// been reportRoot instead of scanned: the adapters' convention is that File
+// carries the target prefix (CWD-relative), so the scanned prefix is swapped
+// for reportRoot's. Both are directories by contract (the CLI enforces it).
+// A path that does not carry the scanned prefix is left alone: reporting a
+// surprising path honestly beats fabricating one.
+func RebaseRawPaths(raws []model.RawFinding, scanned, reportRoot string) {
+	from := filepath.ToSlash(scanned)
+	to := filepath.ToSlash(reportRoot)
+	if to == "." {
+		to = ""
+	}
+	for i := range raws {
+		f := filepath.ToSlash(raws[i].File)
+		if f == "" {
+			continue
+		}
+		var rel string
+		switch {
+		case f == from:
+			rel = ""
+		case strings.HasPrefix(f, from+"/"):
+			rel = f[len(from)+1:]
+		default:
+			continue
+		}
+		if to != "" {
+			rel = path.Join(to, rel)
+		}
+		raws[i].File = rel
+	}
 }
 
 // validateCustomRulesets guards the one ruleset kind a user can get wrong: a
