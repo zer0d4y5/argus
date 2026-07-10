@@ -118,7 +118,9 @@ Any finding that carries a CVE (in practice SCA) is enriched with real-world
 exploitation evidence, joined by CVE id from sources kept deliberately separate
 from the scanner output. The CISA KEV catalog is embedded and version-pinned
 with the binary, so this works offline and never phones home; FIRST EPSS is a
-large daily dataset supplied as an optional local file (`exploit.epss_file`).
+large daily dataset kept as a local file: run `argus exploit sync-epss` to
+fetch it (validated, atomically written) and scans pick it up automatically
+(`exploit.epss_file` overrides the location). Scan-time stays network-free.
 These are ordinary stage-2 signals: they sum into the same ±3.0 context cap, so
 exploitation evidence informs the score like any other signal and can never,
 alone, dominate a severity band. Enrichment is on by default (`exploit.enabled`).

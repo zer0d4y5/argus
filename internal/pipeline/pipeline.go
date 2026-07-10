@@ -243,7 +243,7 @@ func ExploitLookup(cfg config.Config, progress Progress) risk.ExploitLookup {
 	if !cfg.Exploit.On() {
 		return nil
 	}
-	cat, err := exploit.Load(cfg.Exploit.EPSSFile)
+	cat, err := exploit.Load(exploit.ResolveEPSSFile(cfg.Exploit.EPSSFile))
 	if err != nil {
 		progress(fmt.Sprintf("WARN: exploit enrichment disabled: %v\n", err))
 		return nil
