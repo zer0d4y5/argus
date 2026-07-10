@@ -32,7 +32,25 @@ Severity is nuclei's own template rating, banded like every other tool:
 exposure surface) stays honest `info`, never inflated to a gate-tripping
 medium.
 
-## Findings never carry the response
+## Request/response evidence
+
+By default a DAST finding is metadata only (see below). Add `--evidence`
+(CLI) or enable it per target in the console to also capture the **request and
+response** that produced each finding, so an engineer can validate it at a
+glance: the fuzzed request line and the response that matched (a SQL error, a
+reflected payload, an included file).
+
+```bash
+argus dast http://target/ --auth-auto --crawl --dast --evidence
+```
+
+Capture is opt-in because it relaxes the metadata-only default: the request's
+auth headers (`Cookie`, `Authorization`, and the like) are **redacted** and the
+content is size-bounded, but a captured response body can still hold data from
+the scanned app. Enable it against targets you own; leave it off when that is a
+concern.
+
+## Findings never carry the response (by default)
 
 A DAST finding is metadata about a weakness, not a copy of the target's
 traffic. nuclei's JSONL includes the full request, the full response body,

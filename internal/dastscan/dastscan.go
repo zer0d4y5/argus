@@ -54,6 +54,9 @@ type Options struct {
 	// session credentials: they are passed to nuclei but NEVER logged, printed,
 	// or written to a finding.
 	Headers []string
+	// Evidence, when true, captures the redacted request/response for each
+	// finding (opt-in: a response body can hold app data).
+	Evidence bool
 }
 
 // Result is a completed DAST run.
@@ -156,7 +159,7 @@ func Scan(ctx context.Context, opts Options, progress func(string)) (Result, err
 		return Result{}, fmt.Errorf("dast: nuclei failed with no output (exit error)")
 	}
 
-	raw, err := parseNuclei(data)
+	raw, err := parseNuclei(data, opts.Evidence)
 	if err != nil {
 		return Result{}, err
 	}

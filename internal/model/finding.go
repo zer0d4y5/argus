@@ -78,6 +78,20 @@ type RawFinding struct {
 	Remediation string            // "" if unknown
 	Meta        map[string]string // any extra tool fields worth keeping
 	RawPayload  json.RawMessage   // the original per-result object, verbatim
+	Evidence    *Evidence         // DAST request/response evidence (opt-in, redacted)
+}
+
+// Evidence is the request/response that produced a dynamic (DAST) finding,
+// captured for human validation. It is populated only when evidence capture is
+// explicitly enabled: by default a DAST finding carries no traffic (the
+// metadata-only discipline). When present, auth headers are redacted and the
+// content is bounded, but a captured response body can still hold data from the
+// scanned app, which is why capture is opt-in.
+type Evidence struct {
+	Request   string `json:"request,omitempty"`   // redacted HTTP request
+	Response  string `json:"response,omitempty"`  // redacted, bounded HTTP response
+	FuzzParam string `json:"fuzzParam,omitempty"` // the parameter that was fuzzed
+	FuzzPos   string `json:"fuzzPos,omitempty"`   // where it was fuzzed (query, body, ...)
 }
 
 // Location pins a finding to code, a package manifest, a cloud resource, or
@@ -164,6 +178,9 @@ type Finding struct {
 
 	Meta       map[string]string `json:"meta,omitempty"`
 	RawPayload json.RawMessage   `json:"rawPayload,omitempty"`
+	// Evidence is the redacted request/response for a DAST finding, when
+	// evidence capture was enabled. Absent otherwise.
+	Evidence *Evidence `json:"evidence,omitempty"`
 
 	// DisplayName is a clean, human-readable name for the weakness — e.g.
 	// "Cross-Site Scripting (XSS)" — set at read time from the CWE→weakness
@@ -325,6 +342,7 @@ func Normalize(raws []RawFinding) []Finding {
 			Remediation: r.Remediation,
 			Meta:        r.Meta,
 			RawPayload:  r.RawPayload,
+			Evidence:    r.Evidence,
 		}
 		if f.Location.EndLine < f.Location.StartLine {
 			f.Location.EndLine = f.Location.StartLine

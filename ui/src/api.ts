@@ -63,6 +63,15 @@ export interface Finding {
   triage?: Triage;
   riskScore?: number;
   riskSignals?: RiskSignal[];
+  evidence?: Evidence;
+}
+
+// Evidence is the redacted request/response behind a DAST finding (opt-in).
+export interface Evidence {
+  request?: string;
+  response?: string;
+  fuzzParam?: string;
+  fuzzPos?: string;
 }
 
 export interface OwaspCategory {
@@ -503,6 +512,7 @@ export interface TargetConfig {
 export interface DastConfig {
   fuzzing?: boolean;
   crawl?: boolean;
+  evidence?: boolean;
   crawlDepth?: number;
   crawlPages?: number;
   templates?: string[];

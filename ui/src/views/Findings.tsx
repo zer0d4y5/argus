@@ -874,6 +874,31 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
               {f.triage.rationale && <p className="whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300">{f.triage.rationale}</p>}
             </div>
           )}
+          {f.evidence && (f.evidence.request || f.evidence.response) && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Evidence</span>
+                {f.evidence.fuzzParam && (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                    fuzzed: {f.evidence.fuzzParam}{f.evidence.fuzzPos ? ` (${f.evidence.fuzzPos})` : ""}
+                  </span>
+                )}
+                <span className="ml-auto text-[10px] text-gray-400">auth headers redacted</span>
+              </div>
+              {f.evidence.request && (
+                <div className="mb-2">
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Request</div>
+                  <pre className="max-h-48 overflow-auto rounded bg-white p-2 text-[11px] leading-snug text-gray-800 dark:bg-gray-900 dark:text-gray-200">{f.evidence.request}</pre>
+                </div>
+              )}
+              {f.evidence.response && (
+                <div>
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Response</div>
+                  <pre className="max-h-64 overflow-auto rounded bg-white p-2 text-[11px] leading-snug text-gray-800 dark:bg-gray-900 dark:text-gray-200">{f.evidence.response}</pre>
+                </div>
+              )}
+            </div>
+          )}
         </Section>
       </div>
     </Panel>

@@ -27,6 +27,7 @@ type DASTOptions struct {
 	Crawl      bool // discover endpoints (authenticated) and fuzz all of them
 	CrawlDepth int  // crawl depth (0 = default)
 	CrawlPages int  // crawl page cap (0 = default)
+	Evidence   bool // capture redacted request/response on each finding (opt-in)
 	Config     config.Config
 }
 
@@ -100,6 +101,7 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 		TimeoutSec: opts.TimeoutSec,
 		Fuzzing:    opts.Fuzzing,
 		Headers:    headers,
+		Evidence:   opts.Evidence,
 	}, progress)
 	if err != nil {
 		return DASTResult{}, err

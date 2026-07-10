@@ -24,6 +24,13 @@ type nucleiResult struct {
 	Host        string     `json:"host"`
 	Port        string     `json:"port"`
 	Info        nucleiInfo `json:"info"`
+	// Request/Response and the fuzzing locus are decoded ONLY to build opt-in,
+	// redacted evidence. They are never written to a finding unless evidence
+	// capture is enabled (see buildEvidence); the default path drops them.
+	Request          string `json:"request"`
+	Response         string `json:"response"`
+	FuzzingParameter string `json:"fuzzing_parameter"`
+	FuzzingPosition  string `json:"fuzzing_position"`
 }
 
 // nucleiInfo is the template's `info` block.
@@ -58,8 +65,9 @@ type safePayload struct {
 
 // parseNuclei maps nuclei JSONL into raw findings. Split out from Scan so it
 // is unit-testable without invoking the binary. A malformed line is skipped,
-// never fatal, so one bad record does not lose the whole run.
-func parseNuclei(data []byte) ([]model.RawFinding, error) {
+// never fatal, so one bad record does not lose the whole run. When evidence is
+// true, each finding also carries the redacted request/response (opt-in).
+func parseNuclei(data []byte, evidence bool) ([]model.RawFinding, error) {
 	var findings []model.RawFinding
 	sc := bufio.NewScanner(bytes.NewReader(data))
 	// nuclei records can be large (matcher lists); raise the line cap well
@@ -119,6 +127,10 @@ func parseNuclei(data []byte) ([]model.RawFinding, error) {
 			CVE:         cve,
 		})
 
+		var ev *model.Evidence
+		if evidence {
+			ev = buildEvidence(r)
+		}
 		findings = append(findings, model.RawFinding{
 			Tool:        "nuclei",
 			Category:    model.CategoryDAST,
@@ -132,6 +144,7 @@ func parseNuclei(data []byte) ([]model.RawFinding, error) {
 			Remediation: strings.TrimSpace(r.Info.Remediation),
 			Meta:        meta,
 			RawPayload:  payload,
+			Evidence:    ev,
 		})
 	}
 	if err := sc.Err(); err != nil {

@@ -91,6 +91,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     // DAST-target options (shown only for dast targets)
     dastFuzzing: boolean;
     dastCrawl: boolean;
+    dastEvidence: boolean;
     dastTags: string;
     dastSeverities: string;
     dastRateLimit: number | undefined;
@@ -107,6 +108,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     ignoreRules: "",
     dastFuzzing: false,
     dastCrawl: false,
+    dastEvidence: false,
     dastTags: "",
     dastSeverities: "",
     dastRateLimit: undefined,
@@ -636,6 +638,16 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
                   <span>Active fuzzing (nuclei -dast): probe parameters for injection (SQLi, XSS, LFI, RFI)</span>
                 </label>
 
+                <label className="mb-3 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={configForm.dastEvidence}
+                    onChange={(e) => setConfigForm({ ...configForm, dastEvidence: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span>Capture request/response evidence on findings (auth headers redacted; a response body can hold app data)</span>
+                </label>
+
                 <div className="mb-3 grid gap-2 md:grid-cols-3">
                   <div>
                     <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Tags</label>
@@ -934,6 +946,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       ignoreRules: t.config?.ignoreRules?.join("\n") || "",
       dastFuzzing: d?.fuzzing ?? false,
       dastCrawl: d?.crawl ?? false,
+      dastEvidence: d?.evidence ?? false,
       dastTags: d?.tags?.join(", ") || "",
       dastSeverities: d?.severities?.join(", ") || "",
       dastRateLimit: d?.rateLimit,
@@ -964,6 +977,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
         const dast: DastConfig = {};
         if (configForm.dastFuzzing) dast.fuzzing = true;
         if (configForm.dastCrawl) dast.crawl = true;
+        if (configForm.dastEvidence) dast.evidence = true;
         const tags = splitList(configForm.dastTags);
         const sevs = splitList(configForm.dastSeverities);
         if (tags.length > 0) dast.tags = tags;

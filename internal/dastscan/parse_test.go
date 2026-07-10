@@ -15,7 +15,7 @@ import (
 const realLine = `{"template":"http/misconfiguration/http-missing-security-headers.yaml","template-id":"http-missing-security-headers","template-encoded":"aWQ6IGh0dHAtbWlzc2luZy1zZWN1cml0eS1oZWFkZXJz","info":{"name":"HTTP Missing Security Headers","author":["socketz"],"tags":["misconfig","headers","generic"],"description":"This template searches for missing HTTP security headers.\n","severity":"info","classification":{"cve-id":null,"cwe-id":["cwe-693"]}},"matcher-name":"content-security-policy","type":"http","host":"127.0.0.1","port":"8889","scheme":"http","url":"http://127.0.0.1:8889/","matched-at":"http://127.0.0.1:8889/","request":"GET / HTTP/1.1\r\nHost: 127.0.0.1:8889\r\n\r\n","response":"HTTP/1.1 200 OK\r\nSet-Cookie: SESSION=super-secret-token\r\n\r\n<html>nginx</html>","curl-command":"curl http://127.0.0.1:8889/","extracted-results":["leaked-value-from-response"],"ip":"127.0.0.1"}`
 
 func TestParseNucleiRealRecord(t *testing.T) {
-	fs, err := parseNuclei([]byte(realLine))
+	fs, err := parseNuclei([]byte(realLine), false)
 	if err != nil {
 		t.Fatalf("parseNuclei: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestParseNucleiRealRecord(t *testing.T) {
 // app's response bytes, extracted values, request, and curl command must NOT
 // appear anywhere on the finding, including RawPayload.
 func TestParseNucleiNoResponseLeak(t *testing.T) {
-	fs, err := parseNuclei([]byte(realLine))
+	fs, err := parseNuclei([]byte(realLine), false)
 	if err != nil || len(fs) != 1 {
 		t.Fatalf("parseNuclei: %v (n=%d)", err, len(fs))
 	}
@@ -91,7 +91,7 @@ func TestParseNucleiNoResponseLeak(t *testing.T) {
 // of cve-id/cwe-id/reference across templates.
 func TestParseNucleiClassificationShapes(t *testing.T) {
 	line := `{"template-id":"CVE-2021-1234","info":{"name":"Example CVE","severity":"high","reference":"https://example.com/adv","classification":{"cve-id":["CVE-2021-1234"],"cwe-id":"cwe-89"}},"matched-at":"https://t/x?p=1","type":"http"}`
-	fs, err := parseNuclei([]byte(line))
+	fs, err := parseNuclei([]byte(line), false)
 	if err != nil || len(fs) != 1 {
 		t.Fatalf("parseNuclei: %v (n=%d)", err, len(fs))
 	}
@@ -115,7 +115,7 @@ func TestParseNucleiSkipsMalformed(t *testing.T) {
 		`{"template-id":"","info":{"name":"no id"}}` + "\n" + // empty id -> skip
 		`{"template-id":"ok","info":{"name":"Kept","severity":"low"},"matched-at":"http://t/"}` + "\n" +
 		"\n" // blank line
-	fs, err := parseNuclei([]byte(data))
+	fs, err := parseNuclei([]byte(data), false)
 	if err != nil {
 		t.Fatalf("parseNuclei: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestParseNucleiSkipsMalformed(t *testing.T) {
 }
 
 func TestParseNucleiEmpty(t *testing.T) {
-	fs, err := parseNuclei(nil)
+	fs, err := parseNuclei(nil, false)
 	if err != nil || len(fs) != 0 {
 		t.Errorf("empty input = %v, %d findings", err, len(fs))
 	}

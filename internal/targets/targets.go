@@ -79,6 +79,7 @@ type Config struct {
 type DastConfig struct {
 	Fuzzing    bool     `json:"fuzzing,omitempty"`    // enable nuclei -dast active fuzzing
 	Crawl      bool     `json:"crawl,omitempty"`      // crawl to discover endpoints, then fuzz all of them
+	Evidence   bool     `json:"evidence,omitempty"`   // capture redacted request/response on findings
 	CrawlDepth int      `json:"crawlDepth,omitempty"` // crawl depth; 0 = default
 	CrawlPages int      `json:"crawlPages,omitempty"` // crawl page cap; 0 = default
 	Templates  []string `json:"templates,omitempty"`  // nuclei -t selectors
