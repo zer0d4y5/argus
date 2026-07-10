@@ -31,6 +31,12 @@ type Document struct {
 // deterministically (via model.Sort inside Summarize's caller path) and
 // computes the summary rollup, so callers get a report identical to WriteJSON's.
 func BuildDocument(findings []model.Finding) Document {
+	// A clean scan must store and serve "findings": [], never null: a nil
+	// slice marshals to null and breaks JSON consumers (the console crashed
+	// on exactly this from a zero-finding DAST run).
+	if findings == nil {
+		findings = []model.Finding{}
+	}
 	model.Sort(findings)
 	return Document{
 		Tool:          toolName,

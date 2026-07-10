@@ -140,6 +140,12 @@ func (s Store) Load(id string) (report.Document, error) {
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return doc, fmt.Errorf("runstore: parse run %s: %w", id, err)
 	}
+	// A zero-finding run stored before BuildDocument normalized nil slices
+	// carries "findings": null; readers (and the console) must always see a
+	// slice, never nil.
+	if doc.Findings == nil {
+		doc.Findings = []model.Finding{}
+	}
 	return doc, nil
 }
 

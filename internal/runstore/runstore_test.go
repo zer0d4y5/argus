@@ -3,6 +3,7 @@ package runstore
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -61,6 +62,49 @@ func TestSaveListLoadRoundTrip(t *testing.T) {
 	}
 	if doc.SchemaVersion != model.SchemaVersion {
 		t.Errorf("schema version = %q, want %q", doc.SchemaVersion, model.SchemaVersion)
+	}
+}
+
+// A zero-finding run must store and load "findings": [], never null: nil
+// marshals to JSON null and crashed the console's run view. Covers both the
+// save path (BuildDocument normalizes) and reading a legacy doc that already
+// carries null (Load normalizes).
+func TestZeroFindingRunNeverNull(t *testing.T) {
+	dir := t.TempDir()
+	s := Store{Dir: dir}
+
+	m, err := s.Save(nil, time.Date(2026, 7, 10, 4, 46, 6, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	data, err := os.ReadFile(m.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), `"findings": null`) {
+		t.Error("saved doc serialized findings as null")
+	}
+	doc, err := s.Load(m.ID)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if doc.Findings == nil {
+		t.Error("loaded doc has nil Findings")
+	}
+
+	// A legacy doc written with "findings": null (pre-normalization) still
+	// loads as an empty slice.
+	legacy := `{"tool":"appsec","version":"0.1.0","schemaVersion":"2.2.0",` +
+		`"summary":{"total":0,"bySeverity":{},"byCategory":{},"byTool":{}},"findings":null}`
+	if err := writeFile(dir, "2026-07-10T04-46-07Z.json", legacy); err != nil {
+		t.Fatal(err)
+	}
+	doc, err = s.Load("2026-07-10T04-46-07Z")
+	if err != nil {
+		t.Fatalf("load legacy: %v", err)
+	}
+	if doc.Findings == nil {
+		t.Error("legacy null-findings doc loaded with nil Findings")
 	}
 }
 

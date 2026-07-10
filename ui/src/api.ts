@@ -323,7 +323,12 @@ export const api = {
     if (targetId) params.set("target", targetId);
     if (baselineId) params.set("baseline", baselineId);
     const qs = params.toString();
-    return getJSON<RunDetail>(qs ? `${base}?${qs}` : base);
+    // Old zero-finding runs can carry findings: null; the views index into
+    // the array unguarded, so normalize at the one fetch seam.
+    return getJSON<RunDetail>(qs ? `${base}?${qs}` : base).then((d) => ({
+      ...d,
+      findings: d.findings ?? [],
+    }));
   },
   // The download URL for a run export (SARIF or JSON). Server sets
   // Content-Disposition; the browser downloads. GET (viewer) — no CSRF.

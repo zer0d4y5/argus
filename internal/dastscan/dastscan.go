@@ -25,6 +25,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -89,6 +90,9 @@ func Scan(ctx context.Context, opts Options, progress func(string)) (Result, err
 	if !Available() {
 		return Result{}, fmt.Errorf("nuclei not found on PATH: install nuclei to run DAST scans")
 	}
+	if err := probeTarget(ctx, opts.URL); err != nil {
+		return Result{}, err
+	}
 
 	if opts.TimeoutSec > 0 {
 		var cancel context.CancelFunc
@@ -151,6 +155,33 @@ func Scan(ctx context.Context, opts Options, progress func(string)) (Result, err
 	}
 	progress(fmt.Sprintf("nuclei: %d finding(s)\n", len(raw)))
 	return Result{Raw: raw, ToolVersion: toolVersion(ctx)}, nil
+}
+
+// probeTarget checks that something is listening at the target before nuclei
+// runs, so a dead URL (wrong port, server not started) fails loudly instead
+// of producing a silent zero-finding "clean" run. A plain TCP connect is the
+// whole check: it proves a listener without sending a request, and stays
+// neutral on TLS trust and HTTP status (both are nuclei's business).
+func probeTarget(ctx context.Context, target string) error {
+	u, err := url.Parse(strings.TrimSpace(target))
+	if err != nil {
+		return fmt.Errorf("invalid target URL")
+	}
+	addr := u.Host
+	if u.Port() == "" {
+		port := "80"
+		if u.Scheme == "https" {
+			port = "443"
+		}
+		addr = net.JoinHostPort(u.Hostname(), port)
+	}
+	d := net.Dialer{Timeout: 10 * time.Second}
+	conn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return fmt.Errorf("dast: nothing is listening at %s: check the target URL and port (%v)", addr, err)
+	}
+	conn.Close()
+	return nil
 }
 
 // toolVersion best-effort records the nuclei release for run provenance.
