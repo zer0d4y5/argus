@@ -630,7 +630,7 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
 
 // --- Constants ---
 
-export const KNOWN_SCANNERS = ["semgrep", "gitleaks", "trivy", "checkov", "trivy-config"];
+export const KNOWN_SCANNERS = ["semgrep", "gitleaks", "trivy", "osv-scanner", "checkov", "trivy-config"];
 export const PROFILES = ["fast", "standard", "max"];
 
 // --- opsApi implementation ---

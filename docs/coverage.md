@@ -106,6 +106,12 @@ None among the labeled classes: every weakness class shown is caught by at least
 - **trivy (SCA)**: vulnerability scanning of dependency manifests and lockfiles
   across ecosystems; `--profile` does not change SCA behavior (semgrep-only).
   Trivy's built-in misconfiguration scanner is the Phase 4 IaC teaser.
+- **osv-scanner (SCA)**: a second dependency scanner backed by the OSV.dev
+  database, run alongside trivy. The two databases overlap but each catches
+  advisories the other misses (osv is especially strong on Go and language
+  ecosystems); shared CVEs dedup to one finding because the adapter keys on the
+  CVE alias like trivy does. Skipped with a note when osv-scanner is not
+  installed.
 
 ## Recall is proven, not asserted
 

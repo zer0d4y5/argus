@@ -28,7 +28,7 @@ type Adapter interface {
 // The IaC adapters (checkov, trivy-config) run whenever available and not
 // excluded by --scanners; `--profile` governs semgrep only.
 func All(semgrepRulesets []string, offline bool) []Adapter {
-	return []Adapter{&Semgrep{Rulesets: semgrepRulesets, Offline: offline}, &Gitleaks{}, &Trivy{}, &Checkov{}, &TrivyConfig{}}
+	return []Adapter{&Semgrep{Rulesets: semgrepRulesets, Offline: offline}, &Gitleaks{}, &Trivy{}, &OSV{}, &Checkov{}, &TrivyConfig{}}
 }
 
 // toolOnPath checks if an executable exists on the system PATH.
