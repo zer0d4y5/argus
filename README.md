@@ -29,11 +29,12 @@ JavaScript, TypeScript, Go, Java, C#, Ruby, PHP, Kotlin, Rust, Scala, C,
 Swift), secrets, dependencies (SCA), **IaC misconfiguration**
 (Terraform, CloudFormation, Kubernetes, Dockerfile, Helm, plus Bicep/ARM and
 Pulumi for architecture detection), **cloud security posture** (prowler:
-AWS, Azure, GCP), and **DAST** (nuclei: `argus dast <url>` against a running
-target, see [docs/dast.md](docs/dast.md)) all flow through the same banded
-severity, risk signals, and compliance mapping. Plus **SBOM generation**
-(`argus sbom` in CycloneDX or SPDX, see [docs/sbom.md](docs/sbom.md)) from the
-same dependency inventory.
+AWS, Azure, GCP), **DAST** (nuclei: `argus dast <url>` against a running
+target, see [docs/dast.md](docs/dast.md)), and **container images**
+(`argus image <ref>`, trivy, see [docs/image.md](docs/image.md)) all flow
+through the same banded severity, risk signals, and compliance mapping. Plus
+**SBOM generation** (`argus sbom` in CycloneDX or SPDX, see
+[docs/sbom.md](docs/sbom.md)) from the same dependency inventory.
 
 **Findings become audit evidence.** Every finding is mapped (deterministically,
 no LLM) to the framework controls it violates (**OWASP ASVS 4.0**,

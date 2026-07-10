@@ -49,6 +49,7 @@ nav:
   - CI integration: ci.md
   - PR review comments: pr-comments.md
   - DAST: dast.md
+  - Container images: image.md
   - SBOM: sbom.md
   - Reference:
       - Architecture: architecture.md
