@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { opsApi, UserInfo, Target, TargetConfig, AuditEntry, ApiError, KNOWN_SCANNERS, PROFILES } from "../api";
+import { opsApi, UserInfo, Target, TargetConfig, DastConfig, AuditEntry, ApiError, KNOWN_SCANNERS, PROFILES } from "../api";
 import { Panel, Loading, ErrorNote, EmptyState } from "../components";
 import { useConfirm } from "../toast";
 import { fmtTime } from "../theme";
@@ -88,6 +88,15 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     triage: "default" | "on" | "off";
     ignorePaths: string;
     ignoreRules: string;
+    // DAST-target options (shown only for dast targets)
+    dastFuzzing: boolean;
+    dastTags: string;
+    dastSeverities: string;
+    dastRateLimit: number | undefined;
+    dastAuthMode: "none" | "auto" | "creds";
+    dastLoginUrl: string;
+    dastUserEnv: string;
+    dastPassEnv: string;
   }>({
     scanners: [],
     profile: "",
@@ -95,7 +104,16 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     triage: "default",
     ignorePaths: "",
     ignoreRules: "",
+    dastFuzzing: false,
+    dastTags: "",
+    dastSeverities: "",
+    dastRateLimit: undefined,
+    dastAuthMode: "none",
+    dastLoginUrl: "",
+    dastUserEnv: "",
+    dastPassEnv: "",
   });
+  const [configTargetType, setConfigTargetType] = useState<string>("");
   const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -592,6 +610,112 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
               Suppressions hide findings — every change is audited.
             </p>
 
+            {configTargetType === "dast" && (
+              <div className="mb-4 rounded-md border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-900/40 dark:bg-amber-900/10">
+                <h4 className="mb-2 text-xs font-semibold text-amber-800 dark:text-amber-300">DAST scan options</h4>
+
+                <label className="mb-3 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={configForm.dastFuzzing}
+                    onChange={(e) => setConfigForm({ ...configForm, dastFuzzing: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span>Active fuzzing (nuclei -dast): probe parameters for injection (SQLi, XSS)</span>
+                </label>
+
+                <div className="mb-3 grid gap-2 md:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Tags</label>
+                    <input
+                      type="text"
+                      placeholder="misconfig, cve"
+                      value={configForm.dastTags}
+                      onChange={(e) => setConfigForm({ ...configForm, dastTags: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Severities</label>
+                    <input
+                      type="text"
+                      placeholder="medium, high, critical"
+                      value={configForm.dastSeverities}
+                      onChange={(e) => setConfigForm({ ...configForm, dastSeverities: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Rate limit (req/s)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="default"
+                      value={configForm.dastRateLimit ?? ""}
+                      onChange={(e) => setConfigForm({ ...configForm, dastRateLimit: e.target.value ? Number(e.target.value) : undefined })}
+                      className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-2">
+                  <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Authentication</label>
+                  <select
+                    value={configForm.dastAuthMode}
+                    onChange={(e) => setConfigForm({ ...configForm, dastAuthMode: e.target.value as "none" | "auto" | "creds" })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800"
+                  >
+                    <option value="none">None (scan unauthenticated)</option>
+                    <option value="auto">Auto: detect login, try default credentials</option>
+                    <option value="creds">Credentials from environment variables</option>
+                  </select>
+                </div>
+
+                {configForm.dastAuthMode !== "none" && (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {configForm.dastAuthMode === "creds" && (
+                      <>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Username env var</label>
+                          <input
+                            type="text"
+                            placeholder="APP_USER"
+                            value={configForm.dastUserEnv}
+                            onChange={(e) => setConfigForm({ ...configForm, dastUserEnv: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-mono dark:border-gray-600 dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Password env var</label>
+                          <input
+                            type="text"
+                            placeholder="APP_PASS"
+                            value={configForm.dastPassEnv}
+                            onChange={(e) => setConfigForm({ ...configForm, dastPassEnv: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-mono dark:border-gray-600 dark:bg-gray-800"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">Login URL (optional)</label>
+                      <input
+                        type="text"
+                        placeholder="defaults to the target URL"
+                        value={configForm.dastLoginUrl}
+                        onChange={(e) => setConfigForm({ ...configForm, dastLoginUrl: e.target.value })}
+                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <p className="mt-2 text-[10px] text-gray-500">
+                  Credentials are read from the named environment variables on the serve host at scan time and are never stored. The obtained session is never written to a finding or log.
+                </p>
+              </div>
+            )}
+
             <button
               onClick={() => handleSaveConfig(configuringTargetId)}
               className="rounded bg-accent-600 px-3 py-1 text-xs font-medium text-white hover:bg-accent-700"
@@ -777,13 +901,18 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
 
   function handleConfigureTarget(t: Target) {
     setConfiguringTargetId(t.id);
+    setConfigTargetType(t.type || "dir");
     setConfigError(null);
-    
+
     // Initialize form with current target values
-    const initialScanners = t.scanners && t.scanners.length > 0 
-      ? t.scanners 
+    const initialScanners = t.scanners && t.scanners.length > 0
+      ? t.scanners
       : [];
-      
+    const d = t.config?.dast;
+    const auth = d?.auth;
+    const authMode: "none" | "auto" | "creds" =
+      auth?.usernameEnv || auth?.passwordEnv ? "creds" : auth?.tryDefaults ? "auto" : "none";
+
     setConfigForm({
       scanners: initialScanners,
       profile: t.profile || "",
@@ -791,6 +920,14 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       triage: t.config?.triage === true ? "on" : t.config?.triage === false ? "off" : "default",
       ignorePaths: t.config?.ignorePaths?.join("\n") || "",
       ignoreRules: t.config?.ignoreRules?.join("\n") || "",
+      dastFuzzing: d?.fuzzing ?? false,
+      dastTags: d?.tags?.join(", ") || "",
+      dastSeverities: d?.severities?.join(", ") || "",
+      dastRateLimit: d?.rateLimit,
+      dastAuthMode: authMode,
+      dastLoginUrl: auth?.loginUrl || "",
+      dastUserEnv: auth?.usernameEnv || "",
+      dastPassEnv: auth?.passwordEnv || "",
     });
   }
 
@@ -808,6 +945,27 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       if (configForm.triage !== "default") config.triage = configForm.triage === "on";
       if (ignorePaths.length > 0) config.ignorePaths = ignorePaths;
       if (ignoreRules.length > 0) config.ignoreRules = ignoreRules;
+
+      if (configTargetType === "dast") {
+        const splitList = (s: string) => s.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+        const dast: DastConfig = {};
+        if (configForm.dastFuzzing) dast.fuzzing = true;
+        const tags = splitList(configForm.dastTags);
+        const sevs = splitList(configForm.dastSeverities);
+        if (tags.length > 0) dast.tags = tags;
+        if (sevs.length > 0) dast.severities = sevs;
+        if (configForm.dastRateLimit !== undefined) dast.rateLimit = configForm.dastRateLimit;
+        if (configForm.dastAuthMode === "auto") {
+          dast.auth = { tryDefaults: true, loginUrl: configForm.dastLoginUrl.trim() || undefined };
+        } else if (configForm.dastAuthMode === "creds") {
+          dast.auth = {
+            usernameEnv: configForm.dastUserEnv.trim() || undefined,
+            passwordEnv: configForm.dastPassEnv.trim() || undefined,
+            loginUrl: configForm.dastLoginUrl.trim() || undefined,
+          };
+        }
+        if (Object.keys(dast).length > 0) config.dast = dast;
+      }
 
       await opsApi.updateTarget(targetId, {
         scanners: configForm.scanners,

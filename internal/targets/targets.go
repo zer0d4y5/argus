@@ -67,6 +67,32 @@ type Config struct {
 	Triage      *bool    `json:"triage,omitempty"`      // default triage on/off; nil = repo default
 	IgnorePaths []string `json:"ignorePaths,omitempty"` // glob patterns (admin-set, audited)
 	IgnoreRules []string `json:"ignoreRules,omitempty"` // exact rule IDs (admin-set, audited)
+	Dast        *DastConfig `json:"dast,omitempty"`     // DAST targets: fuzzing, scope, and authentication
+}
+
+// DastConfig is the per-target DAST scan configuration set from the console.
+// It mirrors the `argus dast` flags. Authentication credentials are NEVER
+// stored here: only the NAMES of environment variables that hold them, read
+// from the server's environment at scan time (like cloud ProfileName and the
+// GitHub token env). The built-in default-credential list is opt-in via
+// TryDefaults.
+type DastConfig struct {
+	Fuzzing    bool     `json:"fuzzing,omitempty"`    // enable nuclei -dast active fuzzing
+	Templates  []string `json:"templates,omitempty"`  // nuclei -t selectors
+	Tags       []string `json:"tags,omitempty"`       // nuclei -tags filter
+	Severities []string `json:"severities,omitempty"` // nuclei -severity filter
+	RateLimit  int      `json:"rateLimit,omitempty"`  // max requests/sec; 0 = nuclei default
+	Auth       *DastAuthConfig `json:"auth,omitempty"`
+}
+
+// DastAuthConfig configures pre-scan authentication for a DAST target. Values
+// are referenced, never stored: UsernameEnv/PasswordEnv name environment
+// variables resolved on the server at scan time.
+type DastAuthConfig struct {
+	LoginURL    string `json:"loginUrl,omitempty"`    // login page; empty = the scan URL
+	UsernameEnv string `json:"usernameEnv,omitempty"` // env-var NAME holding the username
+	PasswordEnv string `json:"passwordEnv,omitempty"` // env-var NAME holding the password
+	TryDefaults bool   `json:"tryDefaults,omitempty"` // also try the built-in vendor-default list
 }
 
 // Target is one registered scan target.
@@ -537,7 +563,57 @@ func ValidateConfig(c *Config) error {
 	if err := validateIgnoreList("ignorePaths", c.IgnorePaths); err != nil {
 		return err
 	}
-	return validateIgnoreList("ignoreRules", c.IgnoreRules)
+	if err := validateIgnoreList("ignoreRules", c.IgnoreRules); err != nil {
+		return err
+	}
+	return validateDastConfig(c.Dast)
+}
+
+// dastSeverities is nuclei's severity vocabulary; the console filter is bounded
+// to it so no free-form string reaches the scanner invocation.
+var dastSeverities = map[string]bool{
+	"info": true, "low": true, "medium": true, "high": true, "critical": true, "unknown": true,
+}
+
+// envVarNameRe bounds an environment-variable name to the POSIX-portable shape,
+// so a config field that names a credential source cannot smuggle anything else.
+var envVarNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+func validateDastConfig(d *DastConfig) error {
+	if d == nil {
+		return nil
+	}
+	if d.RateLimit < 0 || d.RateLimit > 100000 {
+		return fmt.Errorf("dast rateLimit must be between 0 and 100000")
+	}
+	if err := validateIgnoreList("dast.templates", d.Templates); err != nil {
+		return err
+	}
+	if err := validateIgnoreList("dast.tags", d.Tags); err != nil {
+		return err
+	}
+	for _, s := range d.Severities {
+		if !dastSeverities[strings.ToLower(strings.TrimSpace(s))] {
+			return fmt.Errorf("dast.severities: %q is not a nuclei severity", s)
+		}
+	}
+	if d.Auth != nil {
+		for _, ref := range []struct{ field, val string }{
+			{"dast.auth.usernameEnv", d.Auth.UsernameEnv},
+			{"dast.auth.passwordEnv", d.Auth.PasswordEnv},
+		} {
+			if ref.val != "" && !envVarNameRe.MatchString(ref.val) {
+				return fmt.Errorf("%s: %q is not a valid environment variable name", ref.field, ref.val)
+			}
+		}
+		if u := strings.TrimSpace(d.Auth.LoginURL); u != "" {
+			parsed, err := url.Parse(u)
+			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+				return fmt.Errorf("dast.auth.loginUrl must be an http(s) URL")
+			}
+		}
+	}
+	return nil
 }
 
 func validateIgnoreList(field string, entries []string) error {
@@ -642,7 +718,7 @@ func normalizeConfig(c *Config) *Config {
 	if c == nil {
 		return nil
 	}
-	if c.TimeoutSec == 0 && c.Triage == nil && len(c.IgnorePaths) == 0 && len(c.IgnoreRules) == 0 {
+	if c.TimeoutSec == 0 && c.Triage == nil && len(c.IgnorePaths) == 0 && len(c.IgnoreRules) == 0 && c.Dast == nil {
 		return nil
 	}
 	cp := *c

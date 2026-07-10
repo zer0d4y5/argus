@@ -172,6 +172,42 @@ func TestValidateConfigBounds(t *testing.T) {
 	}
 }
 
+func TestValidateDastConfig(t *testing.T) {
+	ok := []*Config{
+		{Dast: &DastConfig{Fuzzing: true}},
+		{Dast: &DastConfig{Severities: []string{"high", "Critical"}, RateLimit: 50}},
+		{Dast: &DastConfig{Auth: &DastAuthConfig{TryDefaults: true}}},
+		{Dast: &DastConfig{Auth: &DastAuthConfig{UsernameEnv: "APP_USER", PasswordEnv: "APP_PASS", LoginURL: "http://t/login"}}},
+	}
+	for i, c := range ok {
+		if err := ValidateConfig(c); err != nil {
+			t.Errorf("valid dast config %d rejected: %v", i, err)
+		}
+	}
+	bad := []*Config{
+		{Dast: &DastConfig{RateLimit: -1}},
+		{Dast: &DastConfig{Severities: []string{"catastrophic"}}},                    // not a nuclei severity
+		{Dast: &DastConfig{Auth: &DastAuthConfig{UsernameEnv: "bad name"}}},           // space in env name
+		{Dast: &DastConfig{Auth: &DastAuthConfig{PasswordEnv: "PASS;rm -rf"}}},        // injection-shaped env name
+		{Dast: &DastConfig{Auth: &DastAuthConfig{LoginURL: "javascript:alert(1)"}}},   // non-http scheme
+		{Dast: &DastConfig{Templates: []string{strings.Repeat("x", 201)}}},           // over the entry cap
+	}
+	for i, c := range bad {
+		if err := ValidateConfig(c); err == nil {
+			t.Errorf("invalid dast config %d accepted", i)
+		}
+	}
+}
+
+// A config carrying only a Dast block must survive normalization (not be
+// dropped as "all defaults").
+func TestNormalizeConfigKeepsDastOnlyBlock(t *testing.T) {
+	got := normalizeConfig(&Config{Dast: &DastConfig{Fuzzing: true}})
+	if got == nil || got.Dast == nil || !got.Dast.Fuzzing {
+		t.Fatalf("dast-only config was normalized away: %+v", got)
+	}
+}
+
 func make50Plus() []string {
 	out := make([]string, 51)
 	for i := range out {

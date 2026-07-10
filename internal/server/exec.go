@@ -207,7 +207,9 @@ func execDASTScan(ctx context.Context, reg *targets.Registry, t targets.Target, 
 	if err != nil {
 		return out, err
 	}
-	res, err := pipeline.RunDAST(ctx, pipeline.DASTOptions{URL: t.URL, Config: cfg}, progress)
+	opts := pipeline.DASTOptions{URL: t.URL, Config: cfg}
+	applyDastConfig(&opts, t, progress)
+	res, err := pipeline.RunDAST(ctx, opts, progress)
 	if err != nil {
 		return out, err
 	}
@@ -223,6 +225,49 @@ func execDASTScan(ctx context.Context, reg *targets.Registry, t targets.Target, 
 	progress(fmt.Sprintf("==> saved run %s\n", meta.ID))
 	out.RunID = meta.ID
 	return out, nil
+}
+
+// applyDastConfig folds a DAST target's console-set scan configuration
+// (fuzzing, scope filters, authentication) into the run options. Credentials
+// are resolved from the NAMED environment variables at scan time and used only
+// in memory: a missing env var is a clear progress warning and the credential
+// is skipped, never a silent unauthenticated scan when defaults are also off.
+// This is the console analogue of the `argus dast` flags; it is hand-written
+// because it sits on the credential/exec boundary.
+func applyDastConfig(opts *pipeline.DASTOptions, t targets.Target, progress func(string)) {
+	if t.Config == nil || t.Config.Dast == nil {
+		return
+	}
+	d := t.Config.Dast
+	opts.Fuzzing = d.Fuzzing
+	opts.Templates = d.Templates
+	opts.Tags = d.Tags
+	opts.Severities = d.Severities
+	opts.RateLimit = d.RateLimit
+	if d.Auth == nil {
+		return
+	}
+	a := &pipeline.DASTAuth{LoginURL: d.Auth.LoginURL, TryDefaults: d.Auth.TryDefaults}
+	if d.Auth.UsernameEnv != "" {
+		if v, ok := os.LookupEnv(d.Auth.UsernameEnv); ok {
+			a.Username = v
+		} else {
+			progress(fmt.Sprintf("WARN: dast auth: env var %q (username) is not set on the server\n", d.Auth.UsernameEnv))
+		}
+	}
+	if d.Auth.PasswordEnv != "" {
+		if v, ok := os.LookupEnv(d.Auth.PasswordEnv); ok {
+			a.Password = v
+		} else {
+			progress(fmt.Sprintf("WARN: dast auth: env var %q (password) is not set on the server\n", d.Auth.PasswordEnv))
+		}
+	}
+	// Only attach auth when there is actually something to try, so a target
+	// with an auth block but no resolvable creds and no defaults still scans
+	// (unauthenticated) rather than failing the run.
+	if a.TryDefaults || a.Username != "" || a.Password != "" {
+		opts.Auth = a
+	}
 }
 
 // execImageScan runs a registered image target through trivy and the shared

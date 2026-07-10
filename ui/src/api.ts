@@ -494,6 +494,25 @@ export interface TargetConfig {
   triage?: boolean | null;
   ignorePaths?: string[];
   ignoreRules?: string[];
+  dast?: DastConfig;
+}
+
+// DastConfig mirrors the `argus dast` options for a DAST target. Credentials
+// are never stored: usernameEnv/passwordEnv name environment variables read on
+// the server at scan time.
+export interface DastConfig {
+  fuzzing?: boolean;
+  templates?: string[];
+  tags?: string[];
+  severities?: string[];
+  rateLimit?: number;
+  auth?: DastAuthConfig;
+}
+export interface DastAuthConfig {
+  loginUrl?: string;
+  usernameEnv?: string;
+  passwordEnv?: string;
+  tryDefaults?: boolean;
 }
 
 export interface Target {
