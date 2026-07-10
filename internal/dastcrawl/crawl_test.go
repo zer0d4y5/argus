@@ -42,15 +42,24 @@ func fakeApp() http.Handler {
 	return mux
 }
 
+// flatten joins endpoints (method, url, body) for substring assertions.
+func flatten(eps []Endpoint) string {
+	var b strings.Builder
+	for _, e := range eps {
+		b.WriteString(e.Method + " " + e.URL + " " + e.Body + "\n")
+	}
+	return b.String()
+}
+
 func TestCrawlDiscoversParamsAndForms(t *testing.T) {
 	srv := httptest.NewServer(fakeApp())
 	defer srv.Close()
 
-	urls, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
+	eps, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	joined := strings.Join(urls, "\n")
+	joined := flatten(eps)
 
 	// The GET form is synthesized into a fuzzable URL with its fields.
 	if !strings.Contains(joined, "/sqli/?") || !strings.Contains(joined, "id=1") || !strings.Contains(joined, "Submit=Submit") {
@@ -71,20 +80,58 @@ func TestCrawlNeverFollowsLogoutOrOffsite(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	urls, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
+	eps, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if logoutHit {
 		t.Error("crawler fetched the logout page (would destroy the session)")
 	}
-	for _, u := range urls {
-		if strings.Contains(u, "evil.example") {
-			t.Errorf("off-site URL leaked into results: %s", u)
+	for _, e := range eps {
+		if strings.Contains(e.URL, "evil.example") {
+			t.Errorf("off-site URL leaked into results: %s", e.URL)
 		}
-		if strings.Contains(u, "logout") {
-			t.Errorf("logout URL in results: %s", u)
+		if strings.Contains(e.URL, "logout") {
+			t.Errorf("logout URL in results: %s", e.URL)
 		}
+	}
+}
+
+// A POST form must be captured as a POST endpoint with a form-encoded body, so
+// the form-aware engines (dalfox/sqlmap) can drive it.
+func TestCrawlCapturesPostForms(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<a href="/guestbook/">gb</a>`)
+	})
+	mux.HandleFunc("/guestbook/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<form action="/guestbook/" method="POST">
+			<input name="name"><textarea name="message"></textarea>
+			<input type="submit" name="sign" value="Sign"></form>`)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	eps, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var post *Endpoint
+	for i := range eps {
+		if eps[i].Method == "POST" {
+			post = &eps[i]
+		}
+	}
+	if post == nil {
+		t.Fatalf("no POST endpoint captured: %v", eps)
+	}
+	if !strings.Contains(post.Body, "name=1") || !strings.Contains(post.Body, "message=1") {
+		t.Errorf("POST body missing seeded fields: %q", post.Body)
+	}
+	if !strings.Contains(post.URL, "/guestbook/") || strings.Contains(post.URL, "?") {
+		t.Errorf("POST endpoint URL should be the bare action: %q", post.URL)
 	}
 }
 
@@ -123,14 +170,12 @@ func TestCrawlSkipsCredentialChangeForms(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	urls, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
+	eps, err := Crawl(context.Background(), srv.Client(), srv.URL+"/", Options{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, u := range urls {
-		if strings.Contains(u, "password_new") {
-			t.Errorf("credential-change form was synthesized (self-lockout risk): %s", u)
-		}
+	if strings.Contains(flatten(eps), "password_new") {
+		t.Errorf("credential-change form was driven (self-lockout risk): %v", eps)
 	}
 }
 

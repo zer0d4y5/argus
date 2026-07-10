@@ -92,6 +92,8 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     dastFuzzing: boolean;
     dastCrawl: boolean;
     dastEvidence: boolean;
+    dastDalfox: boolean;
+    dastSqlmap: boolean;
     dastTags: string;
     dastSeverities: string;
     dastRateLimit: number | undefined;
@@ -109,6 +111,8 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     dastFuzzing: false,
     dastCrawl: false,
     dastEvidence: false,
+    dastDalfox: false,
+    dastSqlmap: false,
     dastTags: "",
     dastSeverities: "",
     dastRateLimit: undefined,
@@ -638,6 +642,26 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
                   <span>Active fuzzing (nuclei -dast): probe parameters for injection (SQLi, XSS, LFI, RFI)</span>
                 </label>
 
+                <label className="mb-2 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={configForm.dastSqlmap}
+                    onChange={(e) => setConfigForm({ ...configForm, dastSqlmap: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span>sqlmap: confirm SQL injection incl. boolean/time-based blind (GET and POST forms)</span>
+                </label>
+
+                <label className="mb-2 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={configForm.dastDalfox}
+                    onChange={(e) => setConfigForm({ ...configForm, dastDalfox: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span>dalfox: active XSS testing of GET and POST forms (reflected, stored, DOM)</span>
+                </label>
+
                 <label className="mb-3 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
@@ -947,6 +971,8 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       dastFuzzing: d?.fuzzing ?? false,
       dastCrawl: d?.crawl ?? false,
       dastEvidence: d?.evidence ?? false,
+      dastDalfox: d?.dalfox ?? false,
+      dastSqlmap: d?.sqlmap ?? false,
       dastTags: d?.tags?.join(", ") || "",
       dastSeverities: d?.severities?.join(", ") || "",
       dastRateLimit: d?.rateLimit,
@@ -978,6 +1004,8 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
         if (configForm.dastFuzzing) dast.fuzzing = true;
         if (configForm.dastCrawl) dast.crawl = true;
         if (configForm.dastEvidence) dast.evidence = true;
+        if (configForm.dastDalfox) dast.dalfox = true;
+        if (configForm.dastSqlmap) dast.sqlmap = true;
         const tags = splitList(configForm.dastTags);
         const sevs = splitList(configForm.dastSeverities);
         if (tags.length > 0) dast.tags = tags;

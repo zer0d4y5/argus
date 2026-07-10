@@ -37,11 +37,35 @@ type Options struct {
 	Headers  []string // request headers, e.g. "Cookie: SESS=..." for auth
 }
 
-// Crawl discovers fuzzable endpoints under baseURL. The returned list is the
-// deduplicated, sorted set of URLs that carry query parameters (existing links
-// plus synthesized GET-form submissions): exactly the surface nuclei -dast can
-// fuzz. progress may be nil.
-func Crawl(ctx context.Context, client *http.Client, baseURL string, opts Options, progress func(string)) ([]string, error) {
+// Endpoint is one fuzzable request the crawl discovered: a parameterized URL or
+// a form submission. Method is "GET" or "POST"; Body is the form-encoded POST
+// body ("" for GET). This is what the active scanners (nuclei, dalfox, sqlmap)
+// drive.
+type Endpoint struct {
+	URL    string
+	Method string
+	Body   string
+}
+
+// sig is the dedup key for an endpoint.
+func (e Endpoint) sig() string { return e.Method + " " + e.URL + " " + e.Body }
+
+// GETURLs returns the URLs of the GET endpoints, for tools (nuclei -l) that
+// fuzz query parameters and cannot take a POST body.
+func GETURLs(eps []Endpoint) []string {
+	var out []string
+	for _, e := range eps {
+		if e.Method == http.MethodGet {
+			out = append(out, e.URL)
+		}
+	}
+	return out
+}
+
+// Crawl discovers fuzzable endpoints under baseURL: parameterized URLs and form
+// submissions (GET and POST), deduplicated and sorted. It runs authenticated
+// via opts.Headers. progress may be nil.
+func Crawl(ctx context.Context, client *http.Client, baseURL string, opts Options, progress func(string)) ([]Endpoint, error) {
 	if progress == nil {
 		progress = func(string) {}
 	}
@@ -64,7 +88,7 @@ func Crawl(ctx context.Context, client *http.Client, baseURL string, opts Option
 		host:    base.Hostname(),
 		opts:    opts,
 		visited: map[string]bool{},
-		results: map[string]bool{},
+		results: map[string]Endpoint{},
 	}
 	c.enqueue(base.String(), 0)
 
@@ -90,7 +114,7 @@ type crawler struct {
 	host    string
 	opts    Options
 	visited map[string]bool
-	results map[string]bool
+	results map[string]Endpoint
 	queue   []queued
 	pages   int
 }
@@ -103,9 +127,13 @@ func (c *crawler) enqueue(raw string, depth int) {
 	c.queue = append(c.queue, queued{raw, depth})
 }
 
-func (c *crawler) addResult(raw string) {
+func (c *crawler) addGET(raw string) {
+	c.addEndpoint(Endpoint{URL: raw, Method: http.MethodGet})
+}
+
+func (c *crawler) addEndpoint(e Endpoint) {
 	if len(c.results) < maxResults {
-		c.results[raw] = true
+		c.results[e.sig()] = e
 	}
 }
 
@@ -118,7 +146,7 @@ func (c *crawler) visit(ctx context.Context, item queued) {
 
 	// The fetched URL itself is fuzzable if it carries parameters.
 	if u, err := url.Parse(finalURL); err == nil && u.RawQuery != "" {
-		c.addResult(finalURL)
+		c.addGET(finalURL)
 	}
 	base, err := url.Parse(finalURL)
 	if err != nil {
@@ -165,19 +193,21 @@ func (c *crawler) consumeLink(base *url.URL, href string, depth int) {
 		return
 	}
 	if abs.RawQuery != "" {
-		c.addResult(abs.String())
+		c.addGET(abs.String())
 	}
 	c.enqueue(abs.String(), depth+1)
 }
 
-// consumeForm synthesizes a fuzzable URL from a GET form: the action plus every
-// field seeded with a placeholder the fuzzer will mutate. POST forms are noted
-// by their action page (already enqueued) but not synthesized here: URL-param
-// fuzzing does not cover POST bodies (a later phase).
+// consumeForm turns a form into a fuzzable endpoint: a GET form becomes a
+// parameterized URL, a POST form becomes a request with a form-encoded body.
+// Both seed each field with a placeholder the scanners mutate.
 func (c *crawler) consumeForm(base *url.URL, form *html.Node) {
 	method := strings.ToUpper(strings.TrimSpace(attr(form, "method")))
-	if method != "" && method != "GET" {
-		return
+	if method == "" {
+		method = http.MethodGet // the HTML default
+	}
+	if method != http.MethodGet && method != http.MethodPost {
+		return // other methods are not fuzzable via a form body
 	}
 	action := strings.TrimSpace(attr(form, "action"))
 	actionURL := base
@@ -195,14 +225,18 @@ func (c *crawler) consumeForm(base *url.URL, form *html.Node) {
 	if len(values) == 0 {
 		return
 	}
-	// Never synthesize a credential-changing form: fuzzing it would change the
+	// Never drive a credential-changing form: fuzzing it would change the
 	// scan's own password and lock the session out.
 	if changesCredentials(values) {
 		return
 	}
+	if method == http.MethodPost {
+		c.addEndpoint(Endpoint{URL: actionURL.String(), Method: http.MethodPost, Body: values.Encode()})
+		return
+	}
 	u := *actionURL
 	u.RawQuery = values.Encode()
-	c.addResult(u.String())
+	c.addGET(u.String())
 }
 
 // collectFields fills values from a form's inputs: hidden fields keep their
@@ -259,11 +293,11 @@ func (c *crawler) fetch(ctx context.Context, raw string) ([]byte, string) {
 	return body, final
 }
 
-func (c *crawler) sortedResults() []string {
-	out := make([]string, 0, len(c.results))
-	for r := range c.results {
-		out = append(out, r)
+func (c *crawler) sortedResults() []Endpoint {
+	out := make([]Endpoint, 0, len(c.results))
+	for _, e := range c.results {
+		out = append(out, e)
 	}
-	sort.Strings(out)
+	sort.Slice(out, func(i, j int) bool { return out[i].sig() < out[j].sig() })
 	return out
 }

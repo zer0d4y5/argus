@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/zer0d4y5/argus/internal/config"
+	"github.com/zer0d4y5/argus/internal/dalfoxscan"
 	"github.com/zer0d4y5/argus/internal/dastauth"
 	"github.com/zer0d4y5/argus/internal/dastcrawl"
 	"github.com/zer0d4y5/argus/internal/dastscan"
 	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/sqlmapscan"
 )
 
 // DASTOptions configure one dynamic scan.
@@ -28,6 +31,8 @@ type DASTOptions struct {
 	CrawlDepth int  // crawl depth (0 = default)
 	CrawlPages int  // crawl page cap (0 = default)
 	Evidence   bool // capture redacted request/response on each finding (opt-in)
+	Dalfox     bool // also run dalfox (active XSS, GET+POST forms)
+	Sqlmap     bool // also run sqlmap (SQL injection incl. blind, GET+POST)
 	Config     config.Config
 }
 
@@ -77,23 +82,24 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 	}
 
 	// When crawling is on, discover the app's fuzzable endpoints (authenticated,
-	// reusing the login session) and fuzz all of them, so pointing at a base URL
-	// finds injection across the whole app rather than only the one page.
-	var discovered []string
+	// reusing the login session) and drive every engine over all of them, so
+	// pointing at a base URL finds injection across the whole app.
+	var endpoints []dastcrawl.Endpoint
 	if opts.Crawl {
-		urls, err := crawlEndpoints(ctx, opts, session, headers, progress)
+		eps, err := crawlEndpoints(ctx, opts, session, headers, progress)
 		if err != nil {
 			return DASTResult{}, err
 		}
-		discovered = urls
-		if len(discovered) == 0 {
+		endpoints = eps
+		if len(endpoints) == 0 {
 			progress("==> crawl found no parameterized endpoints; scanning the base URL only\n")
 		}
 	}
 
+	// nuclei fuzzes the GET endpoints (it cannot fuzz POST bodies via -l).
 	scan, err := dastscan.Scan(ctx, dastscan.Options{
 		URL:        opts.URL,
-		URLs:       discovered,
+		URLs:       dastcrawl.GETURLs(endpoints),
 		Templates:  opts.Templates,
 		Tags:       opts.Tags,
 		Severities: opts.Severities,
@@ -106,9 +112,82 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 	if err != nil {
 		return DASTResult{}, err
 	}
+	raw := scan.Raw
 
-	findings := Enrich(ctx, opts.Config, "", scan.Raw, progress)
+	// dalfox and sqlmap drive both GET and POST endpoints, catching XSS on
+	// forms and blind SQL injection that URL fuzzing misses. Their failures are
+	// non-fatal: the scan still returns nuclei's findings.
+	cookie := cookieFromHeaders(headers)
+	targets := scanEndpoints(opts, endpoints)
+	if (opts.Dalfox || opts.Sqlmap) && len(endpoints) > len(targets) {
+		progress(fmt.Sprintf("NOTE: dalfox/sqlmap limited to the first %d of %d discovered endpoints (--crawl-pages to narrow the crawl)\n", len(targets), len(endpoints)))
+	}
+	if opts.Dalfox && len(targets) > 0 {
+		if fs := runDalfox(ctx, targets, cookie, progress); len(fs) > 0 {
+			raw = append(raw, fs...)
+		}
+	}
+	if opts.Sqlmap && len(targets) > 0 {
+		if fs := runSqlmap(ctx, targets, cookie, progress); len(fs) > 0 {
+			raw = append(raw, fs...)
+		}
+	}
+
+	findings := Enrich(ctx, opts.Config, "", raw, progress)
 	return DASTResult{Findings: findings, ToolVersion: scan.ToolVersion}, nil
+}
+
+// maxToolEndpoints bounds how many endpoints the slower form-aware engines
+// (sqlmap especially) drive, so a large crawl cannot make a scan run for hours.
+const maxToolEndpoints = 40
+
+// scanEndpoints is the endpoint set the form-aware engines drive: the crawl
+// results (capped), or the single target URL when no crawl ran.
+func scanEndpoints(opts DASTOptions, discovered []dastcrawl.Endpoint) []dastcrawl.Endpoint {
+	if len(discovered) == 0 {
+		return []dastcrawl.Endpoint{{URL: opts.URL, Method: "GET"}}
+	}
+	if len(discovered) > maxToolEndpoints {
+		return discovered[:maxToolEndpoints]
+	}
+	return discovered
+}
+
+// cookieFromHeaders extracts the session cookie value from the assembled
+// headers, for the tools that take a cookie flag rather than a raw header.
+func cookieFromHeaders(headers []string) string {
+	for _, h := range headers {
+		if v, ok := strings.CutPrefix(h, "Cookie: "); ok {
+			return v
+		}
+	}
+	return ""
+}
+
+func runDalfox(ctx context.Context, eps []dastcrawl.Endpoint, cookie string, progress Progress) []model.RawFinding {
+	if !dalfoxscan.Available() {
+		progress("NOTE: dalfox not on PATH; skipping XSS engine\n")
+		return nil
+	}
+	progress(fmt.Sprintf("==> running dalfox (XSS) against %d endpoint(s)\n", len(eps)))
+	fs, err := dalfoxscan.Scan(ctx, dalfoxscan.Options{Cookie: cookie, Endpoints: eps}, progress)
+	if err != nil {
+		progress(fmt.Sprintf("WARN: dalfox failed: %v\n", err))
+	}
+	return fs
+}
+
+func runSqlmap(ctx context.Context, eps []dastcrawl.Endpoint, cookie string, progress Progress) []model.RawFinding {
+	if !sqlmapscan.Available() {
+		progress("NOTE: sqlmap not on PATH; skipping SQLi engine\n")
+		return nil
+	}
+	progress(fmt.Sprintf("==> running sqlmap (SQLi) against %d endpoint(s)\n", len(eps)))
+	fs, err := sqlmapscan.Scan(ctx, sqlmapscan.Options{Cookie: cookie, Endpoints: eps}, progress)
+	if err != nil {
+		progress(fmt.Sprintf("WARN: sqlmap failed: %v\n", err))
+	}
+	return fs
 }
 
 // authenticate runs the pre-scan login and returns the session (cookies held
@@ -130,13 +209,13 @@ func authenticate(ctx context.Context, opts DASTOptions, progress Progress) (*da
 
 // crawlEndpoints walks the target (reusing the auth session when present) and
 // returns the fuzzable endpoints to scan.
-func crawlEndpoints(ctx context.Context, opts DASTOptions, session *dastauth.Session, headers []string, progress Progress) ([]string, error) {
+func crawlEndpoints(ctx context.Context, opts DASTOptions, session *dastauth.Session, headers []string, progress Progress) ([]dastcrawl.Endpoint, error) {
 	progress(fmt.Sprintf("==> crawling %s to discover endpoints\n", opts.URL))
 	client := &http.Client{Timeout: 20 * time.Second}
 	if session != nil {
 		client = session.Client(client)
 	}
-	urls, err := dastcrawl.Crawl(ctx, client, opts.URL, dastcrawl.Options{
+	eps, err := dastcrawl.Crawl(ctx, client, opts.URL, dastcrawl.Options{
 		MaxDepth: opts.CrawlDepth,
 		MaxPages: opts.CrawlPages,
 		Headers:  headers,
@@ -144,5 +223,5 @@ func crawlEndpoints(ctx context.Context, opts DASTOptions, session *dastauth.Ses
 	if err != nil {
 		return nil, fmt.Errorf("dast crawl: %w", err)
 	}
-	return urls, nil
+	return eps, nil
 }

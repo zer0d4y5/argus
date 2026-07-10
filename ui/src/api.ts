@@ -513,6 +513,8 @@ export interface DastConfig {
   fuzzing?: boolean;
   crawl?: boolean;
   evidence?: boolean;
+  dalfox?: boolean;
+  sqlmap?: boolean;
   crawlDepth?: number;
   crawlPages?: number;
   templates?: string[];
