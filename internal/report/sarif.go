@@ -246,6 +246,11 @@ func resultLocation(f model.Finding) (sarifLocation, bool) {
 		uri = sanitizeURI(f.Location.Resource)
 		startLine, endLine = 0, 0
 	}
+	if uri == "" && f.Location.URL != "" {
+		// A DAST finding's place is the matched URL; also line-less.
+		uri = sanitizeURI(f.Location.URL)
+		startLine, endLine = 0, 0
+	}
 	if uri == "" && f.Meta != nil {
 		uri = sanitizeURI(f.Meta["target"])
 		startLine, endLine = 0, 0

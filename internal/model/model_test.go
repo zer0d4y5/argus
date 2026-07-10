@@ -34,7 +34,14 @@ func TestNormalizeSeverity(t *testing.T) {
 		{"checkov", "MEDIUM", SeverityMedium},
 		{"checkov", "LOW", SeverityLow},
 		{"checkov", "INFO", SeverityInfo},
-		{"checkov", "bogus", SeverityMedium},         // unknown fails toward medium
+		{"checkov", "bogus", SeverityMedium}, // unknown fails toward medium
+		{"nuclei", "critical", SeverityCritical},
+		{"nuclei", "high", SeverityHigh},
+		{"nuclei", "medium", SeverityMedium},
+		{"nuclei", "low", SeverityLow},
+		{"nuclei", "info", SeverityInfo}, // nuclei's info tier is genuinely info
+		{"nuclei", "", SeverityInfo},
+		{"nuclei", "bogus", SeverityMedium},
 		{"futuretool", "critical", SeverityCritical}, // direct parse for new tools
 		{"futuretool", "???", SeverityMedium},
 	}
@@ -212,6 +219,47 @@ func TestFingerprintCloudResourceIdentity(t *testing.T) {
 	bare.Location.Resource = ""
 	if Fingerprint(bare) == id1 {
 		t.Error("empty resource must not collide with a set resource")
+	}
+}
+
+// TestFingerprintDASTURLIdentity pins schema 2.2.0: a DAST finding (no file,
+// no resource) takes its place-slot from location.url, so the same template
+// on the same URL is one finding across runs, and different URLs are
+// different findings. Also pins that url NEVER moves the hash when a file or
+// resource is present (backward-compatible slot overload).
+func TestFingerprintDASTURLIdentity(t *testing.T) {
+	dast := Finding{
+		Tool: "nuclei", Category: CategoryDAST, RuleID: "http-missing-security-headers:csp",
+		Location: Location{URL: "https://app.example/login"},
+	}
+	id1 := Fingerprint(dast)
+
+	// Same template, different URL: a different finding.
+	other := dast
+	other.Location.URL = "https://app.example/admin"
+	if Fingerprint(other) == id1 {
+		t.Error("different URLs must fingerprint differently")
+	}
+
+	// A URL must not affect the hash when a file already owns the slot, so
+	// every pre-2.2.0 finding is byte-identical (url empty) and a hybrid
+	// finding stays delta-safe.
+	withFile := Finding{
+		Tool: "semgrep", Category: CategorySAST, RuleID: "rule.sqli",
+		Location: Location{File: "app.py", StartLine: 10},
+	}
+	base := Fingerprint(withFile)
+	withFile.Location.URL = "https://ignored.example/"
+	if Fingerprint(withFile) != base {
+		t.Error("url must not affect the fingerprint when file is set")
+	}
+	// Same, with resource owning the slot ahead of url.
+	res := Finding{Tool: "prowler", Category: CategoryCloud, RuleID: "chk",
+		Location: Location{Resource: "arn:x"}}
+	rid := Fingerprint(res)
+	res.Location.URL = "https://ignored.example/"
+	if Fingerprint(res) != rid {
+		t.Error("url must not affect the fingerprint when resource is set")
 	}
 }
 

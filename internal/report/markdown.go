@@ -137,6 +137,10 @@ func formatLocation(f model.Finding) string {
 		return f.Package
 	case file != "":
 		return file
+	case f.Location.Resource != "":
+		return f.Location.Resource
+	case f.Location.URL != "":
+		return f.Location.URL
 	}
 	return "-"
 }

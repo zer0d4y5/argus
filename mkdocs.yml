@@ -48,6 +48,7 @@ nav:
   - Getting started: getting-started.md
   - CI integration: ci.md
   - PR review comments: pr-comments.md
+  - DAST: dast.md
   - Reference:
       - Architecture: architecture.md
       - Findings model: findings-model.md

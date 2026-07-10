@@ -73,10 +73,13 @@ still catching runtime issues.
   planted fixture vuln class lands under the right ASVS/PCI controls.
   **Remaining for a later beat:** SOC 2 / NIST 800-53 / ISO 27001 data files;
   evidence-collection workflow.
-- **Phase 6: DAST:** integrate OWASP ZAP and/or Nuclei for authenticated
-  dynamic scanning of a running target; wire results into the same model
-  (the `location.url` slot exists). ✅ = DAST run against a deliberately-vuln
-  app (e.g. Juice Shop) produces correlated findings.
+- **Phase 6: DAST (shipped):** `argus dast <url>` scans a running target with
+  nuclei and maps the results into the same model (category `DAST`, the
+  `location.url` slot), through the same enrichment, banding, and gate as code
+  and cloud findings. Acceptance met: a run against a deliberately-vulnerable
+  app (DVWA) produces correlated, de-duplicated findings; see
+  [DAST](dast.md). Remaining for a later beat: authenticated scanning
+  (session/header injection), OWASP ZAP as a second engine.
 - **Phase 7: Threat modeling (shipped):** architecture-aware STRIDE threat
   models. A curated, version-pinned STRIDE library enumerates threats per
   component tech deterministically; `internal/iacdetect` bootstraps a baseline

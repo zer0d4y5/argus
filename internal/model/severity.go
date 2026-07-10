@@ -121,6 +121,9 @@ func SeverityForScore(score float64) Severity {
 //	prowler:  Critical/High/Medium/Low verbatim, Informational -> info,
 //	          empty -> medium (an un-scored posture failure is unassessed,
 //	          not harmless — same policy as trivy UNKNOWN)
+//	nuclei:   critical/high/medium/low verbatim, info/unknown -> info
+//	          (nuclei's own template rating; a large share are info-level
+//	          exposure/tech-detect templates, honestly ranked as info)
 //
 // UNKNOWN from trivy maps to medium, not info: an un-scored CVE is
 // unassessed, not harmless, and mapping it to info would let the severity
@@ -191,6 +194,22 @@ func NormalizeSeverity(tool, raw string) Severity {
 			return SeverityInfo
 		}
 		// Empty or a new native value: un-scored != harmless.
+		return SeverityMedium
+	case "nuclei":
+		switch v {
+		case "CRITICAL":
+			return SeverityCritical
+		case "HIGH":
+			return SeverityHigh
+		case "MEDIUM":
+			return SeverityMedium
+		case "LOW":
+			return SeverityLow
+		case "INFO", "INFORMATIONAL", "UNKNOWN", "":
+			// nuclei's info tier is genuinely informational (tech detect,
+			// exposure surface). Honest as info, not gate-inflating medium.
+			return SeverityInfo
+		}
 		return SeverityMedium
 	}
 	// Unknown tool: try the string directly, then fail toward medium so the

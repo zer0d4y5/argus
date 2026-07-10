@@ -37,7 +37,13 @@ import (
 // firstNonEmpty(location.file, location.resource), which is byte-identical
 // for every pre-2.1.0 finding (resource empty) and gives cloud findings a
 // stable cross-run identity. Migration note in docs/findings-model.md.
-const SchemaVersion = "2.1.0"
+// 2.2.0: DAST wiring (nuclei adapter). Normalize now maps RawFinding.URL into
+// Location.URL, and the fingerprint place slot extends to
+// firstNonEmpty(file, resource, url): byte-identical for every pre-2.2.0
+// finding (url empty), and gives a URL-only DAST finding a stable identity
+// (two hits of one template on different URLs no longer collide). Additive;
+// migration note in docs/findings-model.md.
+const SchemaVersion = "2.2.0"
 
 // Finding categories. String-typed (not iota) because they appear verbatim in
 // JSON/SARIF output and in config files.
@@ -63,6 +69,7 @@ type RawFinding struct {
 	Confidence  string            // tool-reported confidence ("" if none)
 	File        string            // path relative to scan root ("" if N/A)
 	Resource    string            // cloud resource UID/ARN ("" if N/A, schema 2.1.0)
+	URL         string            // DAST target URL ("" if N/A, schema 2.2.0)
 	StartLine   int               // 0 if N/A
 	EndLine     int               // 0 if N/A
 	CWEs        []string          // e.g. ["CWE-89"]
@@ -179,16 +186,21 @@ type Finding struct {
 // which tools reword between versions. The tool name IS included: cross-tool
 // merging is correlation's job (it uses correlation keys, not the ID).
 //
-// The file slot takes firstNonEmpty(location.file, location.resource) —
-// schema 2.1.0's documented overload of that hash position. Every pre-cloud
-// finding has an empty resource, so its hash input is byte-identical to what
-// algorithm v1 always produced (no version bump needed); a CLOUD finding,
-// which has no file, gets its stable place from the resource UID/ARN, so run
-// deltas work for cloud runs unchanged. Both properties are pinned by test.
+// The file slot takes firstNonEmpty(location.file, location.resource,
+// location.url): the documented overload of that hash position (2.1.0 added
+// resource, 2.2.0 added url). Every pre-cloud finding has an empty resource
+// and url, so its hash input is byte-identical to what algorithm v1 always
+// produced (no version bump needed); a CLOUD finding gets its stable place
+// from the resource UID/ARN, and a DAST finding (no file, no resource) gets
+// it from the target URL, so two hits of one template on different URLs no
+// longer collide. All properties are pinned by test.
 func Fingerprint(f Finding) string {
 	place := f.Location.File
 	if place == "" {
 		place = f.Location.Resource
+	}
+	if place == "" {
+		place = f.Location.URL
 	}
 	h := sha256.New()
 	for _, part := range []string{
@@ -303,6 +315,7 @@ func Normalize(raws []RawFinding) []Finding {
 			Location: Location{
 				File:      filepathToSlash(r.File),
 				Resource:  strings.TrimSpace(r.Resource),
+				URL:       strings.TrimSpace(r.URL),
 				StartLine: maxInt(r.StartLine, 0),
 				EndLine:   maxInt(r.EndLine, 0),
 			},
@@ -369,6 +382,11 @@ func Sort(findings []Finding) {
 		// non-cloud finding, so pre-2.1.0 ordering is untouched.
 		if a.Location.Resource != b.Location.Resource {
 			return a.Location.Resource < b.Location.Resource
+		}
+		// DAST findings have neither file nor resource; the target URL keeps
+		// two hits of one template ordered. Empty for every non-DAST finding.
+		if a.Location.URL != b.Location.URL {
+			return a.Location.URL < b.Location.URL
 		}
 		if a.Location.StartLine != b.Location.StartLine {
 			return a.Location.StartLine < b.Location.StartLine

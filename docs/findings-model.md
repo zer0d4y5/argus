@@ -1,6 +1,6 @@
 # Unified Findings Model
 
-**Schema version: 2.1.0** (`model.SchemaVersion`)
+**Schema version: 2.2.0** (`model.SchemaVersion`)
 
 This is the single most important contract in the platform. Every scanner
 adapter maps its native output *into* this model; every downstream stage
@@ -147,18 +147,21 @@ when present, are captured verbatim into `meta.benchmarks`, never into
 `model.Fingerprint` = first 32 hex chars of SHA-256 over
 `(algver, tool, category, ruleId, place, startLine, package, cve)` with NUL
 separators, where `place` = `location.file` when non-empty, else
-`location.resource` (2.1.0). Properties:
+`location.resource` (2.1.0), else `location.url` (2.2.0). Properties:
 
 - **Stable across runs** on the same code: no description text, severity, or
   raw payload in the hash (tools reword these between versions).
-- **The file slot is a documented overload** (2.1.0): for every finding with
-  a file, all pre-cloud findings, the hash input is byte-identical to what
+- **The file slot is a documented overload** (2.1.0, 2.2.0): for every finding
+  with a file, all pre-cloud findings, the hash input is byte-identical to what
   algorithm v1 always produced, so no existing ID moved (pinned by a golden
   test). A `CLOUD` finding has no file; its resource UID/ARN fills the slot,
-  giving the same check on the same resource the same ID across runs; run
-  deltas work for cloud runs with zero new machinery. Chosen over minting a
-  fingerprint v2 to keep every existing ID stable; the cost is this
-  documented overload of one hash position.
+  giving the same check on the same resource the same ID across runs. A `DAST`
+  finding (2.2.0) has neither file nor resource; the matched URL fills the
+  slot, so two hits of one nuclei template on different URLs are distinct
+  findings instead of colliding. Both are line-less, and both fall through the
+  same `firstNonEmpty(file, resource, url)` slot, so run deltas work with zero
+  new machinery. Chosen over minting a fingerprint v2 to keep every existing ID
+  stable; the cost is this documented overload of one hash position.
 - **Tool-scoped**: two tools reporting the same issue get different IDs;
   cross-tool identity is *correlation's* job, via correlation keys, so that
   merging logic can evolve without invalidating stored fingerprints.
@@ -197,6 +200,16 @@ can have. When in doubt, don't merge.
 ## Versioning rules
 
 - `SchemaVersion` (semver) is embedded in JSON reports.
+- **2.2.0** (DAST): the nuclei adapter populates `DAST` findings. `Normalize`
+  now maps a raw finding's URL into `location.url`, and the fingerprint place
+  slot extends to `firstNonEmpty(file, resource, url)`. Additive only;
+  byte-identical for every pre-2.2.0 finding (url empty), proven by golden
+  test. A DAST finding's identity is its template id (plus the nuclei matcher
+  name, so per-matcher hits stay distinct) at the matched URL. DAST findings
+  are metadata about a weakness: the adapter never copies the target's
+  request/response bodies or extracted values into a finding. Readers must
+  treat `location.url` as the place-slot for findings with neither file nor
+  resource.
 - **2.1.0** (cloud-posture): added the `CLOUD` category and optional
   `location.resource` (cloud resource UID/ARN). Additive only; 2.0.0
   documents remain valid. The fingerprint algorithm stays `v1`: its file
