@@ -35,6 +35,7 @@ const (
 	EventScanExplain    = "scan.explain"
 	EventScanRemediate  = "scan.remediate"
 	EventScanValidate   = "scan.validate"
+	EventSbomGenerate   = "sbom.generate"
 	EventRunDelete      = "run.delete"
 	EventFindingDispose = "finding.dispose"
 	EventTicketCreate   = "ticket.create"

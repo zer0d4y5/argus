@@ -661,6 +661,28 @@ export const opsApi = {
   cloudProfiles: (): Promise<CloudProfilesResponse> =>
     send<CloudProfilesResponse>("GET", "api/cloud/profiles"),
 
+  // generateSbom returns the raw SBOM document text (CycloneDX/SPDX), not
+  // JSON, so it does its own fetch with the CSRF header rather than send<T>.
+  // The caller triggers a browser download of the returned text.
+  generateSbom: async (targetId: string, format: "cyclonedx" | "spdx-json" | "spdx"): Promise<string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
+    const res = await fetch("api/sbom", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ targetId: targetId || undefined, format }),
+    });
+    if (!res.ok) {
+      let msg = `api/sbom: ${res.status} ${res.statusText}`;
+      try {
+        const b = await res.json();
+        if (b && typeof b === "object" && "error" in b && typeof b.error === "string") msg = b.error;
+      } catch { /* keep default */ }
+      throw new ApiError(res.status, msg);
+    }
+    return await res.text();
+  },
+
   postureSummary: (targetId: string, runId: string): Promise<{ summary: string; model: string }> =>
     send<{ summary: string; model: string }>("POST", "api/cloud/posture-summary", { targetId, runId }),
 

@@ -157,6 +157,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/scans/", s.handleScanByID)                                   // GET /api/scans/{jobId}
 	mux.HandleFunc("/api/frameworks", s.handleFrameworks)                             // GET (viewer)
 	mux.HandleFunc("/api/explain", s.handleExplain)                                   // POST (operator)
+	mux.HandleFunc("/api/sbom", s.handleSBOM)                                         // POST (operator): generate a CycloneDX/SPDX SBOM
 	mux.HandleFunc("/api/remediate", s.handleRemediate)                               // POST (operator): on-demand assisted remediation, never persisted
 	mux.HandleFunc("/api/validate", s.handleValidate)                                 // POST (operator): on-demand severity validation + CVSS
 	mux.HandleFunc("/api/mitigations", s.handleMitigations)                           // GET (viewer): curated secure-coding guidance by CWE

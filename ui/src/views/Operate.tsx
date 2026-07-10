@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { opsApi, Target, Job, JobOptions, ApiError, KNOWN_SCANNERS, PROFILES, FrameworkInfo } from "../api";
 import { Panel, Loading, ErrorNote, EmptyState } from "../components";
 import { fmtTime } from "../theme";
+import { download } from "../export";
 
 // isFilesystemTarget reports whether a target scans a source tree (dir/git),
 // so the scanner/profile/scope/framework knobs apply. Cloud, DAST, and image
@@ -35,6 +36,9 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
   const [triage, setTriage] = useState<"default" | "on" | "off">("default");
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [sbomFormat, setSbomFormat] = useState<"cyclonedx" | "spdx-json" | "spdx">("cyclonedx");
+  const [sbomBusy, setSbomBusy] = useState(false);
+  const [sbomError, setSbomError] = useState<string | null>(null);
 
   // Expanded job state
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -137,6 +141,23 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
       setLaunchError(err instanceof ApiError ? err.message : String(err));
     } finally {
       setLaunching(false);
+    }
+  };
+
+  const handleDownloadSbom = async () => {
+    if (!selectedTargetId || sbomBusy) return;
+    setSbomBusy(true);
+    setSbomError(null);
+    try {
+      const doc = await opsApi.generateSbom(selectedTargetId, sbomFormat);
+      const ext = sbomFormat === "cyclonedx" ? "cdx.json" : sbomFormat === "spdx-json" ? "spdx.json" : "spdx.txt";
+      const mime = sbomFormat === "spdx" ? "text/plain" : "application/json";
+      const stem = (selectedTarget?.name || "repo").replace(/[^A-Za-z0-9_-]+/g, "-");
+      download(`sbom-${stem}.${ext}`, mime, doc);
+    } catch (err) {
+      setSbomError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setSbomBusy(false);
     }
   };
 
@@ -334,7 +355,7 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
               )}
 
               {/* Launch Button */}
-              <div className="md:col-span-2 flex items-end justify-start">
+              <div className="md:col-span-2 flex items-end justify-start gap-3">
                 <button
                   onClick={handleLaunch}
                   disabled={!selectedTargetId || launching}
@@ -342,10 +363,33 @@ export function Operate({ canLaunch, onOpenRun }: { canLaunch: boolean; onOpenRu
                 >
                   {launching ? "Launching..." : "Launch Scan"}
                 </button>
+                {/* SBOM download: an artifact (component inventory), not a
+                    gated run, offered only for filesystem targets. */}
+                {isFilesystemTarget(selectedTarget) && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={sbomFormat}
+                      onChange={(e) => setSbomFormat(e.target.value as typeof sbomFormat)}
+                      className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      <option value="cyclonedx">CycloneDX</option>
+                      <option value="spdx-json">SPDX (JSON)</option>
+                      <option value="spdx">SPDX (text)</option>
+                    </select>
+                    <button
+                      onClick={handleDownloadSbom}
+                      disabled={!selectedTargetId || sbomBusy}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      {sbomBusy ? "Generating..." : "Download SBOM"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
           {launchError && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{launchError}</p>}
+          {sbomError && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{sbomError}</p>}
         </Panel>
       )}
 

@@ -230,6 +230,7 @@ func TestAuthzMatrix(t *testing.T) {
 		{"GET", "/api/scans/j-000000", 401, pass, pass, pass},
 		{"POST", "/api/scans", 401, 403, pass, pass},
 		{"POST", "/api/explain", 401, 403, pass, pass},
+		{"POST", "/api/sbom", 401, 403, pass, pass}, // generate SBOM: operator
 
 		{"GET", "/api/users/names", 401, 403, pass, pass}, // usernames only: operator
 		{"GET", "/api/work-summary", 401, pass, pass, pass},

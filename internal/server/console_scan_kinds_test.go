@@ -93,3 +93,22 @@ func TestConsoleLaunchDASTAndImage(t *testing.T) {
 		t.Errorf("image + scope = %d, want 400", r.Code)
 	}
 }
+
+// TestConsoleSBOMRejectsNonFSTargets pins the SBOM endpoint's contract at the
+// HTTP layer: a bad format is 400, and a cloud/DAST/image target (no
+// component tree) is refused. The success path (spawning trivy) is covered by
+// the sbom package's smoke test, not here.
+func TestConsoleSBOMRejectsNonFSTargets(t *testing.T) {
+	f := newConsole(t, nil)
+	admin := f.mustLogin("alice")
+	oper := f.mustLogin("oscar")
+
+	if r := f.do("POST", "/api/sbom", `{"format":"sarif"}`, oper); r.Code != http.StatusBadRequest {
+		t.Errorf("bad format = %d, want 400", r.Code)
+	}
+	img := createTargetJSON(t, f, admin, `{"name":"web","type":"image","ref":"nginx:1.27-alpine"}`)
+	body := `{"targetId":"` + img.ID + `","format":"cyclonedx"}`
+	if r := f.do("POST", "/api/sbom", body, oper); r.Code != http.StatusBadRequest {
+		t.Errorf("sbom of an image target = %d, want 400 (no component tree)", r.Code)
+	}
+}

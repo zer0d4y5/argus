@@ -48,3 +48,10 @@ Install trivy from [its releases](https://github.com/aquasecurity/trivy) or
 your package manager; `argus image` reports honestly if it is not on `PATH`.
 The first run downloads trivy's vulnerability database; subsequent runs reuse
 the local cache.
+
+## From the console
+
+Register an **Image** target on the Admin tab with a container reference, then
+launch it from the Operate tab like any other target. The run lands in the
+target's history with each finding tagged by the image reference, ready for
+triage, disposition, and ticketing.

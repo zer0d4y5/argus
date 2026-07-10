@@ -58,6 +58,7 @@ var authzTable = []authzRule{
 	{http.MethodGet, "/api/scans/", auth.RoleViewer, true},
 	{http.MethodPost, "/api/scans", auth.RoleOperator, false},
 	{http.MethodPost, "/api/explain", auth.RoleOperator, false},
+	{http.MethodPost, "/api/sbom", auth.RoleOperator, false}, // generate an SBOM (spawns trivy; read-only artifact)
 	{http.MethodPost, "/api/remediate", auth.RoleOperator, false},
 	{http.MethodPost, "/api/validate", auth.RoleOperator, false},
 	{http.MethodPost, "/api/cloud/posture-summary", auth.RoleOperator, false},

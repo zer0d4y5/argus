@@ -46,3 +46,10 @@ differ only in those identifiers, as the specs intend.)
 
 Install trivy from [its releases](https://github.com/aquasecurity/trivy) or
 your package manager; `argus sbom` reports honestly if it is not on `PATH`.
+
+## From the console
+
+The Operate tab has a **Download SBOM** control (with a format selector) for
+the served repo and any directory or git target: it generates the document on
+the server and downloads it in the browser. Cloud, DAST, and image targets
+have no component tree, so the control is offered only for filesystem targets.

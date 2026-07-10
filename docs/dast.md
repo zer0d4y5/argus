@@ -66,3 +66,10 @@ accepted-risk / false-positive dispositions suppress a finding from the gate
 (but not the report) unless `--strict-gate` is set. Install nuclei from
 [its releases](https://github.com/projectdiscovery/nuclei/releases) or your
 package manager; `argus dast` reports honestly if it is not on `PATH`.
+
+## From the console
+
+The console can run DAST scans too: register a **DAST (URL)** target on the
+Admin tab, then launch it from the Operate tab like any other target. The run
+lands in the target's history with the matched URLs, and findings can be
+triaged, dispositioned, and ticketed the same as code findings.
