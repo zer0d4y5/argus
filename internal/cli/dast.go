@@ -28,6 +28,8 @@ func init() {
 	dastCmd.Flags().Bool("dast", false, "Enable active fuzzing (nuclei -dast templates): probes parameters for injection")
 	dastCmd.Flags().Bool("evidence", false, "Capture the request/response for each finding (redacted; a response body can hold app data)")
 	dastCmd.Flags().Bool("crawl", false, "Crawl the target (authenticated) to discover endpoints and forms, then fuzz all of them")
+	dastCmd.Flags().Bool("dalfox", false, "Also run dalfox: active XSS testing of GET and POST forms (reflected, stored, DOM)")
+	dastCmd.Flags().Bool("sqlmap", false, "Also run sqlmap: SQL injection testing incl. boolean/time-based blind, GET and POST")
 	dastCmd.Flags().Int("crawl-depth", 0, "Crawl link-follow depth (0 = default 3)")
 	dastCmd.Flags().Int("crawl-pages", 0, "Max pages to crawl (0 = default 150)")
 	dastCmd.Flags().Bool("auth-auto", false, "Authenticate before scanning: detect the login form and try built-in default credentials")
@@ -89,6 +91,8 @@ func runDAST(cmd *cobra.Command, args []string) error {
 	crawlDepth, _ := cmd.Flags().GetInt("crawl-depth")
 	crawlPages, _ := cmd.Flags().GetInt("crawl-pages")
 	evidence, _ := cmd.Flags().GetBool("evidence")
+	dalfox, _ := cmd.Flags().GetBool("dalfox")
+	sqlmap, _ := cmd.Flags().GetBool("sqlmap")
 	auth, err := dastAuthFromFlags(cmd)
 	if err != nil {
 		return err
@@ -105,6 +109,8 @@ func runDAST(cmd *cobra.Command, args []string) error {
 		CrawlDepth: crawlDepth,
 		CrawlPages: crawlPages,
 		Evidence:   evidence,
+		Dalfox:     dalfox,
+		Sqlmap:     sqlmap,
 		Auth:       auth,
 		Config:     cfg,
 	}, func(line string) { fmt.Fprint(os.Stderr, line) })

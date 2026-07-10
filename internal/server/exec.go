@@ -244,6 +244,8 @@ func applyDastConfig(opts *pipeline.DASTOptions, t targets.Target, progress func
 	opts.CrawlDepth = d.CrawlDepth
 	opts.CrawlPages = d.CrawlPages
 	opts.Evidence = d.Evidence
+	opts.Dalfox = d.Dalfox
+	opts.Sqlmap = d.Sqlmap
 	opts.Templates = d.Templates
 	opts.Tags = d.Tags
 	opts.Severities = d.Severities

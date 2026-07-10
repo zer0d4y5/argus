@@ -103,6 +103,27 @@ Combined, `--auth-auto --crawl --dast` is the full loop: log in, map the app,
 and actively fuzz every discovered parameter for SQL injection, XSS, file
 inclusion (LFI/RFI), and the rest of nuclei's fuzzing coverage.
 
+## Deeper engines: sqlmap and dalfox
+
+nuclei's URL fuzzing covers GET parameters. Two dedicated engines go further,
+including POST forms and detection classes fuzzing cannot see. They run over the
+same crawl-discovered endpoints and merge into the same findings.
+
+- `--sqlmap` runs **sqlmap** to confirm SQL injection, including boolean- and
+  time-based **blind** injection that error-signature fuzzing misses, on GET and
+  POST forms. It is run non-interactively (`--batch`) and is never given
+  data-exfiltration flags: it only answers "is this parameter injectable?".
+- `--dalfox` runs **dalfox** to actively test for XSS (reflected, stored, and
+  DOM) on GET and POST forms, confirming by DOM execution.
+
+```bash
+argus dast http://target/ --auth-auto --crawl --dast --sqlmap --dalfox
+```
+
+Both are opt-in and both are slower than nuclei (sqlmap tests each endpoint
+thoroughly), so enable them when you want depth. Command injection and file
+upload are not yet covered by any engine (a future addition).
+
 > Active fuzzing sends real payloads and will exercise state-changing
 > endpoints. Run it against targets you own and treat as disposable (a test or
 > staging instance), never production.
