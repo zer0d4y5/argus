@@ -340,8 +340,9 @@ bands in the same doc), so "high" means the same thing on every finding from
 every tool, context signals included, LLM excluded. The tool's own opinion is
 preserved as `toolSeverity`. For dependency CVEs the score is enriched with
 real-world exploitation evidence: membership in **CISA's KEV catalog** (embedded
-and version-pinned, so it works offline) and **FIRST EPSS** probability (an
-optional local file), so a known-exploited vulnerability outranks one that
+and version-pinned, so it works offline) and **FIRST EPSS** probability (a local
+file: `argus exploit sync-epss` fetches the daily dataset once and scans pick it
+up automatically), so a known-exploited vulnerability outranks one that
 merely exists. With `--triage` (or
 `triage.enabled: true`), an LLM additionally reviews each finding with a
 bounded source snippet and records a verdict (`true-positive`,
@@ -399,7 +400,7 @@ remediation:            # approved cloud remediation: off by default
   enabled: false        # allow admins to dry-run/apply the curated catalog against a cloud account
 exploit:                # KEV/EPSS exploitation enrichment of risk scores: on by default
   enabled: true         # CISA KEV is embedded (offline); set false to disable
-  epss_file: ""         # optional FIRST EPSS scores CSV (cve,epss,percentile) for probability weighting
+  epss_file: ""         # FIRST EPSS scores CSV; default: where `argus exploit sync-epss` puts it
 offline:                # air-gapped scanning: off by default (see `argus rules sync`)
   enabled: false        # true = use only embedded curated + cached packs + local BYO rules, never the network
   cache_dir: ""         # where `argus rules sync` stores packs; default <user-cache>/argus/rules

@@ -44,11 +44,12 @@ func (o OfflineConfig) On() bool { return o.Enabled != nil && *o.Enabled }
 
 // ExploitConfig controls exploitation-evidence enrichment of the risk score.
 // The CISA KEV catalog is embedded and version-pinned, so enrichment is on by
-// default and works fully offline; EPSS is a large daily dataset supplied as an
-// optional local file (network-free either way).
+// default and works fully offline; EPSS is a large daily dataset kept as a
+// local file (`argus exploit sync-epss` fetches it; network-free at scan time
+// either way).
 type ExploitConfig struct {
 	Enabled  *bool  `yaml:"enabled" json:"enabled"`     // nil = on; set false to disable KEV/EPSS enrichment
-	EPSSFile string `yaml:"epss_file" json:"epssFile"` // optional path to a FIRST EPSS scores CSV
+	EPSSFile string `yaml:"epss_file" json:"epssFile"` // optional path to a FIRST EPSS scores CSV (default: the sync-epss location)
 }
 
 // On reports whether exploitation enrichment should run (default: yes).
