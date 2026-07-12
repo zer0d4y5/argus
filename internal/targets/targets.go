@@ -63,11 +63,11 @@ var regionRe = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
 // and report format are deliberately absent — those come from the target
 // repo's appsec.yml and the environment only.
 type Config struct {
-	TimeoutSec  int      `json:"timeoutSec,omitempty"`  // per-scanner timeout; 0 = repo/config default
-	Triage      *bool    `json:"triage,omitempty"`      // default triage on/off; nil = repo default
-	IgnorePaths []string `json:"ignorePaths,omitempty"` // glob patterns (admin-set, audited)
-	IgnoreRules []string `json:"ignoreRules,omitempty"` // exact rule IDs (admin-set, audited)
-	Dast        *DastConfig `json:"dast,omitempty"`     // DAST targets: fuzzing, scope, and authentication
+	TimeoutSec  int         `json:"timeoutSec,omitempty"`  // per-scanner timeout; 0 = repo/config default
+	Triage      *bool       `json:"triage,omitempty"`      // default triage on/off; nil = repo default
+	IgnorePaths []string    `json:"ignorePaths,omitempty"` // glob patterns (admin-set, audited)
+	IgnoreRules []string    `json:"ignoreRules,omitempty"` // exact rule IDs (admin-set, audited)
+	Dast        *DastConfig `json:"dast,omitempty"`        // DAST targets: fuzzing, scope, and authentication
 }
 
 // DastConfig is the per-target DAST scan configuration set from the console.
@@ -77,18 +77,18 @@ type Config struct {
 // GitHub token env). The built-in default-credential list is opt-in via
 // TryDefaults.
 type DastConfig struct {
-	Fuzzing    bool     `json:"fuzzing,omitempty"`    // enable nuclei -dast active fuzzing
-	Crawl      bool     `json:"crawl,omitempty"`      // crawl to discover endpoints, then fuzz all of them
-	Evidence   bool     `json:"evidence,omitempty"`   // capture redacted request/response on findings
-	Dalfox     bool     `json:"dalfox,omitempty"`     // also run dalfox (active XSS, GET+POST)
-	Sqlmap     bool     `json:"sqlmap,omitempty"`     // also run sqlmap (SQLi incl. blind, GET+POST)
-	Cmdi       bool     `json:"cmdi,omitempty"`       // also test for OS command injection (GET+POST)
-	CrawlDepth int      `json:"crawlDepth,omitempty"` // crawl depth; 0 = default
-	CrawlPages int      `json:"crawlPages,omitempty"` // crawl page cap; 0 = default
-	Templates  []string `json:"templates,omitempty"`  // nuclei -t selectors
-	Tags       []string `json:"tags,omitempty"`       // nuclei -tags filter
-	Severities []string `json:"severities,omitempty"` // nuclei -severity filter
-	RateLimit  int      `json:"rateLimit,omitempty"`  // max requests/sec; 0 = nuclei default
+	Fuzzing    bool            `json:"fuzzing,omitempty"`    // enable nuclei -dast active fuzzing
+	Crawl      bool            `json:"crawl,omitempty"`      // crawl to discover endpoints, then fuzz all of them
+	Evidence   bool            `json:"evidence,omitempty"`   // capture redacted request/response on findings
+	Dalfox     bool            `json:"dalfox,omitempty"`     // also run dalfox (active XSS, GET+POST)
+	Sqlmap     bool            `json:"sqlmap,omitempty"`     // also run sqlmap (SQLi incl. blind, GET+POST)
+	Cmdi       bool            `json:"cmdi,omitempty"`       // also test for OS command injection (GET+POST)
+	CrawlDepth int             `json:"crawlDepth,omitempty"` // crawl depth; 0 = default
+	CrawlPages int             `json:"crawlPages,omitempty"` // crawl page cap; 0 = default
+	Templates  []string        `json:"templates,omitempty"`  // nuclei -t selectors
+	Tags       []string        `json:"tags,omitempty"`       // nuclei -tags filter
+	Severities []string        `json:"severities,omitempty"` // nuclei -severity filter
+	RateLimit  int             `json:"rateLimit,omitempty"`  // max requests/sec; 0 = nuclei default
 	Auth       *DastAuthConfig `json:"auth,omitempty"`
 }
 
@@ -270,6 +270,13 @@ func (r *Registry) DASTRunStore(t Target) string {
 
 func (r *Registry) ImageRunStore(t Target) string {
 	return filepath.Join(filepath.Dir(r.path), "image", t.ID, "runs")
+}
+
+// EngagementStoreDir resolves the engagement store for this served repo
+// (.appsec/engagements). A console-launched active DAST scan resolves its
+// authorizing engagement here, so the console and the CLI share one store shape.
+func (r *Registry) EngagementStoreDir() string {
+	return filepath.Join(filepath.Dir(r.path), "engagements")
 }
 
 // NonFSRunStore returns the per-target run-history directory for the scan

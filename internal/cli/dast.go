@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/zer0d4y5/argus/internal/dastscan"
+	"github.com/zer0d4y5/argus/internal/engagement"
 	"github.com/zer0d4y5/argus/internal/model"
 	"github.com/zer0d4y5/argus/internal/pipeline"
 	"github.com/zer0d4y5/argus/internal/runstore"
@@ -39,6 +40,8 @@ func init() {
 	dastCmd.Flags().String("login-url", "", "Login page URL (default: the scan target)")
 	dastCmd.Flags().Bool("triage", false, "Enable AI triage of findings (config: triage.enabled)")
 	dastCmd.Flags().Bool("exclude-fp", false, "Exclude LLM-marked false positives from the report and severity gate (opt-in)")
+	dastCmd.Flags().String("engagement", "", "Engagement id to run under (default: the active engagement). Active DAST requires one.")
+	dastCmd.Flags().Bool("i-have-authorization", false, "Per-run confirmation of the destructive interlock's second latch (still needs the engagement's destructive flag; hard limits always refuse)")
 	dastCmd.Flags().Bool("save", false, "Save the run under .appsec/dast/<target>/runs for the console")
 	dastCmd.Flags().Bool("strict-gate", false, "Gate on ALL findings, ignoring accepted-risk/false-positive dispositions (default: dispositioned findings don't fail the gate)")
 	rootCmd.AddCommand(dastCmd)
@@ -99,8 +102,13 @@ func runDAST(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	gov, err := dastGovernor(cmd)
+	if err != nil {
+		return err
+	}
 	res, err := pipeline.RunDAST(cmd.Context(), pipeline.DASTOptions{
 		URL:        target,
+		Governor:   gov,
 		Templates:  splitCSV(cmd, "templates"),
 		Tags:       splitCSV(cmd, "tags"),
 		Severities: splitCSV(cmd, "severity"),
@@ -157,6 +165,40 @@ func runDAST(cmd *cobra.Command, args []string) error {
 		return errGateFailed
 	}
 	return nil
+}
+
+// dastGovernor resolves the engagement this scan runs under (--engagement, else
+// the active engagement) and builds the enforcement plane: the scope gate,
+// intensity governor, and tamper-evident audit trail every active module routes
+// through. No engagement is a hard, explanatory error - active DAST never sends
+// a packet without authorization.
+func dastGovernor(cmd *cobra.Command) (*engagement.Governor, error) {
+	store, err := engagementStore()
+	if err != nil {
+		return nil, err
+	}
+	var eng *engagement.Engagement
+	if id, _ := cmd.Flags().GetString("engagement"); id != "" {
+		eng, err = store.Load(id)
+		if err != nil {
+			return nil, fmt.Errorf("engagement %q: %w", id, err)
+		}
+	} else {
+		eng, err = store.Active()
+		if err != nil {
+			return nil, err
+		}
+		if eng == nil {
+			return nil, fmt.Errorf("no active engagement: active DAST modules require an authorized engagement.\n" +
+				"Create one with `argus engagement create --name ... --scope ... --auth-ref ...`, or pass --engagement <id>.")
+		}
+	}
+	audit, err := engagement.OpenAudit(store.AuditPath(eng.ID))
+	if err != nil {
+		return nil, err
+	}
+	confirm, _ := cmd.Flags().GetBool("i-have-authorization")
+	return engagement.NewGovernor(eng, audit, confirm), nil
 }
 
 // dastAuthFromFlags builds the pre-scan auth config, or nil when no auth flag

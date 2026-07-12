@@ -48,6 +48,7 @@ nav:
   - Getting started: getting-started.md
   - CI integration: ci.md
   - PR review comments: pr-comments.md
+  - Engagements: engagement.md
   - DAST: dast.md
   - Container images: image.md
   - SBOM: sbom.md

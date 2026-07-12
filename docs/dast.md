@@ -14,7 +14,15 @@ argus dast https://staging.example.com --tags misconfig,exposure --severity medi
 argus dast https://staging.example.com --templates cves/ --rate-limit 50 --fail-severity high
 ```
 
-Only scan targets you are authorized to test.
+Only scan targets you are authorized to test. That authorization is enforced,
+not assumed: `argus dast` runs under an **[engagement](engagement.md)** that
+declares the in-scope hosts, the authorization reference, an intensity ceiling,
+and a tamper-evident audit trail. Without an active engagement, an active scan
+refuses and says why. Create one first:
+
+```bash
+argus engagement create --name "Staging" --scope staging.example.com --auth-ref CVP-1234
+```
 
 ## What a finding looks like
 

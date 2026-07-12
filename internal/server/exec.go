@@ -13,6 +13,7 @@ import (
 	"github.com/zer0d4y5/argus/internal/compliance"
 	"github.com/zer0d4y5/argus/internal/config"
 	"github.com/zer0d4y5/argus/internal/coverage"
+	"github.com/zer0d4y5/argus/internal/engagement"
 	"github.com/zer0d4y5/argus/internal/gitws"
 	"github.com/zer0d4y5/argus/internal/jobs"
 	"github.com/zer0d4y5/argus/internal/pipeline"
@@ -207,7 +208,17 @@ func execDASTScan(ctx context.Context, reg *targets.Registry, t targets.Target, 
 	if err != nil {
 		return out, err
 	}
-	opts := pipeline.DASTOptions{URL: t.URL, Config: cfg}
+	// Active DAST requires an authorized engagement. Resolve the served repo's
+	// active engagement and refuse the job if none is set: the console never
+	// sends a payload without authorization (fail closed). The destructive
+	// interlock's second latch is never armed from the console - a destructive
+	// run is a deliberate CLI action carrying --i-have-authorization.
+	gov, err := consoleDASTGovernor(reg, progress)
+	if err != nil {
+		return out, err
+	}
+
+	opts := pipeline.DASTOptions{URL: t.URL, Config: cfg, Governor: gov}
 	applyDastConfig(&opts, t, progress)
 	res, err := pipeline.RunDAST(ctx, opts, progress)
 	if err != nil {
@@ -225,6 +236,27 @@ func execDASTScan(ctx context.Context, reg *targets.Registry, t targets.Target, 
 	progress(fmt.Sprintf("==> saved run %s\n", meta.ID))
 	out.RunID = meta.ID
 	return out, nil
+}
+
+// consoleDASTGovernor resolves the served repo's active engagement and builds
+// the enforcement plane (scope gate, intensity governor, tamper-evident audit)
+// for a console-launched DAST scan. No active engagement is a hard, explanatory
+// job failure: active modules never run without authorization.
+func consoleDASTGovernor(reg *targets.Registry, progress func(string)) (*engagement.Governor, error) {
+	store := &engagement.Store{Dir: reg.EngagementStoreDir()}
+	eng, err := store.Active()
+	if err != nil {
+		return nil, fmt.Errorf("resolve active engagement: %w", err)
+	}
+	if eng == nil {
+		return nil, fmt.Errorf("no active engagement: create and activate one (argus engagement create/activate) before launching a DAST scan; active modules require authorization")
+	}
+	auditLog, err := engagement.OpenAudit(store.AuditPath(eng.ID))
+	if err != nil {
+		return nil, err
+	}
+	progress(fmt.Sprintf("==> engagement %q (%s), authorization %s\n", eng.Name, eng.ID, eng.AuthorizationRef))
+	return engagement.NewGovernor(eng, auditLog, false), nil
 }
 
 // applyDastConfig folds a DAST target's console-set scan configuration

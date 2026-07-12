@@ -34,6 +34,9 @@ type Options struct {
 	Cookie     string // "name=value; ..." session cookie ("" = unauthenticated)
 	Endpoints  []dastcrawl.Endpoint
 	PerReqSecs int // per-endpoint timeout in seconds (0 = a sane default)
+	Workers    int // concurrent workers per endpoint; 0 = default. The engagement
+	// intensity ceiling passes its per-host concurrency here so dalfox tests as
+	// considerately as the rest of the scan.
 }
 
 // dalfoxFinding is the subset of one dalfox JSONL result we read. The tool also
@@ -64,10 +67,15 @@ func Scan(ctx context.Context, opts Options, progress func(string)) ([]model.Raw
 		timeout = 90
 	}
 
+	workers := opts.Workers
+	if workers <= 0 {
+		workers = 10
+	}
+
 	var out []model.RawFinding
 	seen := map[string]bool{}
 	for _, ep := range opts.Endpoints {
-		raw, err := runOne(ctx, ep, opts.Cookie, timeout)
+		raw, err := runOne(ctx, ep, opts.Cookie, timeout, workers)
 		if err != nil {
 			progress(fmt.Sprintf("  ! dalfox %s: %v\n", ep.URL, err))
 			continue
@@ -88,7 +96,7 @@ func Scan(ctx context.Context, opts Options, progress func(string)) ([]model.Raw
 // runOne invokes dalfox for a single endpoint (GET or POST) and returns its
 // JSONL output. dalfox exits non-zero when it finds something, so exit status
 // is not treated as an error on its own.
-func runOne(ctx context.Context, ep dastcrawl.Endpoint, cookie string, timeoutSecs int) ([]byte, error) {
+func runOne(ctx context.Context, ep dastcrawl.Endpoint, cookie string, timeoutSecs, workers int) ([]byte, error) {
 	tmp, err := os.CreateTemp("", "argus-dalfox-*.jsonl")
 	if err != nil {
 		return nil, err
@@ -102,7 +110,7 @@ func runOne(ctx context.Context, ep dastcrawl.Endpoint, cookie string, timeoutSe
 		"-f", "jsonl", "-o", outPath,
 		"-S",         // silence the banner/progress
 		"--no-color", // machine-readable
-		"--workers", "10",
+		"--workers", itoa(workers),
 		"--timeout", "10", // per-request network timeout (seconds)
 		"--scan-timeout", itoa(timeoutSecs), // hard wall-clock cap per endpoint
 	}
