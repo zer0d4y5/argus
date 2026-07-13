@@ -95,7 +95,9 @@ type DastConfig struct {
 	Tags        []string        `json:"tags,omitempty"`        // nuclei -tags filter
 	Severities  []string        `json:"severities,omitempty"`  // nuclei -severity filter
 	RateLimit   int             `json:"rateLimit,omitempty"`   // max requests/sec; 0 = nuclei default
+	Idor        bool            `json:"idor,omitempty"`        // also test for IDOR/BOLA with a second identity
 	Auth        *DastAuthConfig `json:"auth,omitempty"`
+	Auth2       *DastAuthConfig `json:"auth2,omitempty"` // second identity for IDOR (env-var creds; no defaults)
 }
 
 // DastAuthConfig configures pre-scan authentication for a DAST target. Values
@@ -623,20 +625,32 @@ func validateDastConfig(d *DastConfig) error {
 			return fmt.Errorf("dast.severities: %q is not a nuclei severity", s)
 		}
 	}
-	if d.Auth != nil {
-		for _, ref := range []struct{ field, val string }{
-			{"dast.auth.usernameEnv", d.Auth.UsernameEnv},
-			{"dast.auth.passwordEnv", d.Auth.PasswordEnv},
-		} {
-			if ref.val != "" && !envVarNameRe.MatchString(ref.val) {
-				return fmt.Errorf("%s: %q is not a valid environment variable name", ref.field, ref.val)
-			}
+	if err := validateDastAuth("dast.auth", d.Auth); err != nil {
+		return err
+	}
+	if err := validateDastAuth("dast.auth2", d.Auth2); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateDastAuth checks a DAST auth block's env-var names and login URL.
+func validateDastAuth(prefix string, a *DastAuthConfig) error {
+	if a == nil {
+		return nil
+	}
+	for _, ref := range []struct{ field, val string }{
+		{prefix + ".usernameEnv", a.UsernameEnv},
+		{prefix + ".passwordEnv", a.PasswordEnv},
+	} {
+		if ref.val != "" && !envVarNameRe.MatchString(ref.val) {
+			return fmt.Errorf("%s: %q is not a valid environment variable name", ref.field, ref.val)
 		}
-		if u := strings.TrimSpace(d.Auth.LoginURL); u != "" {
-			parsed, err := url.Parse(u)
-			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-				return fmt.Errorf("dast.auth.loginUrl must be an http(s) URL")
-			}
+	}
+	if u := strings.TrimSpace(a.LoginURL); u != "" {
+		parsed, err := url.Parse(u)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			return fmt.Errorf("%s.loginUrl must be an http(s) URL", prefix)
 		}
 	}
 	return nil

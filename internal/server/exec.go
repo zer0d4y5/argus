@@ -297,34 +297,43 @@ func applyDastConfig(opts *pipeline.DASTOptions, t targets.Target, progress func
 	opts.Recon = d.Recon
 	opts.Fingerprint = d.Fingerprint
 	opts.APIRecon = d.APIRecon
+	opts.IDOR = d.Idor
 	opts.Templates = d.Templates
 	opts.Tags = d.Tags
 	opts.Severities = d.Severities
 	opts.RateLimit = d.RateLimit
-	if d.Auth == nil {
-		return
+	opts.Auth = resolveDastAuth(d.Auth, "dast auth", progress)
+	opts.Auth2 = resolveDastAuth(d.Auth2, "dast auth2 (second identity)", progress)
+}
+
+// resolveDastAuth turns a target's stored DAST auth config into a runnable auth,
+// resolving credentials from the NAMED env vars at scan time (in memory only). A
+// missing env var is a warning and the credential is skipped, never a silent
+// unauthenticated scan when defaults are also off. Returns nil when there is
+// nothing to try.
+func resolveDastAuth(c *targets.DastAuthConfig, label string, progress func(string)) *pipeline.DASTAuth {
+	if c == nil {
+		return nil
 	}
-	a := &pipeline.DASTAuth{LoginURL: d.Auth.LoginURL, TryDefaults: d.Auth.TryDefaults}
-	if d.Auth.UsernameEnv != "" {
-		if v, ok := os.LookupEnv(d.Auth.UsernameEnv); ok {
+	a := &pipeline.DASTAuth{LoginURL: c.LoginURL, TryDefaults: c.TryDefaults}
+	if c.UsernameEnv != "" {
+		if v, ok := os.LookupEnv(c.UsernameEnv); ok {
 			a.Username = v
 		} else {
-			progress(fmt.Sprintf("WARN: dast auth: env var %q (username) is not set on the server\n", d.Auth.UsernameEnv))
+			progress(fmt.Sprintf("WARN: %s: env var %q (username) is not set on the server\n", label, c.UsernameEnv))
 		}
 	}
-	if d.Auth.PasswordEnv != "" {
-		if v, ok := os.LookupEnv(d.Auth.PasswordEnv); ok {
+	if c.PasswordEnv != "" {
+		if v, ok := os.LookupEnv(c.PasswordEnv); ok {
 			a.Password = v
 		} else {
-			progress(fmt.Sprintf("WARN: dast auth: env var %q (password) is not set on the server\n", d.Auth.PasswordEnv))
+			progress(fmt.Sprintf("WARN: %s: env var %q (password) is not set on the server\n", label, c.PasswordEnv))
 		}
 	}
-	// Only attach auth when there is actually something to try, so a target
-	// with an auth block but no resolvable creds and no defaults still scans
-	// (unauthenticated) rather than failing the run.
 	if a.TryDefaults || a.Username != "" || a.Password != "" {
-		opts.Auth = a
+		return a
 	}
+	return nil
 }
 
 // execImageScan runs a registered image target through trivy and the shared

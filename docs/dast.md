@@ -204,6 +204,26 @@ planting a web shell. Needs `--crawl` to find the forms.
 argus dast https://target/ --auth-auto --crawl --file-upload
 ```
 
+## IDOR / BOLA (`--idor`)
+
+`--idor` tests for insecure direct object references by replaying one identity's
+object references as a second identity. It needs a second set of credentials
+(referenced by env-var name, never stored) and `--crawl` to find the endpoints.
+For each parameter that looks like an object reference, identity A fetches its
+own object, identity B replays A's id, and B also fetches a different id as a
+control. Only when B receives the same object A did (broken ownership check) and
+a different id returns different content (so the endpoint actually varies by id,
+not a public page) is a finding raised. The cross-read body is never stored: the
+proof records that access succeeded and how many bytes matched, not the other
+user's data. Findings are CWE-639.
+
+```bash
+APP_USER=alice APP_PASS=... APP_USER2=bob APP_PASS2=... \
+  argus dast https://target/ --crawl --idor \
+  --auth-user-env APP_USER --auth-pass-env APP_PASS \
+  --auth2-user-env APP_USER2 --auth2-pass-env APP_PASS2
+```
+
 ## Client-side reverse-engineering (`--js-recon`)
 
 Link-following only finds the surface the app links to. Most of a modern app's

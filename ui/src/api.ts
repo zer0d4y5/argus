@@ -556,7 +556,9 @@ export interface DastConfig {
   tags?: string[];
   severities?: string[];
   rateLimit?: number;
+  idor?: boolean;
   auth?: DastAuthConfig;
+  auth2?: DastAuthConfig;
 }
 export interface DastAuthConfig {
   loginUrl?: string;

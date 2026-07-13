@@ -18,6 +18,7 @@ import (
 	"github.com/zer0d4y5/argus/internal/engagement"
 	"github.com/zer0d4y5/argus/internal/exploit"
 	"github.com/zer0d4y5/argus/internal/fingerprint"
+	"github.com/zer0d4y5/argus/internal/idorscan"
 	"github.com/zer0d4y5/argus/internal/jsrecon"
 	"github.com/zer0d4y5/argus/internal/model"
 	"github.com/zer0d4y5/argus/internal/poc"
@@ -48,6 +49,8 @@ type DASTOptions struct {
 	SSRF        bool // also run the native SSRF detector (local out-of-band listener + cloud-metadata reachability)
 	SSTI        bool // also run the native server-side template injection detector (GET+POST)
 	FileUpload  bool // also test discovered upload forms for unrestricted file upload (fetch-back a benign marker)
+	IDOR        bool // also test for IDOR/BOLA by replaying identity A's object ids as a second identity
+	Auth2       *DASTAuth // second identity for IDOR: its session replays identity A's object references
 	Recon       bool // reverse-engineer the target's client-side JS for endpoints and exposed secrets
 	Fingerprint bool // identify the target's technology stack and correlate to known-exploited software
 	APIRecon    bool // reconstruct the API surface from served schemas (OpenAPI/Swagger/GraphQL) and fuzz it
@@ -140,6 +143,23 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 		// Auth-flow modeling: what login observed about the session cookies drives
 		// deterministic hardening findings (missing HttpOnly/Secure/SameSite).
 		authFlowFindings = authModelFindings(sess.Model, opts.URL, progress)
+	}
+
+	// IDOR/BOLA needs a second authenticated identity to replay the first
+	// identity's object references. Authenticate it on its own governed client
+	// (a separate session jar), so its requests are also scope-gated, budgeted,
+	// and audited. A second-identity auth failure disables IDOR but never fails
+	// the whole scan.
+	var sessionB *dastauth.Session
+	var governedB *http.Client
+	if opts.IDOR && opts.Auth2 != nil {
+		governedB = gov.Client(&http.Client{Timeout: 20 * time.Second})
+		if sb, err := authenticateWith(ctx, governedB, opts.Auth2, opts.URL, progress); err != nil {
+			progress(fmt.Sprintf("WARN: idor: second identity did not authenticate (%v); skipping IDOR\n", err))
+		} else {
+			sessionB = sb
+			gov.Event(engagement.EventAuthSuccess, map[string]string{"user": sb.User, "identity": "second"})
+		}
 	}
 
 	// When crawling is on, discover the app's fuzzable endpoints (authenticated,
@@ -285,6 +305,11 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 	}
 	if opts.FileUpload && len(uploadForms) > 0 {
 		if fs := runFileUpload(ctx, governed, opts.URL, uploadForms, headers, progress); len(fs) > 0 {
+			raw = append(raw, fs...)
+		}
+	}
+	if opts.IDOR && sessionB != nil && len(targets) > 0 {
+		if fs := runIDOR(ctx, authedClient(governed, session), authedClient(governedB, sessionB), targets, progress); len(fs) > 0 {
 			raw = append(raw, fs...)
 		}
 	}
@@ -684,6 +709,11 @@ func runFileUpload(ctx context.Context, client *http.Client, baseURL string, for
 	return uploadscan.Scan(ctx, client, uploadscan.Options{BaseURL: baseURL, Forms: forms, Headers: headers}, progress)
 }
 
+func runIDOR(ctx context.Context, clientA, clientB *http.Client, eps []dastcrawl.Endpoint, progress Progress) []model.RawFinding {
+	progress(fmt.Sprintf("==> testing %d endpoint(s) for IDOR/BOLA across two identities\n", len(eps)))
+	return idorscan.Scan(ctx, clientA, clientB, idorscan.Options{Endpoints: eps}, progress)
+}
+
 // filterUploadsInScope drops upload forms whose action is outside the engagement
 // scope, mirroring filterEndpointsInScope.
 func filterUploadsInScope(eng *engagement.Engagement, forms []dastcrawl.UploadForm) []dastcrawl.UploadForm {
@@ -700,13 +730,19 @@ func filterUploadsInScope(eng *engagement.Engagement, forms []dastcrawl.UploadFo
 // login request is scope-gated and audited) and returns the session (cookies
 // held in memory, never logged).
 func authenticate(ctx context.Context, client *http.Client, opts DASTOptions, progress Progress) (*dastauth.Session, error) {
-	a := opts.Auth
+	return authenticateWith(ctx, client, opts.Auth, opts.URL, progress)
+}
+
+// authenticateWith establishes a session for the given identity against
+// loginURL, so the primary and (for IDOR) the second identity share one code
+// path.
+func authenticateWith(ctx context.Context, client *http.Client, a *DASTAuth, loginURL string, progress Progress) (*dastauth.Session, error) {
 	cfg := dastauth.Config{LoginURL: a.LoginURL, TryDefaults: a.TryDefaults}
 	if a.Username != "" || a.Password != "" {
 		cfg.Credentials = []dastauth.Credential{{Username: a.Username, Password: a.Password}}
 	}
-	progress(fmt.Sprintf("==> authenticating to %s before scan\n", opts.URL))
-	sess, err := dastauth.Authenticate(ctx, client, opts.URL, cfg, progress)
+	progress(fmt.Sprintf("==> authenticating to %s before scan\n", loginURL))
+	sess, err := dastauth.Authenticate(ctx, client, loginURL, cfg, progress)
 	if err != nil {
 		return nil, fmt.Errorf("dast auth: %w", err)
 	}

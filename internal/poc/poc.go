@@ -147,6 +147,8 @@ func rationale(class, param string) string {
 		return "A template expression injected through " + p + " was evaluated by the server: the response contained the arithmetic result, not the expression. That means the input is rendered as a server-side template."
 	case "upload":
 		return "The upload accepted a file whose type should have been rejected, and the file was retrievable afterward. That means the type restriction can be bypassed, the first step toward storing a web shell."
+	case "idor":
+		return "A second identity retrieved the object referenced by " + p + " that belongs to the first identity, and got the same response. The endpoint does not check that the caller owns the object, so any user can read another user's data by changing the id."
 	default:
 		return "The engine confirmed this dynamically against the running target using " + p + "."
 	}
@@ -255,6 +257,8 @@ func ClassForCWEs(cwes []string) string {
 			return "ssti"
 		case "CWE-434":
 			return "upload"
+		case "CWE-639":
+			return "idor"
 		}
 	}
 	return ""

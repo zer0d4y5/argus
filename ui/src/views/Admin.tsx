@@ -107,6 +107,10 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     dastLoginUrl: string;
     dastUserEnv: string;
     dastPassEnv: string;
+    dastIdor: boolean;
+    dastAuth2UserEnv: string;
+    dastAuth2PassEnv: string;
+    dastAuth2LoginUrl: string;
   }>({
     scanners: [],
     profile: "",
@@ -132,6 +136,10 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     dastLoginUrl: "",
     dastUserEnv: "",
     dastPassEnv: "",
+    dastIdor: false,
+    dastAuth2UserEnv: "",
+    dastAuth2PassEnv: "",
+    dastAuth2LoginUrl: "",
   });
   const [configTargetType, setConfigTargetType] = useState<string>("");
   const [configError, setConfigError] = useState<string | null>(null);
@@ -831,6 +839,40 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
                   </div>
                 )}
 
+                <label className="mb-2 mt-2 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={configForm.dastIdor}
+                    onChange={(e) => setConfigForm({ ...configForm, dastIdor: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span>IDOR/BOLA: replay the first identity's object ids as a second identity (needs crawl)</span>
+                </label>
+                {configForm.dastIdor && (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">2nd identity username env var</label>
+                      <input
+                        type="text"
+                        placeholder="APP_USER2"
+                        value={configForm.dastAuth2UserEnv}
+                        onChange={(e) => setConfigForm({ ...configForm, dastAuth2UserEnv: e.target.value })}
+                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-mono dark:border-gray-600 dark:bg-gray-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-gray-600 dark:text-gray-400">2nd identity password env var</label>
+                      <input
+                        type="text"
+                        placeholder="APP_PASS2"
+                        value={configForm.dastAuth2PassEnv}
+                        onChange={(e) => setConfigForm({ ...configForm, dastAuth2PassEnv: e.target.value })}
+                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-mono dark:border-gray-600 dark:bg-gray-800"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <p className="mt-2 text-[10px] text-gray-500">
                   Credentials are read from the named environment variables on the serve host at scan time and are never stored. The obtained session is never written to a finding or log.
                 </p>
@@ -1059,6 +1101,10 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       dastLoginUrl: auth?.loginUrl || "",
       dastUserEnv: auth?.usernameEnv || "",
       dastPassEnv: auth?.passwordEnv || "",
+      dastIdor: d?.idor ?? false,
+      dastAuth2UserEnv: d?.auth2?.usernameEnv || "",
+      dastAuth2PassEnv: d?.auth2?.passwordEnv || "",
+      dastAuth2LoginUrl: d?.auth2?.loginUrl || "",
     });
   }
 
@@ -1104,6 +1150,16 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
             passwordEnv: configForm.dastPassEnv.trim() || undefined,
             loginUrl: configForm.dastLoginUrl.trim() || undefined,
           };
+        }
+        if (configForm.dastIdor) {
+          dast.idor = true;
+          if (configForm.dastAuth2UserEnv.trim() || configForm.dastAuth2PassEnv.trim()) {
+            dast.auth2 = {
+              usernameEnv: configForm.dastAuth2UserEnv.trim() || undefined,
+              passwordEnv: configForm.dastAuth2PassEnv.trim() || undefined,
+              loginUrl: configForm.dastAuth2LoginUrl.trim() || undefined,
+            };
+          }
         }
         if (Object.keys(dast).length > 0) config.dast = dast;
       }

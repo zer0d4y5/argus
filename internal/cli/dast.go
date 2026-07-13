@@ -44,6 +44,10 @@ func init() {
 	dastCmd.Flags().String("auth-user-env", "", "Name of an env var holding the login username (value never stored)")
 	dastCmd.Flags().String("auth-pass-env", "", "Name of an env var holding the login password (value never stored)")
 	dastCmd.Flags().String("login-url", "", "Login page URL (default: the scan target)")
+	dastCmd.Flags().Bool("idor", false, "Also test for IDOR/BOLA: replay the first identity's object ids as a second identity (needs --crawl and a second identity via --auth2-user-env/--auth2-pass-env)")
+	dastCmd.Flags().String("auth2-user-env", "", "Name of an env var holding the SECOND identity's username, for IDOR testing (value never stored)")
+	dastCmd.Flags().String("auth2-pass-env", "", "Name of an env var holding the SECOND identity's password, for IDOR testing (value never stored)")
+	dastCmd.Flags().String("auth2-login-url", "", "Login page URL for the second identity (default: --login-url or the scan target)")
 	dastCmd.Flags().Bool("triage", false, "Enable AI triage of findings (config: triage.enabled)")
 	dastCmd.Flags().Bool("exclude-fp", false, "Exclude LLM-marked false positives from the report and severity gate (opt-in)")
 	dastCmd.Flags().String("engagement", "", "Engagement id to run under (default: the active engagement). Active DAST requires one.")
@@ -111,7 +115,12 @@ func runDAST(cmd *cobra.Command, args []string) error {
 	recon, _ := cmd.Flags().GetBool("js-recon")
 	fingerprint, _ := cmd.Flags().GetBool("fingerprint")
 	apiRecon, _ := cmd.Flags().GetBool("api-recon")
+	idor, _ := cmd.Flags().GetBool("idor")
 	auth, err := dastAuthFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+	auth2, err := dastAuth2FromFlags(cmd)
 	if err != nil {
 		return err
 	}
@@ -141,7 +150,9 @@ func runDAST(cmd *cobra.Command, args []string) error {
 		Recon:       recon,
 		Fingerprint: fingerprint,
 		APIRecon:    apiRecon,
+		IDOR:        idor,
 		Auth:        auth,
+		Auth2:       auth2,
 		Config:      cfg,
 	}, func(line string) { fmt.Fprint(os.Stderr, line) })
 	if err != nil {
@@ -253,6 +264,37 @@ func dastAuthFromFlags(cmd *cobra.Command) (*pipeline.DASTAuth, error) {
 	}
 	if a.Username == "" && a.Password == "" && !auto {
 		return nil, fmt.Errorf("authentication requested but no credentials: set --auth-auto or --auth-user-env/--auth-pass-env")
+	}
+	return a, nil
+}
+
+// dastAuth2FromFlags builds the second identity for IDOR testing, or nil when
+// none is configured. It has no default-credential path: the second identity
+// must be a distinct real user, referenced by env-var name only.
+func dastAuth2FromFlags(cmd *cobra.Command) (*pipeline.DASTAuth, error) {
+	userEnv, _ := cmd.Flags().GetString("auth2-user-env")
+	passEnv, _ := cmd.Flags().GetString("auth2-pass-env")
+	loginURL, _ := cmd.Flags().GetString("auth2-login-url")
+	if loginURL == "" {
+		loginURL, _ = cmd.Flags().GetString("login-url")
+	}
+	if userEnv == "" && passEnv == "" {
+		return nil, nil
+	}
+	a := &pipeline.DASTAuth{LoginURL: loginURL}
+	if userEnv != "" {
+		v, ok := os.LookupEnv(userEnv)
+		if !ok {
+			return nil, fmt.Errorf("--auth2-user-env: environment variable %q is not set", userEnv)
+		}
+		a.Username = v
+	}
+	if passEnv != "" {
+		v, ok := os.LookupEnv(passEnv)
+		if !ok {
+			return nil, fmt.Errorf("--auth2-pass-env: environment variable %q is not set", passEnv)
+		}
+		a.Password = v
 	}
 	return a, nil
 }
