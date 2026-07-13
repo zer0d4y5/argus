@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { FixedSizeList, ListChildComponentProps } from "react-window";
-import { api, ConfirmImpactResponse, CoverageAccounting, Disposition, DispositionStatus, ExplainResponse, Finding, locationLabel, Mitigation, opsApi, RemediationArtifact, RemediationResponse, RiskSignal, RunDetail, Severity, SEVERITIES, ValidationResponse } from "../api";
+import { api, AttackPathResponse, ConfirmImpactResponse, CoverageAccounting, Disposition, DispositionStatus, ExplainResponse, Finding, locationLabel, Mitigation, opsApi, RemediationArtifact, RemediationResponse, RiskSignal, RunDetail, Severity, SEVERITIES, ValidationResponse } from "../api";
 import { Panel, SeverityBadge, CategoryBadge, EmptyState } from "../components";
 import { SidePane } from "../SidePane";
 import { CloudRemediationPanel } from "./CloudRemediationPanel";
@@ -22,6 +22,61 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{title}</h4>
       <div className="space-y-2">{children}</div>
     </section>
+  );
+}
+
+// AttackPathPanel: on-demand, advisory AI attack-path analysis over a run's
+// confirmed findings. It executes nothing and is never persisted; the model
+// reasons about chains and next checks. Operator+ (gated by the caller).
+function AttackPathPanel({ targetId, runId }: { targetId: string; runId: string }) {
+  const [state, setState] = useState<{ loading: boolean; data?: AttackPathResponse; error?: string }>({ loading: false });
+  const run = async () => {
+    setState({ loading: true });
+    try {
+      const data = await opsApi.attackPath({ targetId, runId });
+      setState({ loading: false, data });
+    } catch (e) {
+      setState({ loading: false, error: e instanceof Error ? e.message : "analysis failed" });
+    }
+  };
+  return (
+    <Panel title="AI attack-path analysis">
+      {!state.data && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={run}
+            disabled={state.loading}
+            className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          >
+            {state.loading ? "Analyzing…" : "Analyze attack paths"}
+          </button>
+          <span className="text-[11px] text-gray-400">Advisory: reasons over the confirmed findings, runs nothing, not saved.</span>
+          {state.error && <span className="text-[11px] text-rose-600 dark:text-rose-400">{state.error}</span>}
+        </div>
+      )}
+      {state.data && (
+        <div className="space-y-3">
+          <p className="whitespace-pre-wrap break-words text-sm text-gray-700 dark:text-gray-300">{state.data.summary}</p>
+          {state.data.chains.length > 0 && (
+            <div>
+              <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Attack chains</div>
+              <ul className="list-disc space-y-1 pl-5 text-[13px] text-gray-700 dark:text-gray-300">
+                {state.data.chains.map((c, i) => <li key={i} className="break-words">{c}</li>)}
+              </ul>
+            </div>
+          )}
+          {state.data.nextSteps.length > 0 && (
+            <div>
+              <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Suggested next checks</div>
+              <ul className="list-disc space-y-1 pl-5 text-[13px] text-gray-700 dark:text-gray-300">
+                {state.data.nextSteps.map((c, i) => <li key={i} className="break-words">{c}</li>)}
+              </ul>
+            </div>
+          )}
+          <p className="text-[10px] text-gray-400">AI-generated ({state.data.model}). Advisory only, not persisted.</p>
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -480,9 +535,14 @@ export function Findings({
     );
   }
 
+  const hasDast = useMemo(() => detail.findings.some((f) => f.category === "DAST"), [detail.findings]);
+
   return (
     <div className="space-y-4">
     {detail.coverage && <CoverageStrip cov={detail.coverage} />}
+    {hasDast && canExplain && origin?.targetId && (
+      <AttackPathPanel targetId={origin.targetId} runId={detail.id} />
+    )}
     <div>
       {/* Full-width list; the detail opens in a right-anchored SidePane (below)
           so the list stays visible and keyboard-navigable while it's open. */}

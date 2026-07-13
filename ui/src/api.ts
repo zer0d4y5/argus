@@ -94,6 +94,15 @@ export interface ImpactProof {
   detail?: string;
 }
 
+// AttackPathResponse is the advisory AI attack-path analysis of a run (never
+// persisted; reasons over confirmed findings, executes nothing).
+export interface AttackPathResponse {
+  summary: string;
+  chains: string[];
+  nextSteps: string[];
+  model: string;
+}
+
 // ConfirmImpactResponse is the result of a live bounded-confirmation probe run
 // from the console (admin, interlocked). Not persisted to the run.
 export interface ConfirmImpactResponse {
@@ -834,6 +843,9 @@ export const opsApi = {
 
   confirmImpact: (req: { targetId: string; runId: string; findingId: string }): Promise<ConfirmImpactResponse> =>
     send<ConfirmImpactResponse>("POST", "api/confirm-impact", { ...req, confirm: true }),
+
+  attackPath: (req: { targetId: string; runId: string }): Promise<AttackPathResponse> =>
+    send<AttackPathResponse>("POST", "api/attack-path", req),
 
   setDisposition: (req: { targetId?: string; findingId: string; status: DispositionStatus; note?: string }): Promise<Disposition> =>
     send<Disposition>("POST", "api/dispositions", req),
