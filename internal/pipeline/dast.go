@@ -18,6 +18,7 @@ import (
 	"github.com/zer0d4y5/argus/internal/fingerprint"
 	"github.com/zer0d4y5/argus/internal/jsrecon"
 	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/poc"
 	"github.com/zer0d4y5/argus/internal/sqlmapscan"
 )
 
@@ -245,6 +246,13 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 	raw = append(raw, reconFindings...)
 	raw = append(raw, fingerprintFindings...)
 
+	// Build the reproduction proof-of-concept for the confirmed dynamic findings
+	// that do not already carry one (the subprocess engines sqlmap and dalfox;
+	// cmdi builds its own from the exact request it sent). This renders what the
+	// engines observed into a request, a curl, and a plain-English reason. It
+	// sends no traffic.
+	poc.AttachToRaw(raw, pocBodies(endpoints), cookie != "")
+
 	gov.Event(engagement.EventScanFinish, map[string]string{
 		"target":          opts.URL,
 		"rawFindings":     fmt.Sprintf("%d", len(raw)),
@@ -253,6 +261,17 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 
 	findings := Enrich(ctx, opts.Config, "", raw, progress)
 	return DASTResult{Findings: findings, ToolVersion: toolVersion}, nil
+}
+
+// pocBodies indexes discovered endpoints' request bodies by method+URL so the
+// reproduction builder can render a faithful POST curl for a finding whose
+// engine did not carry the body on the finding itself.
+func pocBodies(eps []dastcrawl.Endpoint) map[string]string {
+	conv := make([]poc.Endpoint, 0, len(eps))
+	for _, ep := range eps {
+		conv = append(conv, poc.Endpoint{Method: ep.Method, URL: ep.URL, Body: ep.Body})
+	}
+	return poc.BodiesFromEndpoints(conv)
 }
 
 // maxToolEndpoints bounds how many endpoints the slower form-aware engines

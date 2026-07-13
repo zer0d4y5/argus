@@ -64,6 +64,7 @@ export interface Finding {
   riskScore?: number;
   riskSignals?: RiskSignal[];
   evidence?: Evidence;
+  proof?: Proof;
 }
 
 // Evidence is the redacted request/response behind a DAST finding (opt-in).
@@ -72,6 +73,24 @@ export interface Evidence {
   response?: string;
   fuzzParam?: string;
   fuzzPos?: string;
+}
+
+// Proof is the reproduction proof-of-concept for a confirmed dynamic finding
+// (schema 2.3.0): the request, a copy-paste curl, the observed proof, and a
+// plain-English reason. impact is present only when a bounded confirmation ran.
+export interface Proof {
+  request?: string;
+  curl?: string;
+  observed?: string;
+  rationale?: string;
+  impact?: ImpactProof;
+}
+
+export interface ImpactProof {
+  kind: string;
+  command?: string;
+  summary: string;
+  detail?: string;
 }
 
 export interface OwaspCategory {

@@ -56,6 +56,18 @@ func TestScanDetectsCommandInjectionGET(t *testing.T) {
 	if f.Meta["technique"] != "arithmetic" {
 		t.Errorf("technique = %q, want arithmetic", f.Meta["technique"])
 	}
+	if f.Proof == nil {
+		t.Fatal("cmdi finding must carry a reproduction proof")
+	}
+	if !strings.Contains(f.Proof.Curl, "cmd=") || !strings.Contains(f.Proof.Curl, "curl") {
+		t.Errorf("proof curl should reproduce the injected request: %q", f.Proof.Curl)
+	}
+	if !strings.Contains(f.Proof.Rationale, "cmd parameter") {
+		t.Errorf("proof rationale should name the parameter: %q", f.Proof.Rationale)
+	}
+	if f.Proof.Observed == "" {
+		t.Error("proof should record what was observed")
+	}
 }
 
 func TestScanDetectsCommandInjectionPOST(t *testing.T) {

@@ -150,6 +150,16 @@ type fView struct {
 	Disposition string
 	Tools       string
 	Controls    []string
+
+	// Proof-of-concept fields (schema 2.3.0), populated for confirmed dynamic
+	// findings. All render as escaped text (html/template).
+	ProofRationale string
+	ProofCurl      string
+	ProofObserved  string
+	ImpactKind     string
+	ImpactSummary  string
+	ImpactCommand  string
+	ImpactDetail   string
 }
 
 func toView(f model.Finding, dispositions map[string]string) fView {
@@ -165,7 +175,7 @@ func toView(f model.Finding, dispositions map[string]string) fView {
 	if dispositions != nil {
 		dispo = dispositions[f.ID]
 	}
-	return fView{
+	v := fView{
 		Title:       f.Title,
 		Severity:    capitalize(f.Severity.String()),
 		SevColor:    sevHex(f.Severity),
@@ -179,6 +189,18 @@ func toView(f model.Finding, dispositions map[string]string) fView {
 		Tools:       tools,
 		Controls:    f.ComplianceControls,
 	}
+	if p := f.Proof; p != nil {
+		v.ProofRationale = p.Rationale
+		v.ProofCurl = p.Curl
+		v.ProofObserved = p.Observed
+		if imp := p.Impact; imp != nil {
+			v.ImpactKind = imp.Kind
+			v.ImpactSummary = imp.Summary
+			v.ImpactCommand = imp.Command
+			v.ImpactDetail = imp.Detail
+		}
+	}
+	return v
 }
 
 func sevHex(s model.Severity) string {
@@ -263,12 +285,15 @@ var htmlTemplate = template.Must(template.New("report").Parse(`<!doctype html>
   .lbl { font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-top:8px; }
   .body { font-size:13px; white-space:pre-wrap; word-break:break-word; }
   .rem { background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:8px 10px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .code { background:#0f172a; color:#e2e8f0; border-radius:6px; padding:8px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; white-space:pre-wrap; word-break:break-word; }
+  .impact { background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:8px 10px; margin-top:6px; }
   footer { margin-top:40px; border-top:1px solid var(--line); padding-top:14px; font-size:11px; color:var(--muted); }
   .empty { text-align:center; padding:40px; color:#166534; font-size:18px; font-weight:600; }
   @media (prefers-color-scheme: dark) {
     :root { --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0f172a; --card:#1e293b; }
     .gate.pass { background:#14532d; color:#bbf7d0; } .gate.fail { background:#7f1d1d; color:#fecaca; }
     .chip { background:#334155; color:#cbd5e1; } .rem { background:#0c2a3d; border-color:#155e75; }
+    .impact { background:#3f1d1d; border-color:#7f1d1d; }
   }
   @media print {
     .wrap { max-width:none; padding:0 12px; }
@@ -340,6 +365,10 @@ var htmlTemplate = template.Must(template.New("report").Parse(`<!doctype html>
         <div class="loc">{{.Location}}</div>
         {{if .Description}}<div class="lbl">Description</div><div class="body">{{.Description}}</div>{{end}}
         {{if .Remediation}}<div class="lbl">Remediation</div><div class="rem">{{.Remediation}}</div>{{end}}
+        {{if .ProofRationale}}<div class="lbl">Proof of concept</div><div class="body">{{.ProofRationale}}</div>{{end}}
+        {{if .ProofCurl}}<div class="lbl">Reproduce</div><div class="code">{{.ProofCurl}}</div>{{end}}
+        {{if .ProofObserved}}<div class="lbl">Observed</div><div class="body">{{.ProofObserved}}</div>{{end}}
+        {{if .ImpactSummary}}<div class="impact"><div class="lbl">Bounded confirmation{{if .ImpactKind}} ({{.ImpactKind}}){{end}}</div><div class="body">{{.ImpactSummary}}</div>{{if .ImpactCommand}}<div class="body">probe: {{.ImpactCommand}}</div>{{end}}{{if .ImpactDetail}}<div class="code">{{.ImpactDetail}}</div>{{end}}</div>{{end}}
         {{if .CWECVE}}<div class="lbl">References</div><div class="body">{{.CWECVE}}</div>{{end}}
         {{if .Controls}}<div class="lbl">Mapped controls</div><div class="chips">{{range .Controls}}<span class="chip">{{.}}</span>{{end}}</div>{{end}}
       </div>

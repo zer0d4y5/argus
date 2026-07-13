@@ -67,6 +67,43 @@ func TestWriteHTMLEscapesAndStructures(t *testing.T) {
 	}
 }
 
+// TestWriteHTMLProof: a confirmed dynamic finding renders its reproduction and
+// bounded-confirmation proof, and hostile content in those fields is escaped.
+func TestWriteHTMLProof(t *testing.T) {
+	findings := []model.Finding{{
+		Tool: "argus-cmdi", Category: model.CategoryDAST, RuleID: "cmdi",
+		Title: "OS Command Injection", Severity: model.SeverityCritical, ID: "dast-1",
+		Location: model.Location{URL: "http://t/exec"},
+		CWEs:     []string{"CWE-78"},
+		Proof: &model.Proof{
+			Curl:      `curl -sS -X POST 'http://t/exec' --data 'ip=1;id'`,
+			Rationale: "A benign probe ran <b>id</b> on the host.",
+			Observed:  "uid=33(www-data)",
+			Impact: &model.ImpactProof{
+				Kind: "cmd-id", Command: "id",
+				Summary: "uid=33(www-data) gid=33(www-data)",
+			},
+		},
+	}}
+	var sb strings.Builder
+	if err := WriteHTML(&sb, findings, HTMLMeta{}); err != nil {
+		t.Fatal(err)
+	}
+	out := sb.String()
+	for _, want := range []string{
+		"Proof of concept", "Reproduce", "curl -sS -X POST", "Observed",
+		"Bounded confirmation (cmd-id)", "uid=33(www-data)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("proof report missing %q", want)
+		}
+	}
+	// Hostile content in a proof field must be escaped, never live markup.
+	if strings.Contains(out, "<b>id</b>") {
+		t.Error("proof rationale was not HTML-escaped")
+	}
+}
+
 func TestWriteHTMLEmpty(t *testing.T) {
 	var sb strings.Builder
 	if err := WriteHTML(&sb, nil, HTMLMeta{}); err != nil {

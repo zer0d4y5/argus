@@ -43,7 +43,14 @@ import (
 // finding (url empty), and gives a URL-only DAST finding a stable identity
 // (two hits of one template on different URLs no longer collide). Additive;
 // migration note in docs/findings-model.md.
-const SchemaVersion = "2.2.0"
+//
+// 2.3.0: proof-of-concept (Workstream B). Findings gained an optional Proof
+// slot: the reproduction (raw request, copy-paste curl, observed proof, a
+// class-keyed "why this is real") built deterministically for confirmed dynamic
+// findings, plus an optional ImpactProof holding the minimum identifying
+// evidence from a bounded, opt-in, interlocked confirmation. Additive; every
+// pre-2.3.0 finding round-trips with proof absent.
+const SchemaVersion = "2.3.0"
 
 // Finding categories. String-typed (not iota) because they appear verbatim in
 // JSON/SARIF output and in config files.
@@ -79,6 +86,7 @@ type RawFinding struct {
 	Meta        map[string]string // any extra tool fields worth keeping
 	RawPayload  json.RawMessage   // the original per-result object, verbatim
 	Evidence    *Evidence         // DAST request/response evidence (opt-in, redacted)
+	Proof       *Proof            // reproduction PoC + optional bounded confirmation (schema 2.3.0)
 }
 
 // Evidence is the request/response that produced a dynamic (DAST) finding,
@@ -92,6 +100,33 @@ type Evidence struct {
 	Response  string `json:"response,omitempty"`  // redacted, bounded HTTP response
 	FuzzParam string `json:"fuzzParam,omitempty"` // the parameter that was fuzzed
 	FuzzPos   string `json:"fuzzPos,omitempty"`   // where it was fuzzed (query, body, ...)
+}
+
+// Proof is the proof-of-concept for a confirmed dynamic finding (schema 2.3.0):
+// the reproduction a human runs to see the vulnerability for themselves, and
+// (optionally) the result of a bounded impact confirmation. The reproduction
+// fields are built deterministically from what the engine already observed and
+// send no new traffic; Impact is populated only when the operator armed the
+// interlocked confirmation and it ran. Curl and Request render the session
+// cookie as a placeholder, never the live value.
+type Proof struct {
+	Request   string       `json:"request,omitempty"`   // raw HTTP request, redacted
+	Curl      string       `json:"curl,omitempty"`      // copy-paste repro; cookie shown as a placeholder
+	Observed  string       `json:"observed,omitempty"`  // the proof (SQL error / reflected marker / arithmetic product)
+	Rationale string       `json:"rationale,omitempty"` // plain-English "why this is real", class-keyed
+	Impact    *ImpactProof `json:"impact,omitempty"`    // bounded confirmation result, when armed and run
+}
+
+// ImpactProof is the minimum identifying evidence from a bounded confirmation:
+// enough to demonstrate the vulnerability's severity, and nothing more. It is
+// produced only behind the confirmation interlock (an engagement Confirm latch
+// plus a per-run confirmation), and sensitive values in Detail are redacted.
+// We prove impact; we never bulk-extract, and we never change target state.
+type ImpactProof struct {
+	Kind    string `json:"kind"`              // "sql-identity" | "cmd-id"
+	Command string `json:"command,omitempty"` // the benign probe that was run (e.g. "id")
+	Summary string `json:"summary"`           // one-line result, e.g. "MariaDB 10.5.12, current_user=dvwa@localhost"
+	Detail  string `json:"detail,omitempty"`  // minimal captured evidence, redacted
 }
 
 // Location pins a finding to code, a package manifest, a cloud resource, or
@@ -181,6 +216,9 @@ type Finding struct {
 	// Evidence is the redacted request/response for a DAST finding, when
 	// evidence capture was enabled. Absent otherwise.
 	Evidence *Evidence `json:"evidence,omitempty"`
+	// Proof is the reproduction PoC and optional bounded-confirmation result
+	// for a confirmed dynamic finding (schema 2.3.0). Absent otherwise.
+	Proof *Proof `json:"proof,omitempty"`
 
 	// DisplayName is a clean, human-readable name for the weakness — e.g.
 	// "Cross-Site Scripting (XSS)" — set at read time from the CWE→weakness
@@ -343,6 +381,7 @@ func Normalize(raws []RawFinding) []Finding {
 			Meta:        r.Meta,
 			RawPayload:  r.RawPayload,
 			Evidence:    r.Evidence,
+			Proof:       r.Proof,
 		}
 		if f.Location.EndLine < f.Location.StartLine {
 			f.Location.EndLine = f.Location.StartLine

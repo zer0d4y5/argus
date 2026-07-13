@@ -33,6 +33,7 @@ import (
 
 	"github.com/zer0d4y5/argus/internal/dastcrawl"
 	"github.com/zer0d4y5/argus/internal/model"
+	"github.com/zer0d4y5/argus/internal/poc"
 )
 
 const (
@@ -102,16 +103,23 @@ func (s *scanner) scanEndpoint(ctx context.Context, ep dastcrawl.Endpoint) []mod
 			break
 		}
 		tested++
-		if tech := s.testParam(ctx, ep, base, p); tech != "" {
-			out = append(out, finding(ep, p, tech))
+		if c := s.testParam(ctx, ep, base, p); c != nil {
+			out = append(out, finding(ep, base, p, *c, hasCookie(s.headers)))
 		}
 	}
 	return out
 }
 
-// testParam returns the confirming technique ("arithmetic" | "time-based") or
-// "" if the parameter is not injectable.
-func (s *scanner) testParam(ctx context.Context, ep dastcrawl.Endpoint, base url.Values, param string) string {
+// confirmation is a confirmed command injection: the technique that proved it,
+// the exact payload the parameter carried, and a plain-English proof line.
+type confirmation struct {
+	technique string
+	payload   string
+	observed  string
+}
+
+// testParam returns the confirmation, or nil if the parameter is not injectable.
+func (s *scanner) testParam(ctx context.Context, ep dastcrawl.Endpoint, base url.Values, param string) *confirmation {
 	// Arithmetic echo: the product proves execution and is absent from the payload.
 	a, b := randInt(), randInt()
 	product := fmt.Sprintf("%d", a*b)
@@ -120,43 +128,48 @@ func (s *scanner) testParam(ctx context.Context, ep dastcrawl.Endpoint, base url
 		payload := orig + sep + fmt.Sprintf("expr %d \\* %d", a, b)
 		body, _, err := s.send(ctx, ep, base, param, payload)
 		if err == nil && strings.Contains(body, product) {
-			return "arithmetic"
+			return &confirmation{
+				technique: "arithmetic",
+				payload:   payload,
+				observed:  fmt.Sprintf("A benign shell probe computing %d times %d returned %s in the response, a value the request itself never contains.", a, b, product),
+			}
 		}
 	}
 	if !s.timing {
-		return ""
+		return nil
 	}
 	// Differential timing: a control, then a sleep, requiring a clear slowdown.
 	_, control, err := s.send(ctx, ep, base, param, orig)
 	if err != nil {
-		return ""
+		return nil
 	}
 	for _, sep := range separators {
 		payload := orig + sep + fmt.Sprintf("sleep %d", sleepSeconds)
 		_, elapsed, err := s.send(ctx, ep, base, param, payload)
 		if err == nil && elapsed-control >= timingThreshold {
-			return "time-based"
+			return &confirmation{
+				technique: "time-based",
+				payload:   payload,
+				observed:  fmt.Sprintf("A time-based probe delayed the response by at least %d seconds over a control request, which only a blind shell sleep explains.", sleepSeconds),
+			}
 		}
 	}
-	return ""
+	return nil
 }
 
 // send issues the request with param replaced by value, returning the body and
 // the round-trip time.
 func (s *scanner) send(ctx context.Context, ep dastcrawl.Endpoint, base url.Values, param, value string) (string, time.Duration, error) {
-	vals := cloneValues(base)
-	vals.Set(param, value)
+	method, u, reqBody := requestTarget(ep, base, param, value)
 
 	var req *http.Request
 	var err error
-	if ep.Method == http.MethodPost {
-		u := stripQuery(ep.URL)
-		req, err = http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(vals.Encode()))
+	if method == http.MethodPost {
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(reqBody))
 		if err == nil {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	} else {
-		u := stripQuery(ep.URL) + "?" + vals.Encode()
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	}
 	if err != nil {
@@ -202,18 +215,53 @@ func paramsOf(ep dastcrawl.Endpoint) ([]string, url.Values, error) {
 	return names, vals, nil
 }
 
-func finding(ep dastcrawl.Endpoint, param, technique string) model.RawFinding {
-	return model.RawFinding{
+// requestTarget builds the (method, url, body) for a request that sets param to
+// value, matching how send issues it: GET carries params in the query, POST in
+// a form-encoded body. It sends nothing.
+func requestTarget(ep dastcrawl.Endpoint, base url.Values, param, value string) (method, u, body string) {
+	vals := cloneValues(base)
+	vals.Set(param, value)
+	if ep.Method == http.MethodPost {
+		return http.MethodPost, stripQuery(ep.URL), vals.Encode()
+	}
+	return http.MethodGet, stripQuery(ep.URL) + "?" + vals.Encode(), ""
+}
+
+func finding(ep dastcrawl.Endpoint, base url.Values, param string, c confirmation, cookiePresent bool) model.RawFinding {
+	method := ep.Method
+	if method == "" {
+		method = http.MethodGet
+	}
+	_, u, body := requestTarget(ep, base, param, c.payload)
+	f := model.RawFinding{
 		Tool:        "argus-cmdi",
 		Category:    model.CategoryDAST,
-		RuleID:      "cmdi:" + strings.ToLower(ep.Method) + ":" + param,
+		RuleID:      "cmdi:" + strings.ToLower(method) + ":" + param,
 		Title:       "OS Command Injection",
-		Description: fmt.Sprintf("Parameter %q (%s) is vulnerable to OS command injection, confirmed by a %s probe.", param, ep.Method, technique),
+		Description: fmt.Sprintf("Parameter %q (%s) is vulnerable to OS command injection, confirmed by a %s probe.", param, method, c.technique),
 		RawSeverity: "critical",
 		URL:         ep.URL,
 		CWEs:        []string{"CWE-78"},
-		Meta:        map[string]string{"param": param, "method": ep.Method, "technique": technique},
+		Meta:        map[string]string{"param": param, "method": method, "technique": c.technique},
 	}
+	f.Proof = poc.Build("cmdi", poc.Request{
+		Method:        method,
+		URL:           u,
+		Body:          body,
+		CookiePresent: cookiePresent,
+	}, param, c.observed)
+	return f
+}
+
+// hasCookie reports whether the request headers carry a session cookie, so the
+// rendered PoC shows a cookie placeholder rather than an unauthenticated request.
+func hasCookie(headers []string) bool {
+	for _, h := range headers {
+		if k, _, ok := splitHeader(h); ok && strings.EqualFold(strings.TrimSpace(k), "Cookie") {
+			return true
+		}
+	}
+	return false
 }
 
 func cloneValues(v url.Values) url.Values {

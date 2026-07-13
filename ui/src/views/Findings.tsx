@@ -874,6 +874,52 @@ function Detail({ f, isNew, origin, runId, canRemediate, canExplain, explainStat
               {f.triage.rationale && <p className="whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300">{f.triage.rationale}</p>}
             </div>
           )}
+          {f.proof && (f.proof.curl || f.proof.request || f.proof.rationale) && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Proof of concept</span>
+                {f.proof.impact && (
+                  <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[11px] font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">impact confirmed</span>
+                )}
+              </div>
+              {f.proof.rationale && (
+                <p className="mb-2 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300">{f.proof.rationale}</p>
+              )}
+              {f.proof.curl && (
+                <div className="mb-2">
+                  <div className="mb-1 flex items-center gap-2">
+                    <div className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Reproduce</div>
+                    <CopyButton text={f.proof.curl} />
+                  </div>
+                  <pre className="max-h-40 overflow-auto rounded bg-white p-2 text-[11px] leading-snug text-gray-800 dark:bg-gray-900 dark:text-gray-200">{f.proof.curl}</pre>
+                </div>
+              )}
+              {f.proof.request && (
+                <div className="mb-2">
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Request</div>
+                  <pre className="max-h-48 overflow-auto rounded bg-white p-2 text-[11px] leading-snug text-gray-800 dark:bg-gray-900 dark:text-gray-200">{f.proof.request}</pre>
+                </div>
+              )}
+              {f.proof.observed && (
+                <div className={f.proof.impact ? "mb-2" : ""}>
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Observed</div>
+                  <p className="whitespace-pre-wrap break-words text-[12px] text-gray-700 dark:text-gray-300">{f.proof.observed}</p>
+                </div>
+              )}
+              {f.proof.impact && (
+                <div className="rounded border border-rose-200 bg-rose-50 p-2 dark:border-rose-900/50 dark:bg-rose-950/30">
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">Bounded confirmation ({f.proof.impact.kind})</div>
+                  <p className="break-words text-[12px] text-gray-800 dark:text-gray-200">{f.proof.impact.summary}</p>
+                  {f.proof.impact.command && (
+                    <p className="mt-1 text-[11px] text-gray-500">probe: <code>{f.proof.impact.command}</code></p>
+                  )}
+                  {f.proof.impact.detail && (
+                    <pre className="mt-1 max-h-40 overflow-auto rounded bg-white p-2 text-[11px] leading-snug text-gray-800 dark:bg-gray-900 dark:text-gray-200">{f.proof.impact.detail}</pre>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {f.evidence && (f.evidence.request || f.evidence.response) && (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
               <div className="mb-2 flex items-center gap-2">
