@@ -97,6 +97,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     dastSsrf: boolean;
     dastSsti: boolean;
     dastFileUpload: boolean;
+    dastGraphql: boolean;
     dastRecon: boolean;
     dastFingerprint: boolean;
     dastApiRecon: boolean;
@@ -126,6 +127,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     dastSsrf: false,
     dastSsti: false,
     dastFileUpload: false,
+    dastGraphql: false,
     dastRecon: false,
     dastFingerprint: false,
     dastApiRecon: false,
@@ -725,6 +727,16 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
                 <label className="mb-2 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
+                    checked={configForm.dastGraphql}
+                    onChange={(e) => setConfigForm({ ...configForm, dastGraphql: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span>GraphQL: test discovered GraphQL endpoints for query batching and alias amplification (benign)</span>
+                </label>
+
+                <label className="mb-2 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
                     checked={configForm.dastRecon}
                     onChange={(e) => setConfigForm({ ...configForm, dastRecon: e.target.checked })}
                     className="rounded border-gray-300 dark:border-gray-600"
@@ -1091,6 +1103,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       dastSsrf: d?.ssrf ?? false,
       dastSsti: d?.ssti ?? false,
       dastFileUpload: d?.fileUpload ?? false,
+      dastGraphql: d?.graphql ?? false,
       dastRecon: d?.recon ?? false,
       dastFingerprint: d?.fingerprint ?? false,
       dastApiRecon: d?.apiRecon ?? false,
@@ -1134,6 +1147,7 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
         if (configForm.dastSsrf) dast.ssrf = true;
         if (configForm.dastSsti) dast.ssti = true;
         if (configForm.dastFileUpload) dast.fileUpload = true;
+        if (configForm.dastGraphql) dast.graphql = true;
         if (configForm.dastRecon) dast.recon = true;
         if (configForm.dastFingerprint) dast.fingerprint = true;
         if (configForm.dastApiRecon) dast.apiRecon = true;

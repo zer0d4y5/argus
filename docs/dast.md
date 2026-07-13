@@ -224,6 +224,21 @@ APP_USER=alice APP_PASS=... APP_USER2=bob APP_PASS2=... \
   --auth2-user-env APP_USER2 --auth2-pass-env APP_PASS2
 ```
 
+## GraphQL abuse (`--graphql`)
+
+`--graphql` tests discovered GraphQL endpoints (found by the crawl, by
+`--api-recon`, or the target itself when it is a GraphQL URL) for the
+resource-control weaknesses that make an API abusable: query batching (many
+operations in one request, which bypasses per-request rate limits and amplifies
+attacks like credential stuffing) and alias-based amplification (repeating a
+field under many aliases with no complexity limit). Both probes are benign, a
+handful of trivial `__typename` operations, so they confirm the missing control
+without causing a denial of service. Findings are CWE-770.
+
+```bash
+argus dast https://api.example.com/graphql --graphql
+```
+
 ## Client-side reverse-engineering (`--js-recon`)
 
 Link-following only finds the surface the app links to. Most of a modern app's

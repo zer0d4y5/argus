@@ -547,6 +547,7 @@ export interface DastConfig {
   ssrf?: boolean;
   ssti?: boolean;
   fileUpload?: boolean;
+  graphql?: boolean;
   recon?: boolean;
   fingerprint?: boolean;
   apiRecon?: boolean;

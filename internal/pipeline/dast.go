@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/zer0d4y5/argus/internal/apirecon"
+	"github.com/zer0d4y5/argus/internal/apiscan"
 	"github.com/zer0d4y5/argus/internal/cmdiscan"
 	"github.com/zer0d4y5/argus/internal/config"
 	"github.com/zer0d4y5/argus/internal/confirm"
@@ -50,6 +51,7 @@ type DASTOptions struct {
 	SSTI        bool // also run the native server-side template injection detector (GET+POST)
 	FileUpload  bool // also test discovered upload forms for unrestricted file upload (fetch-back a benign marker)
 	IDOR        bool // also test for IDOR/BOLA by replaying identity A's object ids as a second identity
+	GraphQL     bool // also test discovered GraphQL endpoints for batching and alias amplification
 	Auth2       *DASTAuth // second identity for IDOR: its session replays identity A's object references
 	Recon       bool // reverse-engineer the target's client-side JS for endpoints and exposed secrets
 	Fingerprint bool // identify the target's technology stack and correlate to known-exploited software
@@ -311,6 +313,20 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 	if opts.IDOR && sessionB != nil && len(targets) > 0 {
 		if fs := runIDOR(ctx, authedClient(governed, session), authedClient(governedB, sessionB), targets, progress); len(fs) > 0 {
 			raw = append(raw, fs...)
+		}
+	}
+	if opts.GraphQL {
+		// Consider the discovered endpoints plus the target itself when it looks
+		// like a GraphQL endpoint (the operator may point straight at /graphql
+		// without crawling).
+		cands := endpoints
+		if strings.Contains(strings.ToLower(opts.URL), "graphql") {
+			cands = append([]dastcrawl.Endpoint{{URL: opts.URL, Method: http.MethodPost, Body: `{"query":"{__typename}"}`}}, endpoints...)
+		}
+		if len(cands) > 0 {
+			if fs := runGraphQL(ctx, governed, cands, headers, progress); len(fs) > 0 {
+				raw = append(raw, fs...)
+			}
 		}
 	}
 
@@ -712,6 +728,11 @@ func runFileUpload(ctx context.Context, client *http.Client, baseURL string, for
 func runIDOR(ctx context.Context, clientA, clientB *http.Client, eps []dastcrawl.Endpoint, progress Progress) []model.RawFinding {
 	progress(fmt.Sprintf("==> testing %d endpoint(s) for IDOR/BOLA across two identities\n", len(eps)))
 	return idorscan.Scan(ctx, clientA, clientB, idorscan.Options{Endpoints: eps}, progress)
+}
+
+func runGraphQL(ctx context.Context, client *http.Client, eps []dastcrawl.Endpoint, headers []string, progress Progress) []model.RawFinding {
+	progress("==> testing discovered GraphQL endpoint(s) for batching and alias amplification\n")
+	return apiscan.Scan(ctx, client, apiscan.Options{Endpoints: eps, Headers: headers}, progress)
 }
 
 // filterUploadsInScope drops upload forms whose action is outside the engagement

@@ -297,6 +297,7 @@ func applyDastConfig(opts *pipeline.DASTOptions, t targets.Target, progress func
 	opts.Recon = d.Recon
 	opts.Fingerprint = d.Fingerprint
 	opts.APIRecon = d.APIRecon
+	opts.GraphQL = d.GraphQL
 	opts.IDOR = d.Idor
 	opts.Templates = d.Templates
 	opts.Tags = d.Tags

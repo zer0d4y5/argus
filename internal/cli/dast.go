@@ -38,6 +38,7 @@ func init() {
 	dastCmd.Flags().Bool("js-recon", false, "Reverse-engineer the target's client-side JavaScript: recover endpoints/API routes (fed to the fuzzers) and report secrets exposed in served bundles")
 	dastCmd.Flags().Bool("fingerprint", false, "Identify the target's technology stack (server/framework/CMS/library versions) and correlate CMS families against the CISA KEV catalog")
 	dastCmd.Flags().Bool("api-recon", false, "Reconstruct the API surface from served schemas (OpenAPI/Swagger, GraphQL introspection), fuzz the recovered operations, and report the exposure")
+	dastCmd.Flags().Bool("graphql", false, "Also test discovered GraphQL endpoints for query batching and alias amplification (benign probes)")
 	dastCmd.Flags().Int("crawl-depth", 0, "Crawl link-follow depth (0 = default 3)")
 	dastCmd.Flags().Int("crawl-pages", 0, "Max pages to crawl (0 = default 150)")
 	dastCmd.Flags().Bool("auth-auto", false, "Authenticate before scanning: detect the login form and try built-in default credentials")
@@ -115,6 +116,7 @@ func runDAST(cmd *cobra.Command, args []string) error {
 	recon, _ := cmd.Flags().GetBool("js-recon")
 	fingerprint, _ := cmd.Flags().GetBool("fingerprint")
 	apiRecon, _ := cmd.Flags().GetBool("api-recon")
+	graphql, _ := cmd.Flags().GetBool("graphql")
 	idor, _ := cmd.Flags().GetBool("idor")
 	auth, err := dastAuthFromFlags(cmd)
 	if err != nil {
@@ -150,6 +152,7 @@ func runDAST(cmd *cobra.Command, args []string) error {
 		Recon:       recon,
 		Fingerprint: fingerprint,
 		APIRecon:    apiRecon,
+		GraphQL:     graphql,
 		IDOR:        idor,
 		Auth:        auth,
 		Auth2:       auth2,
