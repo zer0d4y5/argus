@@ -5,7 +5,8 @@
   "scope": [
     "SAST",
     "SECRET",
-    "SCA"
+    "SCA",
+    "DAST"
   ],
   "controls": [
     {
@@ -39,6 +40,10 @@
     {
       "id": "V3.4.2",
       "title": "Cookie-based session tokens set the HttpOnly attribute"
+    },
+    {
+      "id": "V3.4.3",
+      "title": "Cookie-based session tokens set the SameSite attribute to limit CSRF exposure"
     },
     {
       "id": "V4.1.3",
@@ -153,12 +158,20 @@
       "title": "Code integrity protections (signing, subresource integrity) are employed"
     },
     {
+      "id": "V12.2.1",
+      "title": "Files from untrusted sources are validated to be of expected type by content, not extension"
+    },
+    {
       "id": "V12.3.1",
       "title": "User-submitted filenames are protected against path traversal"
     },
     {
       "id": "V14.2.1",
       "title": "All components are up to date and free of known vulnerabilities"
+    },
+    {
+      "id": "V14.3.2",
+      "title": "Debug modes, developer consoles, and unintended disclosures are disabled in production"
     },
     {
       "id": "V14.4.7",
@@ -201,6 +214,30 @@
       ],
       "controls": [
         "V12.3.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-434"
+      ],
+      "controls": [
+        "V12.2.1"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-1275"
+      ],
+      "controls": [
+        "V3.4.3"
+      ]
+    },
+    {
+      "cwes": [
+        "CWE-200"
+      ],
+      "controls": [
+        "V14.3.2"
       ]
     },
     {

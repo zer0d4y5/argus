@@ -218,7 +218,10 @@ func execDASTScan(ctx context.Context, reg *targets.Registry, t targets.Target, 
 		return out, err
 	}
 
-	opts := pipeline.DASTOptions{URL: t.URL, Config: cfg, Governor: gov}
+	// Evidence (request/response) capture is on by default for console DAST: the
+	// scan runs inside an authorized engagement, and the operator needs the
+	// exchange that proves each finding. applyDastConfig may still disable it.
+	opts := pipeline.DASTOptions{URL: t.URL, Config: cfg, Governor: gov, Evidence: true}
 	applyDastConfig(&opts, t, progress)
 	res, err := pipeline.RunDAST(ctx, opts, progress)
 	if err != nil {
@@ -285,7 +288,6 @@ func applyDastConfig(opts *pipeline.DASTOptions, t targets.Target, progress func
 	opts.Crawl = d.Crawl
 	opts.CrawlDepth = d.CrawlDepth
 	opts.CrawlPages = d.CrawlPages
-	opts.Evidence = d.Evidence
 	opts.Dalfox = d.Dalfox
 	opts.Sqlmap = d.Sqlmap
 	opts.Cmdi = d.Cmdi

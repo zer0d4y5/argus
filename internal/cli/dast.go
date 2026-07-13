@@ -27,7 +27,7 @@ func init() {
 	dastCmd.Flags().Int("rate-limit", 0, "Max requests per second (0 = nuclei default)")
 	dastCmd.Flags().Int("timeout", 0, "Whole-scan timeout in seconds (0 = no limit)")
 	dastCmd.Flags().Bool("dast", false, "Enable active fuzzing (nuclei -dast templates): probes parameters for injection")
-	dastCmd.Flags().Bool("evidence", false, "Capture the request/response for each finding (redacted; a response body can hold app data)")
+	dastCmd.Flags().Bool("evidence", true, "Capture the request/response for each finding (redacted; on by default. Pass --evidence=false to record metadata only)")
 	dastCmd.Flags().Bool("crawl", false, "Crawl the target (authenticated) to discover endpoints and forms, then fuzz all of them")
 	dastCmd.Flags().Bool("dalfox", false, "Also run dalfox: active XSS testing of GET and POST forms (reflected, stored, DOM)")
 	dastCmd.Flags().Bool("sqlmap", false, "Also run sqlmap: SQL injection testing incl. boolean/time-based blind, GET and POST")

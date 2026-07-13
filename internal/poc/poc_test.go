@@ -135,6 +135,42 @@ func TestAttachToRawSkipsNonDASTAndPrebuilt(t *testing.T) {
 	}
 }
 
+func TestRedactResponseScrubsAndBounds(t *testing.T) {
+	body := "HTTP/1.1 200 OK\nSet-Cookie: SESSION=secretvalue; Path=/\nContent-Type: text/html\n\n<b>ok</b>"
+	got := RedactResponse(body)
+	if strings.Contains(got, "secretvalue") {
+		t.Errorf("Set-Cookie value not redacted: %q", got)
+	}
+	if !strings.Contains(got, "Set-Cookie: [redacted]") {
+		t.Errorf("expected redacted marker: %q", got)
+	}
+	if !strings.Contains(got, "<b>ok</b>") {
+		t.Errorf("body content should be preserved: %q", got)
+	}
+	long := strings.Repeat("A", maxResponseBytes+500)
+	if len(RedactResponse(long)) > maxResponseBytes+64 {
+		t.Error("RedactResponse did not bound a long body")
+	}
+}
+
+func TestAttachToRawBridgesEvidenceToProof(t *testing.T) {
+	// A nuclei-style finding: no reproduction class, but captured evidence.
+	raw := []model.RawFinding{{
+		Tool:     "nuclei",
+		Category: model.CategoryDAST,
+		URL:      "http://t/",
+		CWEs:     []string{"CWE-200"},
+		Evidence: &model.Evidence{Request: "GET / HTTP/1.1", Response: "HTTP/1.1 200 OK\n\nhi"},
+	}}
+	AttachToRaw(raw, nil, false)
+	if raw[0].Proof == nil {
+		t.Fatal("a finding with evidence should get a proof with request/response")
+	}
+	if raw[0].Proof.Request == "" || raw[0].Proof.Response == "" {
+		t.Errorf("proof should carry request and response: %+v", raw[0].Proof)
+	}
+}
+
 // TestProofNeverCarriesLiteralCookie is the safety property: the builder is
 // given only a boolean, never the live session value, so a rendered proof
 // cannot leak a credential by construction.

@@ -91,7 +91,6 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     // DAST-target options (shown only for dast targets)
     dastFuzzing: boolean;
     dastCrawl: boolean;
-    dastEvidence: boolean;
     dastDalfox: boolean;
     dastSqlmap: boolean;
     dastCmdi: boolean;
@@ -114,7 +113,6 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
     ignoreRules: "",
     dastFuzzing: false,
     dastCrawl: false,
-    dastEvidence: false,
     dastDalfox: false,
     dastSqlmap: false,
     dastCmdi: false,
@@ -710,15 +708,6 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
                   <span>API recon: reconstruct the API surface from served schemas (OpenAPI/Swagger, GraphQL) and fuzz it</span>
                 </label>
 
-                <label className="mb-3 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={configForm.dastEvidence}
-                    onChange={(e) => setConfigForm({ ...configForm, dastEvidence: e.target.checked })}
-                    className="rounded border-gray-300 dark:border-gray-600"
-                  />
-                  <span>Capture request/response evidence on findings (auth headers redacted; a response body can hold app data)</span>
-                </label>
 
                 <div className="mb-3 grid gap-2 md:grid-cols-3">
                   <div>
@@ -1018,7 +1007,6 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
       ignoreRules: t.config?.ignoreRules?.join("\n") || "",
       dastFuzzing: d?.fuzzing ?? false,
       dastCrawl: d?.crawl ?? false,
-      dastEvidence: d?.evidence ?? false,
       dastDalfox: d?.dalfox ?? false,
       dastSqlmap: d?.sqlmap ?? false,
       dastCmdi: d?.cmdi ?? false,
@@ -1055,7 +1043,6 @@ export function Admin({ selfUsername }: { selfUsername: string }) {
         const dast: DastConfig = {};
         if (configForm.dastFuzzing) dast.fuzzing = true;
         if (configForm.dastCrawl) dast.crawl = true;
-        if (configForm.dastEvidence) dast.evidence = true;
         if (configForm.dastDalfox) dast.dalfox = true;
         if (configForm.dastSqlmap) dast.sqlmap = true;
         if (configForm.dastCmdi) dast.cmdi = true;

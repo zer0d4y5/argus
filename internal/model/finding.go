@@ -50,7 +50,11 @@ import (
 // findings, plus an optional ImpactProof holding the minimum identifying
 // evidence from a bounded, opt-in, interlocked confirmation. Additive; every
 // pre-2.3.0 finding round-trips with proof absent.
-const SchemaVersion = "2.3.0"
+//
+// 2.4.0: Proof.Response. A dynamic finding's proof now carries the redacted,
+// bounded response that demonstrates it alongside the request, so every DAST
+// finding shows the exchange that confirms it. Additive.
+const SchemaVersion = "2.4.0"
 
 // Finding categories. String-typed (not iota) because they appear verbatim in
 // JSON/SARIF output and in config files.
@@ -111,6 +115,7 @@ type Evidence struct {
 // cookie as a placeholder, never the live value.
 type Proof struct {
 	Request   string       `json:"request,omitempty"`   // raw HTTP request, redacted
+	Response  string       `json:"response,omitempty"`  // redacted, bounded response that demonstrates the finding
 	Curl      string       `json:"curl,omitempty"`      // copy-paste repro; cookie shown as a placeholder
 	Observed  string       `json:"observed,omitempty"`  // the proof (SQL error / reflected marker / arithmetic product)
 	Rationale string       `json:"rationale,omitempty"` // plain-English "why this is real", class-keyed

@@ -6,7 +6,8 @@
     "SAST",
     "SECRET",
     "SCA",
-    "IAC"
+    "IAC",
+    "DAST"
   ],
   "controls": [
     {
@@ -123,7 +124,9 @@
         "CWE-915",
         "CWE-917",
         "CWE-918",
-        "CWE-942"
+        "CWE-942",
+        "CWE-434",
+        "CWE-1275"
       ],
       "controls": [
         "6.2.4"

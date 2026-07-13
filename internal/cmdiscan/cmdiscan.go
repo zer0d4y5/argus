@@ -111,11 +111,13 @@ func (s *scanner) scanEndpoint(ctx context.Context, ep dastcrawl.Endpoint) []mod
 }
 
 // confirmation is a confirmed command injection: the technique that proved it,
-// the exact payload the parameter carried, and a plain-English proof line.
+// the exact payload the parameter carried, a plain-English proof line, and the
+// response body that demonstrated it.
 type confirmation struct {
 	technique string
 	payload   string
 	observed  string
+	response  string
 }
 
 // testParam returns the confirmation, or nil if the parameter is not injectable.
@@ -132,6 +134,7 @@ func (s *scanner) testParam(ctx context.Context, ep dastcrawl.Endpoint, base url
 				technique: "arithmetic",
 				payload:   payload,
 				observed:  fmt.Sprintf("A benign shell probe computing %d times %d returned %s in the response, a value the request itself never contains.", a, b, product),
+				response:  body,
 			}
 		}
 	}
@@ -145,12 +148,13 @@ func (s *scanner) testParam(ctx context.Context, ep dastcrawl.Endpoint, base url
 	}
 	for _, sep := range separators {
 		payload := orig + sep + fmt.Sprintf("sleep %d", sleepSeconds)
-		_, elapsed, err := s.send(ctx, ep, base, param, payload)
+		body, elapsed, err := s.send(ctx, ep, base, param, payload)
 		if err == nil && elapsed-control >= timingThreshold {
 			return &confirmation{
 				technique: "time-based",
 				payload:   payload,
 				observed:  fmt.Sprintf("A time-based probe delayed the response by at least %d seconds over a control request, which only a blind shell sleep explains.", sleepSeconds),
+				response:  body,
 			}
 		}
 	}
@@ -253,6 +257,9 @@ func finding(ep dastcrawl.Endpoint, base url.Values, param string, c confirmatio
 		Body:          body,
 		CookiePresent: cookiePresent,
 	}, param, c.observed)
+	if f.Proof != nil {
+		f.Proof.Response = poc.RedactResponse(c.response)
+	}
 	return f
 }
 

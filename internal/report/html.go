@@ -155,6 +155,8 @@ type fView struct {
 	// findings. All render as escaped text (html/template).
 	ProofRationale string
 	ProofCurl      string
+	ProofRequest   string
+	ProofResponse  string
 	ProofObserved  string
 	ImpactKind     string
 	ImpactSummary  string
@@ -192,6 +194,8 @@ func toView(f model.Finding, dispositions map[string]string) fView {
 	if p := f.Proof; p != nil {
 		v.ProofRationale = p.Rationale
 		v.ProofCurl = p.Curl
+		v.ProofRequest = p.Request
+		v.ProofResponse = p.Response
 		v.ProofObserved = p.Observed
 		if imp := p.Impact; imp != nil {
 			v.ImpactKind = imp.Kind
@@ -367,6 +371,8 @@ var htmlTemplate = template.Must(template.New("report").Parse(`<!doctype html>
         {{if .Remediation}}<div class="lbl">Remediation</div><div class="rem">{{.Remediation}}</div>{{end}}
         {{if .ProofRationale}}<div class="lbl">Proof of concept</div><div class="body">{{.ProofRationale}}</div>{{end}}
         {{if .ProofCurl}}<div class="lbl">Reproduce</div><div class="code">{{.ProofCurl}}</div>{{end}}
+        {{if .ProofRequest}}<div class="lbl">Request</div><div class="code">{{.ProofRequest}}</div>{{end}}
+        {{if .ProofResponse}}<div class="lbl">Response (auth headers redacted)</div><div class="code">{{.ProofResponse}}</div>{{end}}
         {{if .ProofObserved}}<div class="lbl">Observed</div><div class="body">{{.ProofObserved}}</div>{{end}}
         {{if .ImpactSummary}}<div class="impact"><div class="lbl">Bounded confirmation{{if .ImpactKind}} ({{.ImpactKind}}){{end}}</div><div class="body">{{.ImpactSummary}}</div>{{if .ImpactCommand}}<div class="body">probe: {{.ImpactCommand}}</div>{{end}}{{if .ImpactDetail}}<div class="code">{{.ImpactDetail}}</div>{{end}}</div>{{end}}
         {{if .CWECVE}}<div class="lbl">References</div><div class="body">{{.CWECVE}}</div>{{end}}

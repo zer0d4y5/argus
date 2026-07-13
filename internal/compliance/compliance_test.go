@@ -16,6 +16,36 @@ func iac(ruleID string) model.Finding {
 	return model.Finding{ID: "f2", Category: model.CategoryIaC, RuleID: ruleID}
 }
 
+func dast(cwes ...string) model.Finding {
+	return model.Finding{ID: "f3", Category: model.CategoryDAST, RuleID: "dast-rule", CWEs: cwes}
+}
+
+// TestDASTFindingsMapToControls guards that dynamic findings are in the
+// application-security frameworks' scope (ASVS/PCI): a DAST finding must map to
+// controls, not fall silently into the unmapped bucket.
+func TestDASTFindingsMapToControls(t *testing.T) {
+	cases := []struct {
+		name string
+		f    model.Finding
+		want string
+	}{
+		{"dast sqli", dast("CWE-89"), "ASVS:V5.3.4"},
+		{"dast cmdi", dast("CWE-78"), "PCI-DSS:6.2.4"},
+		{"dast xss", dast("CWE-79"), "ASVS:V5.3.3"},
+		{"session cookie samesite", dast("CWE-1275"), "ASVS:V3.4.3"},
+		{"file upload", dast("CWE-434"), "ASVS:V12.2.1"},
+		{"info disclosure", dast("CWE-200"), "ASVS:V14.3.2"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := mustMap(t, c.f)
+			if !contains(got, c.want) {
+				t.Errorf("DAST finding %s mapped to %v, want %s present", c.name, got, c.want)
+			}
+		})
+	}
+}
+
 func mustMap(t *testing.T, f model.Finding) []string {
 	t.Helper()
 	got, err := MapFinding(f)

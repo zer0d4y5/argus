@@ -162,6 +162,12 @@ func AttachToRaw(raw []model.RawFinding, bodies map[string]string, cookiePresent
 		class := ClassForCWEs(r.CWEs)
 		param := strings.TrimSpace(r.Meta["param"])
 		if class == "" || param == "" || strings.TrimSpace(r.URL) == "" {
+			// Not a reproduction-class finding. If it carries captured evidence
+			// (a nuclei finding with request/response), fold that into a Proof so
+			// every dynamic finding shows the exchange that produced it.
+			if p := proofFromEvidence(r.Evidence); p != nil {
+				r.Proof = p
+			}
 			continue
 		}
 		method := firstNonEmpty(r.Meta["method"], r.Meta["place"], "GET")
@@ -171,9 +177,54 @@ func AttachToRaw(raw []model.RawFinding, bodies map[string]string, cookiePresent
 			body = bodies[RequestKey(method, r.URL)]
 		}
 		req := Request{Method: method, URL: r.URL, Body: body, CookiePresent: cookiePresent}
-		r.Proof = Build(class, req, param, observedFromMeta(class, r.Meta))
+		p := Build(class, req, param, observedFromMeta(class, r.Meta))
+		// The subprocess engines do not expose a raw response; fold captured
+		// evidence's response in when present.
+		if p != nil && r.Evidence != nil && r.Evidence.Response != "" {
+			p.Response = RedactResponse(r.Evidence.Response)
+		}
+		r.Proof = p
 	}
 }
+
+// proofFromEvidence builds a minimal proof (request + response) from an engine's
+// captured evidence, for findings that are not one of the reproduction classes.
+func proofFromEvidence(e *model.Evidence) *model.Proof {
+	if e == nil || (e.Request == "" && e.Response == "") {
+		return nil
+	}
+	return &model.Proof{
+		Request:  e.Request,
+		Response: RedactResponse(e.Response),
+	}
+}
+
+// RedactResponse bounds a response body and scrubs any credential-bearing header
+// lines that appear in it (a response body normally has none; this is defense in
+// depth). The body itself is the evidence and is otherwise preserved.
+func RedactResponse(body string) string {
+	if body == "" {
+		return ""
+	}
+	lines := strings.Split(body, "\n")
+	for i, ln := range lines {
+		l := strings.ToLower(strings.TrimSpace(ln))
+		for _, h := range []string{"set-cookie:", "authorization:", "x-api-key:", "x-auth-token:", "cookie:"} {
+			if strings.HasPrefix(l, h) {
+				key := strings.SplitN(ln, ":", 2)[0]
+				lines[i] = key + ": [redacted]"
+				break
+			}
+		}
+	}
+	out := strings.Join(lines, "\n")
+	if len(out) > maxResponseBytes {
+		out = out[:maxResponseBytes] + "\n...[truncated]"
+	}
+	return out
+}
+
+const maxResponseBytes = 16 << 10
 
 // RequestKey is the bodies-map key for AttachToRaw: an uppercased method and the
 // URL.

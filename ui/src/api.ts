@@ -80,6 +80,7 @@ export interface Evidence {
 // plain-English reason. impact is present only when a bounded confirmation ran.
 export interface Proof {
   request?: string;
+  response?: string;
   curl?: string;
   observed?: string;
   rationale?: string;
