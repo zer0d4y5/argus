@@ -273,6 +273,17 @@ brute-forcer. The obtained session cookie is held in memory for the one scan
 and is never written to a finding, a saved run, a log, or a progress line
 (you will see `authenticated as "admin"`, never the cookie).
 
+### Auth-flow modeling
+
+While authenticating, Argus models the target's auth machinery from what it
+observes: the mechanism, whether the login form carries a CSRF token, and the
+session cookies the login sets, with their security flags. The cookie flags
+drive deterministic hardening findings: a session cookie without `HttpOnly`
+(readable by JavaScript, so exposed to XSS theft), without `Secure` over HTTPS
+(sendable in cleartext), or without `SameSite` (sent cross-site, widening CSRF
+exposure). These come for free on any authenticated scan and report on the
+cookie's name and flags only, never its value.
+
 ## Scope and tuning
 
 - `--templates`: comma-separated nuclei templates (files, directories, or

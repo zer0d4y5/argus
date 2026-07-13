@@ -28,6 +28,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+	"sync"
 )
 
 // maxLoginBody bounds how much of a login/verify page we read into memory.
@@ -80,6 +81,29 @@ type Session struct {
 	jar  http.CookieJar
 	base *url.URL
 	User string // the username that authenticated (safe to log; never the password)
+	// Model is what authentication observed about the target's auth machinery:
+	// the mechanism, whether a CSRF token was carried, and the session cookies
+	// set at login with their security flags. It never carries a cookie VALUE,
+	// only the name and flags.
+	Model AuthModel
+}
+
+// AuthModel is the recon view of a target's authentication flow. It is built
+// during login from what the target served, and drives the session-cookie
+// hardening findings.
+type AuthModel struct {
+	Mechanism  string       // e.g. "form-login"
+	LoginURL   string       // where the login form was submitted
+	CSRFField  string       // the login form's CSRF token field name ("" if none)
+	SetCookies []CookieInfo // cookies the login response set, with flags (no values)
+}
+
+// CookieInfo is a cookie's identity and security flags, never its value.
+type CookieInfo struct {
+	Name     string
+	HTTPOnly bool
+	Secure   bool
+	SameSite string // "Strict" | "Lax" | "None" | "" (unset)
 }
 
 // Client returns an http.Client that carries this session's cookies, borrowing
@@ -139,6 +163,11 @@ func Authenticate(ctx context.Context, client *http.Client, baseURL string, cfg 
 			return nil, fmt.Errorf("dastauth: cookie jar: %w", err)
 		}
 		cl := withJar(client, jar)
+		// Record Set-Cookie attributes across the whole login flow (form GET,
+		// submit, any redirect) so the auth model reflects the session cookies'
+		// real flags, which the jar strips.
+		rec := &cookieRecorder{rt: transportOf(cl), seen: map[string]*http.Cookie{}}
+		cl.Transport = rec
 
 		form, err := fetchLoginForm(ctx, cl, loginURL)
 		if err != nil {
@@ -152,7 +181,15 @@ func Authenticate(ctx context.Context, client *http.Client, baseURL string, cfg 
 		}
 		if authed, _ := isAuthenticated(ctx, cl, baseURL, cfg.SuccessMarker); authed {
 			progress(fmt.Sprintf("==> authenticated as %q\n", c.Username))
-			return &Session{jar: jar, base: base, User: c.Username}, nil
+			return &Session{
+				jar: jar, base: base, User: c.Username,
+				Model: AuthModel{
+					Mechanism:  "form-login",
+					LoginURL:   loginURL,
+					CSRFField:  csrfFieldName(form.fields),
+					SetCookies: cookieInfos(rec.cookies()),
+				},
+			}, nil
 		}
 	}
 	return nil, fmt.Errorf("dastauth: authentication failed: none of the %d credential(s) worked", len(cands))
@@ -167,6 +204,14 @@ func withJar(base *http.Client, jar http.CookieJar) *http.Client {
 		c.Transport = base.Transport
 	}
 	return c
+}
+
+// transportOf returns a client's transport, or the default when unset.
+func transportOf(c *http.Client) http.RoundTripper {
+	if c != nil && c.Transport != nil {
+		return c.Transport
+	}
+	return http.DefaultTransport
 }
 
 // loginForm is the parsed login form: where to POST, the field names, and any
@@ -224,9 +269,81 @@ func (f *loginForm) submit(ctx context.Context, cl *http.Client, c Credential) e
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	io.Copy(io.Discard, io.LimitReader(resp.Body, maxLoginBody))
-	resp.Body.Close()
 	return nil
+}
+
+// cookieRecorder wraps a RoundTripper and records the Set-Cookie entries from
+// every response (across redirects), keeping the full attributes the cookie jar
+// drops. It is used only during authentication to model the session cookies'
+// security flags; it never stores a value beyond the in-memory attempt.
+type cookieRecorder struct {
+	rt   http.RoundTripper
+	mu   sync.Mutex
+	seen map[string]*http.Cookie // by name, last wins
+}
+
+func (c *cookieRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := c.rt.RoundTrip(req)
+	if resp != nil {
+		c.mu.Lock()
+		for _, ck := range resp.Cookies() {
+			c.seen[ck.Name] = ck
+		}
+		c.mu.Unlock()
+	}
+	return resp, err
+}
+
+func (c *cookieRecorder) cookies() []*http.Cookie {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make([]*http.Cookie, 0, len(c.seen))
+	for _, ck := range c.seen {
+		out = append(out, ck)
+	}
+	return out
+}
+
+// csrfFieldName returns the name of the login form's CSRF token field, or "".
+func csrfFieldName(fields map[string]string) string {
+	for name := range fields {
+		l := strings.ToLower(name)
+		if strings.Contains(l, "csrf") || strings.Contains(l, "authenticity") ||
+			strings.Contains(l, "_token") || l == "token" || l == "nonce" {
+			return name
+		}
+	}
+	return ""
+}
+
+// cookieInfos maps captured Set-Cookie entries to their identity and flags,
+// dropping the value.
+func cookieInfos(cs []*http.Cookie) []CookieInfo {
+	out := make([]CookieInfo, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, CookieInfo{
+			Name:     c.Name,
+			HTTPOnly: c.HttpOnly,
+			Secure:   c.Secure,
+			SameSite: sameSiteLabel(c.SameSite),
+		})
+	}
+	return out
+}
+
+func sameSiteLabel(s http.SameSite) string {
+	switch s {
+	case http.SameSiteStrictMode:
+		return "Strict"
+	case http.SameSiteLaxMode:
+		return "Lax"
+	case http.SameSiteNoneMode:
+		return "None"
+	default:
+		return ""
+	}
 }
 
 // isAuthenticated GETs baseURL with the attempt's jar and decides whether the

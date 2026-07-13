@@ -96,6 +96,39 @@ func TestAuthenticateWithCSRFAndCredentials(t *testing.T) {
 	}
 }
 
+func TestAuthenticateCapturesAuthModel(t *testing.T) {
+	app := newFakeApp("admin", "s3cret")
+	srv := httptest.NewServer(app.handler())
+	defer srv.Close()
+
+	sess, err := Authenticate(context.Background(), srv.Client(), srv.URL+"/", Config{
+		Credentials: []Credential{{"admin", "s3cret"}},
+	}, nil)
+	if err != nil {
+		t.Fatalf("Authenticate: %v", err)
+	}
+	if sess.Model.Mechanism != "form-login" {
+		t.Errorf("mechanism = %q, want form-login", sess.Model.Mechanism)
+	}
+	if sess.Model.CSRFField != "token" {
+		t.Errorf("CSRFField = %q, want token", sess.Model.CSRFField)
+	}
+	// The app sets SESS with no security flags; the model must record it and its
+	// (absent) flags without carrying a value.
+	var sessCookie *CookieInfo
+	for i := range sess.Model.SetCookies {
+		if sess.Model.SetCookies[i].Name == "SESS" {
+			sessCookie = &sess.Model.SetCookies[i]
+		}
+	}
+	if sessCookie == nil {
+		t.Fatalf("SESS cookie not captured in the model: %+v", sess.Model.SetCookies)
+	}
+	if sessCookie.HTTPOnly || sessCookie.Secure || sessCookie.SameSite != "" {
+		t.Errorf("expected no flags on the fake cookie, got %+v", *sessCookie)
+	}
+}
+
 func TestAuthenticateFailsClosedOnBadCredentials(t *testing.T) {
 	app := newFakeApp("admin", "s3cret")
 	srv := httptest.NewServer(app.handler())
