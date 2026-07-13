@@ -191,6 +191,7 @@ func TestAuthzMatrix(t *testing.T) {
 		{"POST", "/api/cloud/remediations", 401, 403, pass, pass}, // list fixes: operator
 		{"POST", "/api/cloud/remediate", 401, 403, 403, pass},     // execute: admin
 		{"POST", "/api/confirm-impact", 401, 403, 403, pass},      // bounded confirmation: admin
+		{"POST", "/api/attack-path", 401, 403, pass, pass},        // AI attack-path analysis: operator
 		{"POST", "/api/dispositions", 401, 403, pass, pass},
 		{"POST", "/api/dispositions/bulk", 401, 403, pass, pass},
 		{"DELETE", "/api/dispositions/deadbeef", 401, 403, pass, pass},

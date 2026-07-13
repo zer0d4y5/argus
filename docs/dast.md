@@ -239,6 +239,18 @@ without causing a denial of service. Findings are CWE-770.
 argus dast https://api.example.com/graphql --graphql
 ```
 
+## AI attack-path analysis (console)
+
+After a dynamic scan, the console offers an on-demand **attack-path analysis**:
+the local model reasons over the run's confirmed findings and describes how an
+attacker could chain them into greater impact, plus what to verify next. It is
+advisory only. The model reads a sanitized class/location/severity view of each
+finding (never a response body, proof, or secret), produces analysis rather than
+payloads or exploit code, runs nothing, and the result is never persisted. It
+proposes; the operator confirms through the same scope-gated, benign machinery.
+It reuses the local-LLM seam (Ollama by default), fenced and validated like the
+explain and posture summaries.
+
 ## Client-side reverse-engineering (`--js-recon`)
 
 Link-following only finds the surface the app links to. Most of a modern app's
