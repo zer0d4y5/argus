@@ -154,13 +154,17 @@ func TestRedactResponseScrubsAndBounds(t *testing.T) {
 }
 
 func TestAttachToRawBridgesEvidenceToProof(t *testing.T) {
-	// A nuclei-style finding: no reproduction class, but captured evidence.
+	// A nuclei-style finding: no reproduction class, but captured evidence whose
+	// request carries a live cookie the bridge must scrub defensively.
 	raw := []model.RawFinding{{
 		Tool:     "nuclei",
 		Category: model.CategoryDAST,
 		URL:      "http://t/",
 		CWEs:     []string{"CWE-200"},
-		Evidence: &model.Evidence{Request: "GET / HTTP/1.1", Response: "HTTP/1.1 200 OK\n\nhi"},
+		Evidence: &model.Evidence{
+			Request:  "GET / HTTP/1.1\nCookie: SESSION=supersecret\nX-CSRF-Token: abc123\n",
+			Response: "HTTP/1.1 200 OK\n\nhi",
+		},
 	}}
 	AttachToRaw(raw, nil, false)
 	if raw[0].Proof == nil {
@@ -168,6 +172,9 @@ func TestAttachToRawBridgesEvidenceToProof(t *testing.T) {
 	}
 	if raw[0].Proof.Request == "" || raw[0].Proof.Response == "" {
 		t.Errorf("proof should carry request and response: %+v", raw[0].Proof)
+	}
+	if strings.Contains(raw[0].Proof.Request, "supersecret") || strings.Contains(raw[0].Proof.Request, "abc123") {
+		t.Errorf("bridged request must have credential headers scrubbed: %q", raw[0].Proof.Request)
 	}
 }
 

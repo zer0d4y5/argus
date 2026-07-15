@@ -89,6 +89,70 @@ func TestScanDetectsReflectedSSRF(t *testing.T) {
 	}
 }
 
+const fakeMetadataIndex = "ami-id\nami-launch-index\ninstance-id\ninstance-type\niam/\nlocal-ipv4\nreservation-id\nsecurity-groups/\n"
+
+func TestScanDetectsCloudMetadataSSRF(t *testing.T) {
+	l, err := NewListener()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	// A fake metadata service, and a vulnerable app that fetches the url param
+	// and reflects it. Point the engine's metadata URL at the fake for the test.
+	meta := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, fakeMetadataIndex)
+	}))
+	defer meta.Close()
+	old := cloudMetadataURL
+	cloudMetadataURL = meta.URL + "/latest/meta-data/"
+	defer func() { cloudMetadataURL = old }()
+
+	srv := httptest.NewServer(vulnApp(true))
+	defer srv.Close()
+
+	fs := Scan(context.Background(), srv.Client(), l, Options{
+		Endpoints:     []dastcrawl.Endpoint{{URL: srv.URL + "/?url=x", Method: "GET"}},
+		CloudMetadata: true,
+		CallbackWait:  200e6,
+	}, nil)
+	var found bool
+	for _, f := range fs {
+		if strings.Contains(f.RuleID, "cloud-metadata") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected a cloud-metadata SSRF finding, got %+v", fs)
+	}
+}
+
+// A page that ignores the url parameter and merely contains metadata-shaped
+// words must not be flagged: the signal is not induced by the injection.
+func TestScanNoCloudMetadataFalsePositive(t *testing.T) {
+	l, err := NewListener()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "cloud dashboard: instance-id i-1, instance-type t3, ami-id ami-9, local-ipv4 10.0.0.1, reservation-id r-2")
+	}))
+	defer srv.Close()
+
+	fs := Scan(context.Background(), srv.Client(), l, Options{
+		Endpoints:     []dastcrawl.Endpoint{{URL: srv.URL + "/?url=x", Method: "GET"}},
+		CloudMetadata: true,
+		CallbackWait:  200e6,
+	}, nil)
+	for _, f := range fs {
+		if strings.Contains(f.RuleID, "cloud-metadata") {
+			t.Errorf("a param-ignoring page with metadata words must not be flagged: %+v", f)
+		}
+	}
+}
+
 func TestScanNoFalsePositiveWhenNoFetch(t *testing.T) {
 	l, err := NewListener()
 	if err != nil {

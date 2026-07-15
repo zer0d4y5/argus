@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/zer0d4y5/argus/internal/dastcrawl"
@@ -17,12 +18,21 @@ import (
 // id to anyone (the BOLA vulnerability). Objects 1 belong to alice, 2 to bob.
 func docApp(enforce bool) http.HandlerFunc {
 	owner := map[string]string{"1": "alice", "2": "bob"}
+	known := map[string]bool{"alice": true, "bob": true}
 	body := map[string]string{"1": "SSN 111-11-1111 alice private record", "2": "SSN 222-22-2222 bob private record"}
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		who := ""
 		if c, err := r.Cookie("who"); err == nil {
 			who = c.Value
+		}
+		// Authentication is always required; only ownership is (optionally) not.
+		// This is what separates IDOR (broken object authz between logged-in
+		// users) from missing authentication (anyone can read).
+		if !known[who] {
+			w.WriteHeader(http.StatusUnauthorized)
+			io.WriteString(w, "login required")
+			return
 		}
 		if _, ok := body[id]; !ok {
 			http.NotFound(w, r)
@@ -54,7 +64,7 @@ func TestScanDetectsIDOR(t *testing.T) {
 	defer srv.Close()
 
 	// Endpoint references alice's object (id=1); bob is the second identity.
-	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), Options{
+	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), clientAs("anon"), Options{
 		Endpoints: []dastcrawl.Endpoint{{URL: srv.URL + "/doc?id=1", Method: "GET"}},
 	}, nil)
 
@@ -70,11 +80,54 @@ func TestScanDetectsIDOR(t *testing.T) {
 	}
 }
 
+// A POST endpoint must never be replayed or have its id mutated: re-sending it
+// as a second identity, or with an adjacent id, could change target state.
+func TestScanSkipsNonGETEndpoints(t *testing.T) {
+	var writes int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&writes, 1)
+		io.WriteString(w, "ok")
+	}))
+	defer srv.Close()
+
+	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), clientAs("anon"), Options{
+		Endpoints: []dastcrawl.Endpoint{{URL: srv.URL + "/api/transfer", Method: "POST", Body: "id=1&amount=5"}},
+	}, nil)
+	if len(fs) != 0 {
+		t.Errorf("POST endpoints must not be flagged: %+v", fs)
+	}
+	if n := atomic.LoadInt32(&writes); n != 0 {
+		t.Errorf("a state-changing POST endpoint must never be sent; got %d requests", n)
+	}
+}
+
+// A public resource that varies by id (readable without authentication) must not
+// be flagged as IDOR, even though two identities see the same object.
+func TestScanNoIDOROnPublicAuthlessResource(t *testing.T) {
+	body := map[string]string{"1": "public product one details page", "2": "public product two details page"}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// No authentication required at all: anyone reads any id.
+		if b, ok := body[r.URL.Query().Get("id")]; ok {
+			io.WriteString(w, b)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), clientAs("anon"), Options{
+		Endpoints: []dastcrawl.Endpoint{{URL: srv.URL + "/product?id=1", Method: "GET"}},
+	}, nil)
+	if len(fs) != 0 {
+		t.Errorf("a public, authless resource must not be flagged as IDOR: %+v", fs)
+	}
+}
+
 func TestScanNoIDORWhenAccessControlEnforced(t *testing.T) {
 	srv := httptest.NewServer(docApp(true)) // ownership enforced: not vulnerable
 	defer srv.Close()
 
-	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), Options{
+	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), clientAs("anon"), Options{
 		Endpoints: []dastcrawl.Endpoint{{URL: srv.URL + "/doc?id=1", Method: "GET"}},
 	}, nil)
 	if len(fs) != 0 {
@@ -89,7 +142,7 @@ func TestScanNoIDOROnPublicIdInvariantPage(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), Options{
+	fs := Scan(context.Background(), clientAs("alice"), clientAs("bob"), clientAs("anon"), Options{
 		Endpoints: []dastcrawl.Endpoint{{URL: srv.URL + "/page?id=1", Method: "GET"}},
 	}, nil)
 	if len(fs) != 0 {

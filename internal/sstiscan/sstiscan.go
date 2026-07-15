@@ -173,7 +173,7 @@ func finding(ep dastcrawl.Endpoint, base url.Values, param string, c confirmatio
 		Category:    model.CategoryDAST,
 		RuleID:      "ssti:" + strings.ToLower(method) + ":" + param,
 		Title:       "Server-Side Template Injection",
-		Description: fmt.Sprintf("Parameter %q (%s) is evaluated as a server-side template (%s), which commonly leads to remote code execution.", param, method, c.engine),
+		Description: fmt.Sprintf("Parameter %q (%s) is evaluated as a server-side template (%s), which commonly leads to remote code execution. Confirmed because the response returned the arithmetic result of an injected template expression; verify the sink is a template engine (rather than a dedicated math/formula feature) before rating it as RCE-capable.", param, method, c.engine),
 		RawSeverity: "critical",
 		URL:         ep.URL,
 		CWEs:        []string{"CWE-1336"},

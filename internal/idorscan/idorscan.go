@@ -37,8 +37,15 @@ type Options struct {
 
 // Scan replays each endpoint's object-reference parameters as identity B and
 // reports the ones where B reads identity A's object. clientA and clientB carry
-// the two identities' sessions.
-func Scan(ctx context.Context, clientA, clientB *http.Client, opts Options, progress func(string)) []model.RawFinding {
+// the two identities' sessions; clientAnon (may be nil) is an unauthenticated
+// client used to confirm the object is actually access-controlled before a
+// finding is raised, so a public resource that varies by id is not mistaken for
+// broken access control.
+//
+// Only idempotent (GET) endpoints are replayed: re-sending a POST as a second
+// identity, or mutating its id for the control request, could change target
+// state, which the non-destructive posture forbids.
+func Scan(ctx context.Context, clientA, clientB, clientAnon *http.Client, opts Options, progress func(string)) []model.RawFinding {
 	if progress == nil {
 		progress = func(string) {}
 	}
@@ -51,6 +58,9 @@ func Scan(ctx context.Context, clientA, clientB *http.Client, opts Options, prog
 	for _, ep := range opts.Endpoints {
 		if ctx.Err() != nil {
 			break
+		}
+		if ep.Method != "" && !strings.EqualFold(ep.Method, http.MethodGet) {
+			continue // read-only replay only; never re-send or mutate a state-changing request
 		}
 		names, base, err := paramsOf(ep)
 		if err != nil {
@@ -66,7 +76,7 @@ func Scan(ctx context.Context, clientA, clientB *http.Client, opts Options, prog
 				continue
 			}
 			tested++
-			if f, ok := testParam(ctx, clientA, clientB, ep, base, name, original); ok {
+			if f, ok := testParam(ctx, clientA, clientB, clientAnon, ep, base, name, original); ok {
 				key := f.RuleID + "\x00" + f.URL
 				if !seen[key] {
 					seen[key] = true
@@ -79,12 +89,20 @@ func Scan(ctx context.Context, clientA, clientB *http.Client, opts Options, prog
 	return out
 }
 
-func testParam(ctx context.Context, clientA, clientB *http.Client, ep dastcrawl.Endpoint, base url.Values, name, original string) (model.RawFinding, bool) {
+func testParam(ctx context.Context, clientA, clientB, clientAnon *http.Client, ep dastcrawl.Endpoint, base url.Values, name, original string) (model.RawFinding, bool) {
 	// A fetches its own object; B replays A's id; B fetches a different id as a
 	// control so a public, id-invariant page is not mistaken for IDOR.
 	bodyA, okA := get(ctx, clientA, ep, base, name, original)
 	if !okA || len(strings.TrimSpace(bodyA)) < minBodyForIDOR {
 		return model.RawFinding{}, false
+	}
+	// The object must be access-controlled: if an unauthenticated client gets the
+	// same content, it is public, not an IDOR. This also rejects a generic 200
+	// error/"not found" page served identically to everyone.
+	if clientAnon != nil {
+		if bodyAnon, okAnon := get(ctx, clientAnon, ep, base, name, original); okAnon && sameObject(bodyA, bodyAnon) {
+			return model.RawFinding{}, false // public resource, not broken access control
+		}
 	}
 	bodyBSame, okBSame := get(ctx, clientB, ep, base, name, original)
 	if !okBSame {

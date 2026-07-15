@@ -85,21 +85,29 @@ func testForm(ctx context.Context, client *http.Client, opts Options, form dastc
 		return model.RawFinding{}, false
 	}
 
-	storedURL, fetched, ok := confirmStored(ctx, client, opts.Headers, opts.BaseURL, form.Action, filename, marker, respBody)
+	storedURL, fetched, servedType, executable, ok := confirmStored(ctx, client, opts.Headers, opts.BaseURL, form.Action, filename, marker, respBody)
 	if !ok {
 		return model.RawFinding{}, false
 	}
 
+	// A file stored and served as a neutralized type (a download or plain text)
+	// is still an upload-restriction bypass, but a weaker path to code execution
+	// than one served so it could run. Reflect that honestly in severity/wording.
+	sev, exposure := "high", "The type restriction can be bypassed, which is the first step toward storing a web shell."
+	if !executable {
+		sev = "medium"
+		exposure = fmt.Sprintf("The type restriction can be bypassed, though the file is served as %q (a download or plain text), which limits direct code execution.", servedType)
+	}
 	f := model.RawFinding{
 		Tool:        "argus-upload",
 		Category:    model.CategoryDAST,
 		RuleID:      "unrestricted-upload:" + form.FileField,
 		Title:       "Unrestricted File Upload",
-		Description: fmt.Sprintf("The upload form field %q accepted a file with a disallowed type (a .php name), and the stored file was retrievable at %s. The type restriction can be bypassed, which is the first step toward storing a web shell.", form.FileField, storedURL),
-		RawSeverity: "high",
+		Description: fmt.Sprintf("The upload form field %q accepted a file with a disallowed type (a .php name), and the stored file was retrievable at %s. %s A benign marker file (argus-<token>.php) was left on the target; remove it after review.", form.FileField, storedURL, exposure),
+		RawSeverity: sev,
 		URL:         form.Action,
 		CWEs:        []string{"CWE-434"},
-		Meta:        map[string]string{"param": form.FileField, "method": "POST", "storedAt": storedURL},
+		Meta:        map[string]string{"param": form.FileField, "method": "POST", "storedAt": storedURL, "servedType": servedType, "artifact": filename},
 	}
 	f.Proof = poc.Build("upload", poc.Request{Method: "POST", URL: form.Action, CookiePresent: hasCookie(opts.Headers)}, form.FileField,
 		fmt.Sprintf("A benign file named %s was uploaded and then retrieved at %s with its marker intact, so the disallowed type was stored and served.", filename, storedURL))
@@ -163,7 +171,7 @@ func refreshFields(ctx context.Context, client *http.Client, headers []string, f
 	for k, v := range form.Fields {
 		out[k] = v
 	}
-	body, ok := fetch(ctx, client, headers, form.Action)
+	body, _, _, ok := fetch(ctx, client, headers, form.Action)
 	if !ok {
 		return out
 	}
@@ -210,56 +218,90 @@ func createImagePart(mw *multipart.Writer, field, filename string) (io.Writer, e
 // confirmStored tries to retrieve the uploaded file and confirm the marker is
 // served. It first mines the upload response for the stored path, then falls
 // back to common upload directories.
-func confirmStored(ctx context.Context, client *http.Client, headers []string, baseURL, action, filename, marker, respBody string) (storedURL, fetched string, ok bool) {
+func confirmStored(ctx context.Context, client *http.Client, headers []string, baseURL, action, filename, marker, respBody string) (storedURL, fetched, servedType string, executable, ok bool) {
 	base := action
 	if baseURL != "" {
 		base = baseURL
 	}
 	for _, cand := range candidatePaths(respBody, base, action, filename) {
-		body, ok := fetch(ctx, client, headers, cand)
+		body, ct, attach, ok := fetch(ctx, client, headers, cand)
 		if ok && strings.Contains(body, marker) {
-			return cand, body, true
+			return cand, body, ct, isExecutableServe(ct, attach), true
 		}
 	}
-	return "", "", false
+	return "", "", "", false, false
+}
+
+// isExecutableServe reports whether a stored file that is served with this
+// content-type could plausibly execute (rather than being neutralized as a
+// download or plain text). An unrestricted upload that is served as a download
+// or as text is a real bypass but a weaker path to code execution.
+func isExecutableServe(contentType string, attachment bool) bool {
+	if attachment {
+		return false
+	}
+	ct := strings.ToLower(contentType)
+	for _, neutral := range []string{"text/plain", "application/octet-stream", "application/download"} {
+		if strings.Contains(ct, neutral) {
+			return false
+		}
+	}
+	return true
 }
 
 // candidatePaths returns URLs that might serve the uploaded file: paths that
-// reference the filename in the response, then common upload directories.
+// reference the filename in the response, then common upload directories. Only
+// same-origin http(s) URLs are returned, so a hostile upload response cannot
+// steer the fetch-back to an attacker-controlled host.
 func candidatePaths(respBody, baseURL, action, filename string) []string {
+	actionURL, _ := url.Parse(action)
+	root, _ := url.Parse(baseURL)
+	allowedHost := ""
+	if actionURL != nil && actionURL.Host != "" {
+		allowedHost = actionURL.Host
+	} else if root != nil {
+		allowedHost = root.Host
+	}
+
 	seen := map[string]bool{}
 	var out []string
-	add := func(u string) {
-		if u != "" && !seen[u] {
-			seen[u] = true
-			out = append(out, u)
+	add := func(resolved *url.URL) {
+		if resolved == nil || (resolved.Scheme != "http" && resolved.Scheme != "https") {
+			return
+		}
+		if allowedHost != "" && resolved.Host != allowedHost {
+			return // same-origin only: never fetch an off-target host the response named
+		}
+		s := resolved.String()
+		if !seen[s] {
+			seen[s] = true
+			out = append(out, s)
 		}
 	}
 
-	actionURL, _ := url.Parse(action)
 	// 1. Paths in the response that end in the uploaded filename.
 	re := regexp.MustCompile(`[\w./~-]*` + regexp.QuoteMeta(filename))
 	for _, m := range re.FindAllString(respBody, 20) {
 		m = strings.TrimLeft(m, ".") // "../../x" -> resolve cleanly below
 		if ref, err := url.Parse(strings.TrimSpace(m)); err == nil && actionURL != nil {
-			add(actionURL.ResolveReference(ref).String())
+			add(actionURL.ResolveReference(ref))
 		}
 	}
 	// 2. Common upload directories relative to the target root.
-	if root, err := url.Parse(baseURL); err == nil {
+	if root != nil {
 		for _, dir := range commonUploadDirs {
 			if ref, err := url.Parse(dir + filename); err == nil {
-				add(root.ResolveReference(ref).String())
+				add(root.ResolveReference(ref))
 			}
 		}
 	}
 	return out
 }
 
-func fetch(ctx context.Context, client *http.Client, headers []string, u string) (string, bool) {
+func fetch(ctx context.Context, client *http.Client, headers []string, u string) (body, contentType string, attachment, ok bool) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return "", false
+		return "", "", false, false
 	}
 	for _, h := range headers {
 		if k, v, ok := splitHeader(h); ok {
@@ -268,14 +310,15 @@ func fetch(ctx context.Context, client *http.Client, headers []string, u string)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", false
+		return "", "", false, false
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", false
+		return "", "", false, false
 	}
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
-	return string(body), true
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
+	attach := strings.Contains(strings.ToLower(resp.Header.Get("Content-Disposition")), "attachment")
+	return string(b), resp.Header.Get("Content-Type"), attach, true
 }
 
 func newToken() string {

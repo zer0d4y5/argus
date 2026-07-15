@@ -101,3 +101,36 @@ func TestScanIgnoresNonGraphQL(t *testing.T) {
 		t.Errorf("non-GraphQL endpoints must be ignored: %+v", fs)
 	}
 }
+
+// A plain search form whose body merely contains the word "query" is NOT a
+// GraphQL endpoint and must not be probed.
+func TestScanIgnoresSearchFormWithQueryField(t *testing.T) {
+	if isGraphQLEndpoint(dastcrawl.Endpoint{URL: "http://t/api/search", Method: "POST", Body: "query=laptop"}) {
+		t.Error("a form-encoded query= param must not be classified as GraphQL")
+	}
+	if isGraphQLEndpoint(dastcrawl.Endpoint{URL: "http://t/api/x", Method: "POST", Body: `{"query":"laptop"}`}) {
+		t.Error("a JSON query with no selection set must not be classified as GraphQL")
+	}
+	if !isGraphQLEndpoint(dastcrawl.Endpoint{URL: "http://t/api/x", Method: "POST", Body: `{"query":"{__typename}"}`}) {
+		t.Error("a JSON query with a selection set should be GraphQL")
+	}
+}
+
+// An endpoint that echoes the posted body in an error must not be mistaken for
+// batching support or alias amplification.
+func TestScanNoFalsePositiveOnEcho(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		w.Header().Set("Content-Type", "application/json")
+		// Echo the request inside an error envelope (no data).
+		io.WriteString(w, `{"errors":[{"message":"rejected: `+strings.ReplaceAll(string(body), `"`, `'`)+`"}]}`)
+	}))
+	defer srv.Close()
+
+	fs := Scan(context.Background(), srv.Client(), Options{
+		Endpoints: []dastcrawl.Endpoint{{URL: srv.URL + "/graphql", Method: "POST", Body: `{"query":"{__typename}"}`}},
+	}, nil)
+	if len(fs) != 0 {
+		t.Errorf("an echoing/error endpoint must not be flagged: %+v", fs)
+	}
+}

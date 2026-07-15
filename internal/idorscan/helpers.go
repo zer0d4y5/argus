@@ -20,13 +20,23 @@ var idParamNames = []string{
 // looksLikeObjectRef reports whether a parameter is likely an object reference:
 // its name suggests one, or its value is a bare integer or a uuid/long-hex id.
 func looksLikeObjectRef(name, value string) bool {
+	// The value must be an id-shaped token AND the name must look like an object
+	// reference. Requiring both keeps pagination/config params (page, limit,
+	// offset, year, version) out of the replay, which would otherwise flood the
+	// results with false positives on public, id-varying lists.
+	if !valueIsRef(value) {
+		return false
+	}
 	l := strings.ToLower(strings.TrimSpace(name))
+	if strings.HasSuffix(l, "id") {
+		return true
+	}
 	for _, n := range idParamNames {
-		if l == n || strings.HasSuffix(l, "_"+n) || strings.HasSuffix(l, "id") {
-			return valueIsRef(value)
+		if l == n || strings.HasSuffix(l, "_"+n) {
+			return true
 		}
 	}
-	return valueIsRef(value)
+	return false
 }
 
 // valueIsRef reports whether a value looks like an object id worth replaying:
@@ -97,9 +107,13 @@ func mutateID(v string) string {
 	return string(r)
 }
 
-// sameObject reports whether two response bodies represent the same object:
-// identical after normalization, or highly similar (close length and a long
-// shared prefix), which tolerates a minor per-request token.
+// sameObject reports whether two response bodies represent the same object.
+// The bar is deliberately high: identical after normalization, or near-identical
+// with only a small contiguous middle difference (a per-request token or a
+// single field), measured by how much of the body the shared prefix AND suffix
+// cover. Two genuinely different objects diverge across the whole body and fall
+// well below the threshold, so shared page chrome cannot make them look "the
+// same object".
 func sameObject(a, b string) bool {
 	a, b = norm(a), norm(b)
 	if a == "" || b == "" {
@@ -113,10 +127,17 @@ func sameObject(a, b string) bool {
 	if lo > hi {
 		lo, hi = hi, lo
 	}
-	if float64(lo)/float64(hi) < 0.9 {
+	if float64(lo)/float64(hi) < 0.95 {
 		return false
 	}
-	return commonPrefixLen(a, b) >= (lo*8)/10
+	// The shared prefix and suffix together must cover almost the whole body,
+	// leaving only a small contiguous difference in the middle.
+	p := commonPrefixLen(a, b)
+	if p >= lo {
+		return true
+	}
+	s := commonSuffixLen(a, b, p)
+	return p+s >= (lo*95)/100
 }
 
 func norm(s string) string { return strings.Join(strings.Fields(s), " ") }
@@ -132,6 +153,21 @@ func commonPrefixLen(a, b string) int {
 		}
 	}
 	return n
+}
+
+// commonSuffixLen counts matching trailing bytes, not overlapping the prefix
+// already counted (so the two regions never double-count on short strings).
+func commonSuffixLen(a, b string, prefix int) int {
+	n := len(a)
+	if len(b) < n {
+		n = len(b)
+	}
+	max := n - prefix
+	s := 0
+	for s < max && a[len(a)-1-s] == b[len(b)-1-s] {
+		s++
+	}
+	return s
 }
 
 // requestTarget builds the (method, url, body) for a request that sets param to

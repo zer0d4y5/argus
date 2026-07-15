@@ -311,7 +311,10 @@ func RunDAST(ctx context.Context, opts DASTOptions, progress Progress) (DASTResu
 		}
 	}
 	if opts.IDOR && sessionB != nil && len(targets) > 0 {
-		if fs := runIDOR(ctx, authedClient(governed, session), authedClient(governedB, sessionB), targets, progress); len(fs) > 0 {
+		// clientAnon is the governed client with no session, so IDOR can confirm a
+		// finding is really access-controlled (an anonymous user cannot read it)
+		// before flagging, avoiding false positives on public id-varying content.
+		if fs := runIDOR(ctx, authedClient(governed, session), authedClient(governedB, sessionB), governed, targets, progress); len(fs) > 0 {
 			raw = append(raw, fs...)
 		}
 	}
@@ -725,9 +728,9 @@ func runFileUpload(ctx context.Context, client *http.Client, baseURL string, for
 	return uploadscan.Scan(ctx, client, uploadscan.Options{BaseURL: baseURL, Forms: forms, Headers: headers}, progress)
 }
 
-func runIDOR(ctx context.Context, clientA, clientB *http.Client, eps []dastcrawl.Endpoint, progress Progress) []model.RawFinding {
+func runIDOR(ctx context.Context, clientA, clientB, clientAnon *http.Client, eps []dastcrawl.Endpoint, progress Progress) []model.RawFinding {
 	progress(fmt.Sprintf("==> testing %d endpoint(s) for IDOR/BOLA across two identities\n", len(eps)))
-	return idorscan.Scan(ctx, clientA, clientB, idorscan.Options{Endpoints: eps}, progress)
+	return idorscan.Scan(ctx, clientA, clientB, clientAnon, idorscan.Options{Endpoints: eps}, progress)
 }
 
 func runGraphQL(ctx context.Context, client *http.Client, eps []dastcrawl.Endpoint, headers []string, progress Progress) []model.RawFinding {
