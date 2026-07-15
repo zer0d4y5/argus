@@ -24,8 +24,9 @@ import { Operate } from "./views/Operate";
 import { Admin } from "./views/Admin";
 import { Tickets } from "./views/Tickets";
 import { Threats } from "./views/Threats";
+import { Engagements } from "./views/Engagements";
 
-type Tab = "overview" | "findings" | "tickets" | "threats" | "runs" | "operate" | "admin";
+type Tab = "overview" | "findings" | "tickets" | "threats" | "runs" | "operate" | "engagements" | "admin";
 
 // One neutral chip for the role badge — it's identity, not urgency, so it
 // stays quiet and lets severity own the app's only saturated color.
@@ -424,6 +425,7 @@ export function App() {
     { id: "threats", label: "Threats" },
     { id: "runs", label: "Runs" },
     ...(opsEnabled ? [{ id: "operate" as Tab, label: "Operate" }] : []),
+    ...(opsEnabled ? [{ id: "engagements" as Tab, label: "Engagements" }] : []),
     ...(opsEnabled && role === "admin" ? [{ id: "admin" as Tab, label: "Admin" }] : []),
   ];
   const activeTab = tabs.some((t) => t.id === tab) ? tab : "overview";
@@ -670,6 +672,7 @@ export function App() {
         {activeTab === "tickets" && <Tickets canEdit={canLaunch} canDelete={role === "admin"} openItem={openItem} onOpenItemChange={setOpenItem} githubRepo={me?.githubRepo} />}
         {activeTab === "threats" && <Threats canEdit={canLaunch} canDelete={role === "admin"} target={activeTarget === ALL_TARGETS ? "" : activeTarget} />}
         {activeTab === "operate" && opsEnabled && <Operate canLaunch={canLaunch} onOpenRun={openRun} />}
+        {activeTab === "engagements" && opsEnabled && <Engagements canManage={role === "admin"} />}
         {activeTab === "admin" && role === "admin" && <Admin selfUsername={user?.username ?? ""} />}
       </main>
 

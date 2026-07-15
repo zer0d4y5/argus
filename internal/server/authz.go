@@ -66,6 +66,10 @@ var authzTable = []authzRule{
 	{http.MethodPost, "/api/cloud/remediate", auth.RoleAdmin, false},       // execute a curated fix (admin, config-gated)
 	{http.MethodPost, "/api/confirm-impact", auth.RoleAdmin, false},        // run bounded impact confirmation (admin; active exploitation, interlocked)
 	{http.MethodPost, "/api/attack-path", auth.RoleOperator, false},        // advisory AI attack-path analysis over a run (operator; never persisted)
+	{http.MethodGet, "/api/engagements", auth.RoleOperator, false},         // list engagements (reveals scope/authorization)
+	{http.MethodPost, "/api/engagements", auth.RoleAdmin, false},           // create an engagement (authorizes active testing)
+	{http.MethodGet, "/api/engagements/", auth.RoleAdmin, false},           // export the pentest report (findings + audit trail)
+	{http.MethodPost, "/api/engagements/", auth.RoleAdmin, false},          // activate an engagement
 	{http.MethodPost, "/api/dispositions", auth.RoleOperator, false},       // set finding workflow status
 	{http.MethodPost, "/api/dispositions/bulk", auth.RoleOperator, false},  // bulk apply/clear across a selection
 	{http.MethodDelete, "/api/dispositions/", auth.RoleOperator, false},    // clear to open

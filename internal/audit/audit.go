@@ -49,6 +49,7 @@ const (
 	EventCloudRemediate = "cloud.remediate" // admin dry-ran or applied a curated cloud fix
 	EventRuleAuthor     = "rule.author"     // admin drafted/tested/saved/deleted a custom semgrep rule
 	EventConfirmImpact  = "confirm.impact"  // admin ran bounded impact confirmation on a finding
+	EventEngagement     = "engagement"      // admin created/activated an engagement or exported its report
 )
 
 // Entry is one audit line.

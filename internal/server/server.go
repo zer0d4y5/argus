@@ -162,6 +162,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/validate", s.handleValidate)                                 // POST (operator): on-demand severity validation + CVSS
 	mux.HandleFunc("/api/confirm-impact", s.handleConfirmImpact)                       // POST (admin): bounded impact confirmation, interlocked + audited
 	mux.HandleFunc("/api/attack-path", s.handleAttackPath)                             // POST (operator): advisory AI attack-path analysis, never persisted
+	mux.HandleFunc("/api/engagements", s.handleEngagements)                            // GET list (operator), POST create (admin)
+	mux.HandleFunc("/api/engagements/", s.handleEngagementItem)                        // POST {id}/activate, GET {id}/report (admin)
 	mux.HandleFunc("/api/mitigations", s.handleMitigations)                           // GET (viewer): curated secure-coding guidance by CWE
 	mux.HandleFunc("/api/dispositions", s.handleDispositions)                         // POST (operator): set a finding's workflow status
 	mux.HandleFunc("/api/dispositions/bulk", s.handleDispositionsBulk)                // POST (operator): apply/clear across a selection

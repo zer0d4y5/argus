@@ -96,6 +96,19 @@ export interface ImpactProof {
 
 // AttackPathResponse is the advisory AI attack-path analysis of a run (never
 // persisted; reasons over confirmed findings, executes nothing).
+// Engagement is the authorization scope for active DAST testing.
+export interface Engagement {
+  id: string;
+  name: string;
+  authorizationRef: string;
+  contact?: string;
+  inScope: string[];
+  outOfScope?: string[];
+  confirm: boolean;
+  destructive: boolean;
+  active: boolean;
+}
+
 export interface AttackPathResponse {
   summary: string;
   chains: string[];
@@ -383,6 +396,7 @@ export const api = {
     if (targetId) q.set("target", targetId);
     return `api/runs/${encodeURIComponent(id)}/export?${q.toString()}`;
   },
+  engagementReportUrl: (id: string) => `api/engagements/${encodeURIComponent(id)}/report`,
   // Curated secure-coding guidance for a finding's CWEs. Resolves to null when
   // the library has nothing for them (a 404), so callers can hide the panel.
   mitigation: async (cwes: string[], lang?: string): Promise<Mitigation | null> => {
@@ -831,6 +845,13 @@ export const opsApi = {
 
   frameworks: (): Promise<FrameworksResponse> =>
     send<FrameworksResponse>("GET", "api/frameworks"),
+
+  engagements: (): Promise<{ engagements: Engagement[]; activeId: string }> =>
+    send<{ engagements: Engagement[]; activeId: string }>("GET", "api/engagements"),
+  createEngagement: (req: { name: string; inScope: string[]; outOfScope: string[]; authorizationRef: string; contact: string; allowConfirmation: boolean; activate: boolean }): Promise<Engagement> =>
+    send<Engagement>("POST", "api/engagements", req),
+  activateEngagement: (id: string): Promise<{ activeId: string }> =>
+    send<{ activeId: string }>("POST", `api/engagements/${encodeURIComponent(id)}/activate`, {}),
 
   explain: (req: { targetId?: string; runId: string; findingId: string }): Promise<ExplainResponse> =>
     send<ExplainResponse>("POST", "api/explain", req),

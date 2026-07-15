@@ -192,6 +192,10 @@ func TestAuthzMatrix(t *testing.T) {
 		{"POST", "/api/cloud/remediate", 401, 403, 403, pass},     // execute: admin
 		{"POST", "/api/confirm-impact", 401, 403, 403, pass},      // bounded confirmation: admin
 		{"POST", "/api/attack-path", 401, 403, pass, pass},        // AI attack-path analysis: operator
+		{"GET", "/api/engagements", 401, 403, pass, pass},         // list engagements: operator
+		{"POST", "/api/engagements", 401, 403, 403, pass},         // create engagement: admin
+		{"POST", "/api/engagements/e-1/activate", 401, 403, 403, pass}, // activate: admin
+		{"GET", "/api/engagements/e-1/report", 401, 403, 403, pass},    // report export: admin
 		{"POST", "/api/dispositions", 401, 403, pass, pass},
 		{"POST", "/api/dispositions/bulk", 401, 403, pass, pass},
 		{"DELETE", "/api/dispositions/deadbeef", 401, 403, pass, pass},
