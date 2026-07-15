@@ -19,11 +19,13 @@ const (
 	// callbackWait is how long to wait, after sending all probes, for the target
 	// to make an out-of-band callback (some SSRF fetches happen asynchronously).
 	callbackWait = 3 * time.Second
-	// cloudMetadataURL is the AWS instance metadata service, the canonical SSRF
-	// escalation target. Reachability is confirmed by a signature in the
-	// response; credentials are never requested.
-	cloudMetadataURL = "http://169.254.169.254/latest/meta-data/"
 )
+
+// cloudMetadataURL is the AWS instance metadata service, the canonical SSRF
+// escalation target. Reachability is confirmed by a signature in the response;
+// credentials are never requested. It is a var only so tests can point it at a
+// local fake metadata server.
+var cloudMetadataURL = "http://169.254.169.254/latest/meta-data/"
 
 // Options configure an SSRF scan.
 type Options struct {
@@ -79,20 +81,24 @@ func Scan(ctx context.Context, client *http.Client, listener *Listener, opts Opt
 			// Out-of-band callback probe (blind + in-band via the served marker).
 			token := listener.NewToken()
 			payload := listener.URLFor(token)
-			body, err := s.send(ctx, ep, base, p, payload)
-			if err == nil && strings.Contains(body, Marker(token)) {
-				if f, ok := dedup(seen, reflectedFinding(ep, base, p, payload, body, s.cookiePresent())); ok {
+			controlBody, err := s.send(ctx, ep, base, p, payload)
+			if err == nil && strings.Contains(controlBody, Marker(token)) {
+				if f, ok := dedup(seen, reflectedFinding(ep, base, p, payload, controlBody, s.cookiePresent())); ok {
 					out = append(out, f)
 				}
 			}
 			probes = append(probes, probe{token: token, ep: ep, base: base, param: p, payload: payload})
 
 			// Cloud-metadata reachability (in-band only): inject the metadata URL
-			// and look for a metadata signature in the response.
+			// and look for a metadata signature in the response. The signature
+			// must be INDUCED by this injection: it must appear in the metadata
+			// response but NOT in the callback-probe response (a benign URL), so a
+			// page that merely contains metadata-shaped words and ignores the
+			// parameter cannot false-positive.
 			if opts.CloudMetadata {
-				body, err := s.send(ctx, ep, base, p, cloudMetadataURL)
-				if err == nil && looksLikeCloudMetadata(body) {
-					if f, ok := dedup(seen, metadataFinding(ep, base, p, cloudMetadataURL, body, s.cookiePresent())); ok {
+				metaBody, err := s.send(ctx, ep, base, p, cloudMetadataURL)
+				if err == nil && looksLikeCloudMetadata(metaBody) && !looksLikeCloudMetadata(controlBody) {
+					if f, ok := dedup(seen, metadataFinding(ep, base, p, cloudMetadataURL, metaBody, s.cookiePresent())); ok {
 						out = append(out, f)
 					}
 				}
@@ -171,15 +177,22 @@ func (s *scanner) send(ctx context.Context, ep dastcrawl.Endpoint, base url.Valu
 
 // looksLikeCloudMetadata reports whether a response looks like the AWS metadata
 // service's index, using a conservative multi-signal signature so ordinary
-// content cannot masquerade as it. It never inspects credential paths.
+// content cannot masquerade as it. It never inspects credential paths. The
+// tokens are metadata-index-specific (the common word "hostname" is deliberately
+// excluded) and at least three must appear, which the real index (which lists a
+// dozen) satisfies but ordinary pages do not.
 func looksLikeCloudMetadata(body string) bool {
 	hits := 0
-	for _, sig := range []string{"ami-id", "instance-id", "instance-type", "hostname", "iam/", "local-ipv4"} {
+	for _, sig := range []string{
+		"ami-id", "ami-launch-index", "instance-id", "instance-type",
+		"iam/", "local-ipv4", "reservation-id", "security-groups",
+		"block-device-mapping/", "public-keys/",
+	} {
 		if strings.Contains(body, sig) {
 			hits++
 		}
 	}
-	return hits >= 2
+	return hits >= 3
 }
 
 func dedup(seen map[string]bool, f model.RawFinding) (model.RawFinding, bool) {

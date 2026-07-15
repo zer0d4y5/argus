@@ -175,7 +175,12 @@ func filterOperations(ops []dastcrawl.Endpoint, cap int) []dastcrawl.Endpoint {
 		if err != nil || u.Host == "" {
 			continue
 		}
-		if dastcrawl.IsAuthPath(u.Path) {
+		// Schema-recovered operations are not linked and the crawler never sees
+		// them, so this filter is load-bearing. A GET is safe to fuzz; anything
+		// that could change state on a sensitive surface (auth, account, MFA,
+		// tokens, password reset) is dropped, since fuzzing it could disrupt the
+		// account under test or lock the session out.
+		if dastcrawl.IsAuthPath(u.Path) || isSensitiveOperation(ep.Method, u.Path) {
 			continue
 		}
 		if dastcrawl.ChangesCredentials(paramNames(u, ep.Body)) {
@@ -189,6 +194,33 @@ func filterOperations(ops []dastcrawl.Endpoint, cap int) []dastcrawl.Endpoint {
 		out = append(out, ep)
 	}
 	return out
+}
+
+// sensitiveOpTokens name surfaces whose state-changing operations must never be
+// fuzzed from a schema (they could rotate a credential, disable MFA, or lock the
+// session out). A GET on these is still allowed (read-only); a body-bearing
+// method is not.
+var sensitiveOpTokens = []string{
+	"password", "passwd", "credential", "reset", "recover", "mfa", "2fa",
+	"otp", "email", "account", "session", "token", "apikey", "api-key",
+	"api_key", "verify", "activate", "deactivate", "disable", "enable",
+	"role", "permission", "privilege", "billing", "payment", "delete", "remove",
+}
+
+// isSensitiveOperation reports whether a schema operation is too sensitive to
+// fuzz. Read-only GETs are never sensitive; a state-changing method whose path
+// mentions a sensitive surface is.
+func isSensitiveOperation(method, path string) bool {
+	if strings.EqualFold(method, "GET") {
+		return false
+	}
+	l := strings.ToLower(path)
+	for _, t := range sensitiveOpTokens {
+		if strings.Contains(l, t) {
+			return true
+		}
+	}
+	return false
 }
 
 // paramNames collects the parameter names an operation carries, from the query

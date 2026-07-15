@@ -202,14 +202,15 @@ func proofFromEvidence(e *model.Evidence) *model.Proof {
 		return nil
 	}
 	return &model.Proof{
-		Request:  e.Request,
+		Request:  RedactResponse(e.Request), // scrub defensively; do not trust the evidence producer
 		Response: RedactResponse(e.Response),
 	}
 }
 
-// RedactResponse bounds a response body and scrubs any credential-bearing header
-// lines that appear in it (a response body normally has none; this is defense in
-// depth). The body itself is the evidence and is otherwise preserved.
+// RedactResponse bounds a captured HTTP request or response and scrubs any
+// credential-bearing header lines that appear in it (defense in depth: a
+// captured request may carry the session Cookie/Authorization it was sent with).
+// The body itself is the evidence and is otherwise preserved.
 func RedactResponse(body string) string {
 	if body == "" {
 		return ""
@@ -217,7 +218,7 @@ func RedactResponse(body string) string {
 	lines := strings.Split(body, "\n")
 	for i, ln := range lines {
 		l := strings.ToLower(strings.TrimSpace(ln))
-		for _, h := range []string{"set-cookie:", "authorization:", "x-api-key:", "x-auth-token:", "cookie:"} {
+		for _, h := range []string{"set-cookie:", "cookie:", "authorization:", "proxy-authorization:", "x-api-key:", "x-auth-token:", "x-csrf-token:"} {
 			if strings.HasPrefix(l, h) {
 				key := strings.SplitN(ln, ":", 2)[0]
 				lines[i] = key + ": [redacted]"

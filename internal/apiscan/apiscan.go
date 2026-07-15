@@ -9,6 +9,7 @@ package apiscan
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,7 @@ import (
 const (
 	maxBodyBytes = 256 << 10
 	aliasCount   = 100 // small enough to be benign, enough to reveal no complexity limit
+	maxEndpoints = 20  // cap the GraphQL endpoints probed, independent of crawl size
 )
 
 // Options configure an API scan.
@@ -58,20 +60,41 @@ func Scan(ctx context.Context, client *http.Client, opts Options, progress func(
 	return out
 }
 
-// graphqlEndpoints returns the endpoints that look like GraphQL: a URL path
-// mentioning graphql, or a POST body carrying a "query" field.
+// graphqlEndpoints returns the endpoints that look like GraphQL, capped so a
+// large crawl cannot make this scan unbounded.
 func graphqlEndpoints(eps []dastcrawl.Endpoint) []dastcrawl.Endpoint {
 	var out []dastcrawl.Endpoint
 	seen := map[string]bool{}
 	for _, ep := range eps {
-		isGQL := strings.Contains(strings.ToLower(ep.URL), "graphql") ||
-			(ep.Method == http.MethodPost && strings.Contains(ep.Body, "query"))
-		if isGQL && !seen[ep.URL] {
+		if len(out) >= maxEndpoints {
+			break
+		}
+		if isGraphQLEndpoint(ep) && !seen[ep.URL] {
 			seen[ep.URL] = true
 			out = append(out, ep)
 		}
 	}
 	return out
+}
+
+// isGraphQLEndpoint identifies a GraphQL endpoint conservatively: the URL path
+// mentions graphql, or the POST body is JSON with a top-level "query" whose
+// value carries a selection set ("{"). A plain form like query=laptop is NOT a
+// GraphQL endpoint and must not be probed.
+func isGraphQLEndpoint(ep dastcrawl.Endpoint) bool {
+	if strings.Contains(strings.ToLower(ep.URL), "graphql") {
+		return true
+	}
+	if ep.Method == http.MethodPost {
+		var m map[string]json.RawMessage
+		if json.Unmarshal([]byte(ep.Body), &m) == nil {
+			var q string
+			if json.Unmarshal(m["query"], &q) == nil && strings.Contains(q, "{") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func probe(ctx context.Context, client *http.Client, ep dastcrawl.Endpoint, headers []string) []model.RawFinding {
@@ -92,7 +115,7 @@ func probe(ctx context.Context, client *http.Client, ep dastcrawl.Endpoint, head
 	// Alias amplification: one field repeated under many aliases. Executing all
 	// of them means there is no query-complexity limit.
 	amp := aliasQuery(aliasCount)
-	if body, ok := postJSON(ctx, client, ep.URL, amp, headers); ok && countTypenames(body) >= aliasCount {
+	if body, ok := postJSON(ctx, client, ep.URL, amp, headers); ok && aliasResultCount(body) >= aliasCount {
 		out = append(out, finding(ep, headers,
 			"graphql-alias-amplification",
 			"GraphQL Alias-Based Amplification (no complexity limit)",
@@ -114,14 +137,50 @@ func aliasQuery(n int) string {
 	return b.String()
 }
 
+// isBatchedResult reports whether a response is a GraphQL batch result: a JSON
+// array of at least two operation results, each with a "data" envelope. Parsing
+// (rather than substring counting) prevents an endpoint that merely echoes the
+// request in an error from being mistaken for batching support.
 func isBatchedResult(body string) bool {
-	t := strings.TrimSpace(body)
-	// A batched response is a JSON array; require two data envelopes.
-	return strings.HasPrefix(t, "[") && strings.Count(t, "\"data\"") >= 2
+	var arr []map[string]json.RawMessage
+	if json.Unmarshal([]byte(body), &arr) != nil || len(arr) < 2 {
+		return false
+	}
+	for _, e := range arr {
+		if _, ok := e["data"]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
-func countTypenames(body string) int {
-	return strings.Count(body, "__typename") + strings.Count(body, "\"Query\"") + strings.Count(body, "\"query\"")
+// aliasResultCount counts the alias RESULT keys under the response's data
+// object (the a0..aN the amplification query requested), so a server that
+// rejects the query and echoes it back does not count as amplification, and a
+// server whose root type is not literally named "Query" is still detected.
+func aliasResultCount(body string) int {
+	var r struct {
+		Data map[string]json.RawMessage `json:"data"`
+	}
+	if json.Unmarshal([]byte(body), &r) != nil {
+		return 0
+	}
+	n := 0
+	for k := range r.Data {
+		if len(k) >= 2 && k[0] == 'a' && allDigits(k[1:]) {
+			n++
+		}
+	}
+	return n
+}
+
+func allDigits(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
 }
 
 func finding(ep dastcrawl.Endpoint, headers []string, rule, title, desc, req, resp, observed string) model.RawFinding {

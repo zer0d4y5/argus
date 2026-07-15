@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/zer0d4y5/argus/internal/dastcrawl"
 )
 
 const openapiDoc = `{
@@ -53,6 +55,28 @@ func TestOpenAPIOperations(t *testing.T) {
 		if strings.HasPrefix(k, "DELETE ") {
 			t.Errorf("DELETE operation must not be fuzzed: %s", k)
 		}
+	}
+}
+
+func TestFilterOperationsDropsSensitiveStateChanges(t *testing.T) {
+	ops := []dastcrawl.Endpoint{
+		{URL: "http://t/api/products/1", Method: "GET"},      // safe: keep
+		{URL: "http://t/api/account/email", Method: "PUT"},   // sensitive: drop
+		{URL: "http://t/reset-password", Method: "POST"},     // sensitive: drop
+		{URL: "http://t/api/mfa/disable", Method: "POST"},    // sensitive: drop
+		{URL: "http://t/api/users/1/roles", Method: "PATCH"}, // sensitive: drop
+		{URL: "http://t/api/account", Method: "GET"},         // read-only account: keep
+	}
+	out := filterOperations(ops, 200)
+	for _, ep := range out {
+		if ep.Method != "GET" && (strings.Contains(ep.URL, "account") || strings.Contains(ep.URL, "reset") ||
+			strings.Contains(ep.URL, "mfa") || strings.Contains(ep.URL, "roles")) {
+			t.Errorf("sensitive state-changing op must be dropped: %s %s", ep.Method, ep.URL)
+		}
+	}
+	// The safe GET operations survive.
+	if len(out) != 2 {
+		t.Errorf("expected the two safe GETs to survive, got %d: %+v", len(out), out)
 	}
 }
 

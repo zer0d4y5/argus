@@ -30,6 +30,11 @@ type openAPIOp struct {
 
 var pathParamRe = regexp.MustCompile(`\{[^/}]+\}`)
 
+// maxRawOperations bounds how many operations are materialized before the final
+// per-scan cap, so a document with hundreds of thousands of paths cannot force
+// excessive allocation and an O(n log n) sort.
+const maxRawOperations = 2000
+
 // parseOpenAPI validates that body is an OpenAPI/Swagger document with paths.
 func parseOpenAPI(body []byte) (openAPIDoc, bool) {
 	var doc openAPIDoc
@@ -53,6 +58,9 @@ func openAPIOperations(doc openAPIDoc, root string) []dastcrawl.Endpoint {
 	base := strings.TrimRight(basePath(doc), "/")
 	var out []dastcrawl.Endpoint
 	for rawPath, methods := range doc.Paths {
+		if len(out) >= maxRawOperations {
+			break // bound the work a hostile/huge document can force before the final cap
+		}
 		fullPath := base + templatePath(rawPath)
 		if !strings.HasPrefix(fullPath, "/") {
 			fullPath = "/" + fullPath
